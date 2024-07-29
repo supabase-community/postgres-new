@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# postgres-new
 
-## Getting Started
+In-browser Postgres sandbox with AI assistance. Built on Next.js.
 
-First, run the development server:
+## Development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. Install deps:
+   ```shell
+   npm i
+   ```
+2. Start local Supabase stack:
+   ```shell
+   npx supabase start
+   ```
+3. Store local Supabase URL/anon key in `.env.local`:
+   ```shell
+   npx supabase status -o env \
+     --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+     --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY |
+       grep NEXT_PUBLIC >> .env.local
+   ```
+4. Create an [OpenAI API key](https://platform.openai.com/api-keys) and save to `.env.local`:
+   ```shell
+   echo 'OPENAI_API_KEY="<openai-api-key>"' >> .env.local
+   ```
+5. Start Next.js development server:
+   ```shell
+   npm run dev
+   ```
