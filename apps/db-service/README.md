@@ -78,7 +78,7 @@ To simulate an environment closer to production, you can test the service with D
    psql "host=localhost port=5432 user=postgres"
    ```
 
-   > Note the very first time a DB is created will be very slow (`s3fs` writes are slow with than many file handles) so expect this to hang for a while. Subsequent requests will be much quicker. This is temporary anyway - in the future the DB will have to already exist in `/mnt/s3/dbs/<id>` in order to connect.
+   > Note the very first time a DB is created will be very slow (`s3fs` writes are slow with that many file handles) so expect this to hang for a while. Subsequent requests will be much quicker. This is temporary anyway - in the future the DB will have to already exist in `/mnt/s3/dbs/<id>` in order to connect.
 
    or to test a real database ID, add a loopback entry to your `/etc/hosts` file:
 
