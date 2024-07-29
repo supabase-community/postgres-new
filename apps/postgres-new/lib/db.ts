@@ -1,5 +1,5 @@
 import { PGlite, PGliteInterface, Transaction } from '@electric-sql/pglite'
-import { url } from '@electric-sql/pglite/vector'
+import { vector } from '@electric-sql/pglite/vector'
 import { codeBlock } from 'common-tags'
 
 export type Database = {
@@ -20,10 +20,9 @@ export async function getMetaDb() {
   }
 
   async function run() {
-    console.log({ url })
     const metaDb = new PGlite(`idb://meta`, {
       extensions: {
-        vector: url,
+        vector,
       },
     })
     await metaDb.waitReady
@@ -58,7 +57,7 @@ export async function getDb(id: string) {
 
     const db = new PGlite(`idb://${prefix}-${id}`, {
       extensions: {
-        vector: url,
+        vector,
       },
     })
     await db.waitReady
