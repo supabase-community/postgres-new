@@ -1,16 +1,19 @@
 import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { mkdir, readFile } from 'node:fs/promises'
 import net from 'node:net'
-import { PostgresConnection, TlsOptionsCallback, hashMd5Password } from 'pg-gateway'
+import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
 
-const tls: TlsOptionsCallback = async ({ sniServerName }) => {
-  // Optionally serve different certs based on `sniServerName`
-  // In this example we'll use a single wildcard cert for all servers (ie. *.db.example.com)
-  return {
-    key: await readFile('server-key.pem'),
-    cert: await readFile('server-cert.pem'),
-    ca: await readFile('ca-cert.pem'),
-  }
+const s3fsMount = process.env.S3FS_MOUNT ?? '.'
+const dbDir = `${s3fsMount}/dbs`
+const tlsDir = `${s3fsMount}/tls`
+
+await mkdir(dbDir, { recursive: true })
+await mkdir(tlsDir, { recursive: true })
+
+const tls: TlsOptions = {
+  key: await readFile(`${tlsDir}/key.pem`),
+  cert: await readFile(`${tlsDir}/cert.pem`),
+  ca: await readFile(`${tlsDir}/ca-cert.pem`),
 }
 
 function getIdFromServerName(serverName: string) {
@@ -58,9 +61,22 @@ const server = net.createServer((socket) => {
 
       const databaseId = getIdFromServerName(tlsInfo.sniServerName)
 
-      db = new PGlite(`./dbs/${databaseId}`)
+      console.log(`Serving database '${databaseId}'`)
+
+      db = new PGlite(`${dbDir}/${databaseId}`)
     },
     async onStartup() {
+      if (!db) {
+        console.log('PGlite instance undefined. Was onTlsUpgrade never called?')
+        connection.sendError({
+          severity: 'FATAL',
+          code: 'XX000',
+          message: `error loading database`,
+        })
+        connection.socket.end()
+        return true
+      }
+
       // Wait for PGlite to be ready before further processing
       await db.waitReady
       return false
@@ -82,13 +98,12 @@ const server = net.createServer((socket) => {
     },
   })
 
-  socket.on('end', () => {
+  socket.on('end', async () => {
     console.log('Client disconnected')
+    await db?.close()
   })
 })
 
 server.listen(5432, async () => {
   console.log('Server listening on port 5432')
-
-  await mkdir('./dbs', { recursive: true })
 })

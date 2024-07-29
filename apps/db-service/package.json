@@ -1,15 +1,18 @@
 {
   "name": "db-service",
+  "type": "module",
   "scripts": {
+    "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "build": "tsc -b",
     "generate:certs": "scripts/generate-certs.sh",
     "psql": "psql 'host=localhost port=5432 user=postgres sslmode=verify-ca sslrootcert=ca-cert.pem'"
   },
   "dependencies": {
-    "pg-gateway": "*"
+    "@electric-sql/pglite": "^0.2.0-alpha.3",
+    "pg-gateway": "^0.2.5-alpha.2"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "npm:@gregnr/pglite@0.2.0-dev.8",
     "@types/node": "^20.14.11",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
