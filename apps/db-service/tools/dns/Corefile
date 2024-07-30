@@ -1,8 +1,12 @@
 .:53 {
+    # Resolve all *.db.example.com to the db-service
     template IN ANY db.example.com {
         answer "{{ .Name }} 60 IN CNAME db-service"
     }
-    forward . 127.0.0.11  # Forward any other queries to Docker DNS
+
+    # Forward any other queries to Docker DNS
+    forward . 127.0.0.11
+    
     log
     errors
 }

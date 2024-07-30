@@ -13,7 +13,7 @@ It also requires TLS certs, since we use SNI to reverse proxy DB connections (eg
 
 ## Development
 
-### Without `s3fs`
+### Without `s3fs` (direct Node.js)
 
 If want to develop locally without dealing with containers or underlying storage:
 
@@ -46,13 +46,13 @@ If want to develop locally without dealing with containers or underlying storage
    psql "host=12345.db.example.com port=5432 user=postgres"
    ```
 
-### With `s3fs`
+### With `s3fs` and DNS tools (Docker)
 
-To simulate an environment closer to production, you can test the service with DBs backed by `s3fs` using Minio and Docker.
+To simulate an environment closer to production, you can test the service with DBs backed by `s3fs` using Minio and Docker. This approach also adds a local DNS server which forwards all wildcard DNS requests to `*.db.example.com` to the `db-service` so that you don't have to keep changing your `/etc/hosts` file.
 
-1. Start Minio as a local s3-compatible server:
+1. Start Minio (local s3-compatible server) and CoreDNS:
    ```shell
-   docker compose up -d minio
+   docker compose up -d minio dns
    ```
 1. Initialize test bucket:
    ```shell
@@ -75,24 +75,12 @@ To simulate an environment closer to production, you can test the service with D
 1. Connect to the server via `psql`:
 
    ```shell
-   psql "host=localhost port=5432 user=postgres"
+   npm run psql -- "host=12345.db.example.com port=5432 user=postgres"
    ```
+
+   This uses a wrapped version of `psql` that runs in a Docker container under the hood. We do this in order to resolve all `*.db.example.com` addresses to the `db-service`.
 
    > Note the very first time a DB is created will be very slow (`s3fs` writes are slow with that many file handles) so expect this to hang for a while. Subsequent requests will be much quicker. This is temporary anyway - in the future the DB will have to already exist in `/mnt/s3/dbs/<id>` in order to connect.
-
-   or to test a real database ID, add a loopback entry to your `/etc/hosts` file:
-
-   ```
-    # ...
-
-    127.0.0.1 12345.db.example.com
-   ```
-
-   and connect to that host:
-
-   ```shell
-   psql "host=12345.db.example.com port=5432 user=postgres"
-   ```
 
 To stop all Docker containers, run:
 
