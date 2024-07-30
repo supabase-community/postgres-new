@@ -99,3 +99,11 @@ To stop all Docker containers, run:
 ```shell
 docker compose down
 ```
+
+# Fly deployment
+
+```shell
+flyctl launch --org supabase-dev
+```
+
+In the browser, select "enable Tigris" and confirm.
