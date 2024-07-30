@@ -565,7 +565,7 @@ export default function Chat() {
             className="flex-grow border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400 resize-none"
             value={input}
             onChange={handleInputChange}
-            placeholder="Message AI"
+            placeholder="Message AI or write SQL"
             autoFocus
             rows={Math.min(input.split('\n').length, 10)}
             onKeyDown={(e) => {
