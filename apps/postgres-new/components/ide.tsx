@@ -127,7 +127,7 @@ export default function IDE({ children }: IDEProps) {
         </TabsContent>
       )}
       <TabsContent value="diagram" className="h-full">
-        <SchemaGraph databaseId={databaseId} schema="public" />
+        <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
       </TabsContent>
       <TabsContent value="migrations" className="h-full py-4 rounded-md bg-[#1e1e1e]">
         <Editor

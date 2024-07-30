@@ -22,19 +22,16 @@ import { TABLE_NODE_ROW_HEIGHT, TABLE_NODE_WIDTH, TableEdge, TableNode } from '.
 
 export default function TablesGraph({
   databaseId,
-  schema,
+  schemas,
 }: {
   databaseId: string
-  schema: string
+  schemas: string[]
 }) {
   const { resolvedTheme } = useTheme()
 
-  const {
-    data: tables,
-    error,
-    isError,
-    isLoading,
-  } = useTablesQuery({ databaseId, schemas: [schema] })
+  const { data: allTables, error, isError, isLoading } = useTablesQuery({ databaseId, schemas })
+
+  const tables = allTables?.filter((table) => table.schema === 'public')
 
   const isEmpty = tables && tables.length === 0
 
