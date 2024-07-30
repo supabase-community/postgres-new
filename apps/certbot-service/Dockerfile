@@ -27,15 +27,16 @@ RUN git clone https://github.com/s3fs-fuse/s3fs-fuse.git --branch v1.94 && \
   make && \
   make install
 
-# Final stage for app image
+# Final stage
 FROM base
 
 # Install dependencies
 RUN apk add --no-cache \
+  bash \
   fuse
 
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 
 ENTRYPOINT [ "./entrypoint.sh" ]
 
-CMD [ "./index.sh" ]
+CMD [ "./certbot.sh" ]
