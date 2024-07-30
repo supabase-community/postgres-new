@@ -44,7 +44,7 @@ export interface CodeBlockProps {
   hideLineNumbers?: boolean
   className?: string
   value?: string
-  children?: string
+  children?: string | string[]
   renderer?: SyntaxHighlighterProps['renderer']
 }
 
@@ -77,7 +77,13 @@ export const CodeBlock = ({
   const [singleChild] = childrenArray.length === 1 ? childrenArray : []
   const singleString = typeof singleChild === 'string' ? singleChild : undefined
 
-  let codeValue = value ?? singleString ?? children
+  let codeValue =
+    value ??
+    (typeof children === 'string'
+      ? children
+      : Array.isArray(children)
+        ? children.join('')
+        : undefined)
   codeValue = codeValue?.trimEnd?.() ?? codeValue
 
   // check the length of the string inside the <code> tag

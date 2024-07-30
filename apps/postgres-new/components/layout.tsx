@@ -26,6 +26,15 @@ import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { Database, getDb } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
+import { CodeBlock } from './code-block'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -153,7 +162,13 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
+
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false)
+
+  const [publishServerName, setPublishServerName] = useState<string>()
+  const [publishErrorMessage, setPublishErrorMessage] = useState<string>()
+
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
 
@@ -178,6 +193,51 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
         )}
       />
+      <Dialog
+        open={isPublishDialogOpen}
+        onOpenChange={(open) => {
+          setIsPublishDialogOpen(open)
+        }}
+      >
+        <DialogTrigger asChild></DialogTrigger>
+        <DialogContent>
+          {publishErrorMessage ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Publish failed</DialogTitle>
+                <DialogDescription>There was an error publishing your database.</DialogDescription>
+              </DialogHeader>
+              <p className="text-destructive">{publishErrorMessage}</p>
+            </>
+          ) : publishServerName ? (
+            <>
+              <DialogHeader className="gap-2">
+                <DialogTitle>Database published</DialogTitle>
+                <DialogDescription>
+                  Your database <strong>{database.name}</strong> has been published and is now
+                  accessible outside of the browser.
+                </DialogDescription>
+              </DialogHeader>
+              <CodeBlock className="language-curl" language="curl" hideLineNumbers>
+                psql -h {publishServerName} -U postgres
+              </CodeBlock>
+            </>
+          ) : (
+            <>
+              <DialogHeader className="gap-2">
+                <DialogTitle>Publishing database...</DialogTitle>
+                <DialogDescription>
+                  We&apos;re uploading your database <strong>{database.name}</strong> so that it can
+                  be accessed outside of the browser.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-center items-center">
+                <Loader className="animate-spin" size={48} strokeWidth={0.75} />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       <Popover
         onOpenChange={(open) => {
           setIsPopoverOpen(open)
@@ -250,6 +310,10 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                 onClick={async (e) => {
                   e.preventDefault()
+
+                  setIsPublishDialogOpen(true)
+                  setIsPopoverOpen(false)
+
                   if (!db) {
                     // TODO: show error;
                     return
@@ -260,7 +324,18 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     method: 'POST',
                     body: dump,
                   })
-                  console.log(response)
+
+                  type Result =
+                    | { success: true; data: { serverName: string } }
+                    | { success: false; error: string }
+
+                  const result: Result = await response.json()
+
+                  if (result.success) {
+                    setPublishServerName(result.data.serverName)
+                  } else {
+                    setPublishErrorMessage(result.error)
+                  }
                 }}
                 disabled={db === undefined}
               >

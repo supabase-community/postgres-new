@@ -62,6 +62,8 @@ RUN apt-get update && \
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 COPY --from=build-app /app /app
 
+EXPOSE 5432
+
 ENTRYPOINT [ "./entrypoint.sh" ]
 
 # Start the server by default, this can be overwritten at runtime

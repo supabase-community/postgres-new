@@ -4,6 +4,7 @@ services:
     build:
       context: .
     environment:
+      WILDCARD_DOMAIN: db.example.com
       S3FS_ENDPOINT: http://minio:9000
       S3FS_BUCKET: test
       S3FS_REGION: us-east-1 # default region for s3-compatible APIs
@@ -24,6 +25,7 @@ services:
     build:
       context: .
     environment:
+      DOMAIN: '*.db.example.com'
       S3FS_ENDPOINT: http://minio:9000
       S3FS_BUCKET: test
       S3FS_REGION: us-east-1 # default region for s3-compatible APIs
@@ -65,6 +67,9 @@ services:
   dns:
     build:
       context: ./tools/dns
+    environment:
+      WILDCARD_DOMAIN: db.example.com
+      SERVICE_NAME: db-service
     networks:
       default:
         ipv4_address: 172.20.0.10

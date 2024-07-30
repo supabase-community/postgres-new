@@ -1,7 +1,7 @@
 .:53 {
-    # Resolve all *.db.example.com to the db-service
-    template IN ANY db.example.com {
-        answer "{{ .Name }} 60 IN CNAME db-service"
+    # Resolve all wildcard domain requests to the db-service
+    template IN ANY {$WILDCARD_DOMAIN} {
+        answer "{{ .Name }} 60 IN CNAME {$SERVICE_NAME}"
     }
 
     # Forward any other queries to Docker DNS

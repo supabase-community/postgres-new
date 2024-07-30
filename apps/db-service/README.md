@@ -50,15 +50,11 @@ If want to develop locally without dealing with containers or underlying storage
 
 To simulate an environment closer to production, you can test the service with DBs backed by `s3fs` using Minio and Docker. This approach also adds a local DNS server which forwards all wildcard DNS requests to `*.db.example.com` to the `db-service` so that you don't have to keep changing your `/etc/hosts` file.
 
-1. Start Minio (local s3-compatible server) and CoreDNS:
+1. Start CoreDNS (handles local wildcard DNS) and Minio (local s3-compatible server):
    ```shell
-   docker compose up -d minio dns
+   docker compose up -d dns minio minio-init
    ```
-1. Initialize test bucket:
-   ```shell
-   docker compose up minio-init
-   ```
-   This will run to completion then exit.
+   `minio-init` initializes a test bucket. It will run to completion then exit.
 1. Initialize local TLS certs:
 
    ```shell

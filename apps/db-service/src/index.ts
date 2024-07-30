@@ -5,6 +5,7 @@ import net from 'node:net'
 import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
 
 const s3fsMount = process.env.S3FS_MOUNT ?? '.'
+const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 const dbDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
 
@@ -55,6 +56,16 @@ const server = net.createServer((socket) => {
           severity: 'FATAL',
           code: '08000',
           message: `ssl sni extension required`,
+        })
+        connection.socket.end()
+        return
+      }
+
+      if (!tlsInfo.sniServerName.endsWith(wildcardDomain)) {
+        connection.sendError({
+          severity: 'FATAL',
+          code: '08000',
+          message: `unknown server ${tlsInfo.sniServerName}`,
         })
         connection.socket.end()
         return

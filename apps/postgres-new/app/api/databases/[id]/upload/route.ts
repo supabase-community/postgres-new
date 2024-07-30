@@ -3,6 +3,8 @@ import { Upload } from '@aws-sdk/lib-storage'
 import { NextRequest } from 'next/server'
 import { entries } from 'streaming-tar'
 
+const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
+
 // The credentials are read from the environment automatically
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
 
@@ -11,7 +13,15 @@ const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyl
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   if (!req.body) {
-    return new Response(JSON.stringify({ error: 'Missing request body' }), { status: 400 })
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Missing request body',
+      }),
+      {
+        status: 400,
+      }
+    )
   }
 
   const databaseId = params.id
@@ -36,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         break
       }
       case 'directory': {
-        // Directories end in '/' and have no body
+        // Directories end in '/' and have an empty body
         upload = new Upload({
           client: s3Client,
           params: {
@@ -45,6 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             Body: new Uint8Array(),
           },
         })
+        await entry.skip()
         break
       }
       default: {
@@ -57,5 +68,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   await Promise.all(uploads)
 
-  return new Response(null, { status: 204 })
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data: {
+        serverName: `${databaseId}.${wildcardDomain}`,
+      },
+    }),
+    { headers: { 'content-type': 'application/json' } }
+  )
 }
