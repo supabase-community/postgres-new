@@ -13,6 +13,7 @@ import {
   PackagePlus,
   Pencil,
   Trash2,
+  Upload,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -22,7 +23,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { Database } from '~/lib/db'
+import { Database, getDb } from '~/lib/db'
+import { useAsyncMemo } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
@@ -155,6 +157,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
 
+  const { value: db } = useAsyncMemo(() => getDb(database.id), [database])
+
   const [isRenaming, setIsRenaming] = useState(false)
 
   return (
@@ -241,6 +245,28 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
 
                 <span>Rename</span>
+              </Button>
+              <Button
+                className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                onClick={async (e) => {
+                  e.preventDefault()
+                  if (!db) {
+                    // TODO: show error;
+                    return
+                  }
+
+                  const dump = await db.dumpDataDir()
+                  const response = await fetch(`/api/databases/${database.id}/upload`, {
+                    method: 'POST',
+                    body: dump,
+                  })
+                  console.log(response)
+                }}
+                disabled={db === undefined}
+              >
+                <Upload size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                <span>Publish</span>
               </Button>
               <Button
                 className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"

@@ -6,7 +6,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "generate:certs": "scripts/generate-certs.sh",
-    "psql": "psql 'host=localhost port=5432 user=postgres sslmode=verify-ca sslrootcert=ca-cert.pem'"
+    "psql": "docker compose run --rm -i psql psql"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.0-alpha.3",

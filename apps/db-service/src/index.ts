@@ -1,4 +1,5 @@
 import { PGlite, PGliteInterface } from '@electric-sql/pglite'
+import { vector } from '@electric-sql/pglite/vector'
 import { mkdir, readFile } from 'node:fs/promises'
 import net from 'node:net'
 import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
@@ -63,7 +64,11 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      db = new PGlite(`${dbDir}/${databaseId}`)
+      db = new PGlite(`${dbDir}/${databaseId}`, {
+        extensions: {
+          vector,
+        },
+      })
     },
     async onStartup() {
       if (!db) {

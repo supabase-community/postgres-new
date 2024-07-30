@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.21",
+    "@aws-sdk/client-s3": "^3.620.1",
+    "@aws-sdk/lib-storage": "^3.620.1",
     "@dagrejs/dagre": "^1.1.2",
     "@electric-sql/pglite": "^0.2.0-alpha.3",
     "@gregnr/postgres-meta": "^0.82.0-dev.2",
@@ -49,6 +51,7 @@
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
     "sql-formatter": "^15.3.1",
+    "streaming-tar": "npm:@gregnr/streaming-tar@0.1.2-alpha.1",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"

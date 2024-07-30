@@ -45,7 +45,8 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
       - 9000:9000
-    command: server /data
+      - 9001:9001
+    command: server /data --console-address ":9001"
     healthcheck:
       test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
       interval: 5s
@@ -61,3 +62,22 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+  dns:
+    build:
+      context: ./tools/dns
+    networks:
+      default:
+        ipv4_address: 172.20.0.10
+  psql:
+    image: postgres:16
+    depends_on:
+      - dns
+    dns:
+      - 172.20.0.10
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
