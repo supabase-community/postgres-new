@@ -13,7 +13,6 @@ await mkdir(tlsDir, { recursive: true })
 const tls: TlsOptions = {
   key: await readFile(`${tlsDir}/key.pem`),
   cert: await readFile(`${tlsDir}/cert.pem`),
-  ca: await readFile(`${tlsDir}/ca-cert.pem`),
 }
 
 function getIdFromServerName(serverName: string) {

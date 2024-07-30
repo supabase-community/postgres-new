@@ -16,3 +16,9 @@ openssl genpkey -algorithm RSA -out key.pem
 openssl req -new -key key.pem -out csr.pem -subj "/CN=*.db.example.com"
 
 openssl x509 -req -in csr.pem -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out cert.pem -days 365
+
+# Create fullchain by concatenating the server certificate and the CA certificate
+cat cert.pem ca-cert.pem > fullchain.pem
+
+# Replace cert.pem with the fullchain
+mv fullchain.pem cert.pem
