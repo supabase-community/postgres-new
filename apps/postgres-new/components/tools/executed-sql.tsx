@@ -27,7 +27,14 @@ export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
   }
 
   if (!toolInvocation.result.success) {
-    return <div className="bg-destructive-300 px-6 py-4 rounded-md">Error executing SQL</div>
+    return (
+      <CodeAccordion
+        title="Error executing SQL"
+        language="sql"
+        code={formattedSql}
+        error={toolInvocation.result.error}
+      />
+    )
   }
 
   return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql} />

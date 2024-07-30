@@ -12,14 +12,26 @@ export type CodeAccordionProps = {
   title: string
   language: 'sql'
   code: string
+  error?: string
+  className?: string
 }
 
-export default function CodeAccordion({ title, language, code }: CodeAccordionProps) {
+export default function CodeAccordion({
+  title,
+  language,
+  code,
+  error,
+  className,
+}: CodeAccordionProps) {
   return (
     <Accordion type="single" collapsible>
       <AccordionItem
         value="item-1"
-        className="border-2 border-neutral-100 bg-neutral-50 px-3 py-2 rounded-md"
+        className={cn(
+          'border-2 border-neutral-100 bg-neutral-50 px-3 py-2 rounded-md',
+          error ? 'bg-destructive-300' : undefined,
+          className
+        )}
       >
         <AccordionTrigger className="p-0 gap-2">
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
@@ -27,7 +39,7 @@ export default function CodeAccordion({ title, language, code }: CodeAccordionPr
             {title}
           </div>
         </AccordionTrigger>
-        <AccordionContent className="py-2 [&_>div]:pb-0">
+        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2">
           <CodeBlock
             className={cn(`language-${language}`, 'border-none px-0 pb-4 !bg-inherit')}
             hideLineNumbers
@@ -35,6 +47,7 @@ export default function CodeAccordion({ title, language, code }: CodeAccordionPr
           >
             {code}
           </CodeBlock>
+          {error && <div className="text-destructive-600 text-xs">{error}</div>}
         </AccordionContent>
       </AccordionItem>
     </Accordion>
