@@ -83,7 +83,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   const queryKey = ['local-storage', key]
 
   const currentValue =
-    typeof window !== 'undefined' ? window.localStorage.getItem(key) ?? undefined : undefined
+    typeof window !== 'undefined' ? (window.localStorage.getItem(key) ?? undefined) : undefined
 
   const { data: storedValue = currentValue ? (JSON.parse(currentValue) as T) : initialValue } =
     useQuery({
