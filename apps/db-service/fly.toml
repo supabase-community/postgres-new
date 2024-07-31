@@ -13,7 +13,7 @@ internal_port = 5432
 protocol = "tcp"
 auto_stop_machines = true
 auto_start_machines = true
-min_machines_running = 1
+min_machines_running = 0
 
 [[services.ports]]
 port = 5432
