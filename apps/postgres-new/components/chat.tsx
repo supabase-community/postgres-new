@@ -37,6 +37,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
       content: '',
       toolInvocations: [
         {
+          state: 'result',
           toolCallId: generateId(),
           toolName: 'getDatabaseSchema',
           args: {},
@@ -216,6 +217,7 @@ export default function Chat() {
         content: '',
         toolInvocations: [
           {
+            state: 'result',
             toolCallId: generateId(),
             toolName: 'requestCsv',
             args: {},

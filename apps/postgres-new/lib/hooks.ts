@@ -48,6 +48,7 @@ export function useReportSuggestions({ enabled = true }: UseReportSuggestionsOpt
           content: '',
           toolInvocations: [
             {
+              state: 'result',
               toolCallId: generateId(),
               toolName: 'getDatabaseSchema',
               args: {},
