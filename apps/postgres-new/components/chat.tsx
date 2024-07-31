@@ -21,7 +21,7 @@ import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
 import { TablesData } from '~/data/tables/tables-query'
 import { saveFile } from '~/lib/files'
-import { useAutoScroll, useReportSuggestions } from '~/lib/hooks'
+import { useAutoScroll } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
 import ChatMessage from './chat-message'
@@ -188,9 +188,6 @@ export default function Chat() {
     appendMessage,
     stopReply,
   } = useWorkspace()
-
-  const [brainstormIdeas] = useState(false) // temporarily turn off for now
-  const { reports } = useReportSuggestions({ enabled: brainstormIdeas })
 
   const { input, setInput, handleInputChange, isLoading } = useChat({
     id: databaseId,
@@ -406,74 +403,6 @@ export default function Chat() {
             >
               What would you like to create?
             </m.h3>
-            <div>
-              {brainstormIdeas && (
-                <>
-                  {reports ? (
-                    <m.div
-                      className="flex flex-row gap-6 flex-wrap justify-center items-start"
-                      variants={{
-                        show: {
-                          transition: {
-                            staggerChildren: 0.05,
-                          },
-                        },
-                      }}
-                      initial="hidden"
-                      animate="show"
-                    >
-                      {reports.map((report) => (
-                        <m.div
-                          key={report.name}
-                          layoutId={`report-suggestion-${report.name}`}
-                          className="w-64 h-32 flex flex-col overflow-ellipsis rounded-md cursor-pointer"
-                          onMouseDown={() =>
-                            appendMessage({ role: 'user', content: report.description })
-                          }
-                          variants={{
-                            hidden: { scale: 0 },
-                            show: { scale: 1 },
-                          }}
-                        >
-                          <div className="p-4 bg-neutral-200 text-sm rounded-t-md text-neutral-600 font-bold text-center">
-                            {report.name}
-                          </div>
-                          <div className="flex-1 p-4 flex flex-col justify-center border border-neutral-200 text-neutral-500 text-xs font-normal italic rounded-b-md text-center overflow-hidden">
-                            {report.description}
-                          </div>
-                        </m.div>
-                      ))}
-                    </m.div>
-                  ) : (
-                    <m.div
-                      className="flex flex-row gap-4 justify-center items-center"
-                      variants={{
-                        hidden: {
-                          opacity: 0,
-                          y: -10,
-                        },
-                        show: {
-                          opacity: 1,
-                          y: 0,
-                          transition: {
-                            delay: 0.5,
-                          },
-                        },
-                      }}
-                      initial="hidden"
-                      animate="show"
-                    >
-                      <m.div layoutId="ai-loading-icon">
-                        <AiIconAnimation loading />
-                      </m.div>
-                      <h3 className="text-lg italic font-light text-neutral-500">
-                        Brainstorming some ideas
-                      </h3>
-                    </m.div>
-                  )}
-                </>
-              )}
-            </div>
           </div>
         )}
         <AnimatePresence>
