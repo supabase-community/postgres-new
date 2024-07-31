@@ -2,16 +2,28 @@
 
 This service is responsible for managing the certificates for the PGLite instances.
 
-Let's Encrypt certificates are valid for 90 days.
+It uses `fly machine run --schedule weekly` to wake up the service every week to renew the certificates if needed. Let's Encrypt certificates are valid for 90 days.
 
-It uses `fly machine run --schedule monthly` to wake up the service every month to renew the certificates.
+## Testing certbot-service locally
 
-We use the `--dns-cloudflare` plugin to renew the certificates.
+Copy `.env.example` to `.env` and set the missing environment variables.
 
-## Testing certbot
+Start minio to emulate the S3 service:
 
 ```shell
-docker run -it --rm --name certbot certbot/dns-cloudflare \
-certonly -d postgres.new --email hi@jgoux.dev --agree-tos --non-interactive \
---dns-cloudflare
+docker compose up -d minio    
 ```
+
+Initialize the bucket:
+
+```shell
+docker compose up minio-init
+```
+
+Build and run the certbot service:
+
+```shell
+docker compose up --build certbot-service
+```
+
+The certificates will be generated in `/mnt/s3/tls`.
