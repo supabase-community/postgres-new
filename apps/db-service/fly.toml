@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for postgres-new-dev on 2024-07-30T14:41:46+02:00
+# fly.toml app configuration file generated for postgres-new-dev on 2024-07-26T16:50:03-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -8,18 +8,22 @@ primary_region = 'yyz'
 
 [build]
 
-[env]
-  S3FS_MOUNT = '/mnt/s3'
+[[services]]
+internal_port = 5432
+protocol = "tcp"
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 1
 
-[http_service]
-  internal_port = 3000
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+[[services.ports]]
+port = 5432
+
+[services.concurrency]
+type = "connections"
+hard_limit = 25
+soft_limit = 20
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
