@@ -32,7 +32,8 @@ else
 fi
 
 # cloudflare.ini ######################
-echo "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN" > /cloudflare.ini
+echo "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN" > /app/cloudflare.ini
+chmod 600 /app/cloudflare.ini
 
 # Execute the original command
 "$@" &

@@ -2,30 +2,31 @@
 
 set -euo pipefail
 
-DOMAIN="db.postgres.new"
-EMAIL="julien@supabase.io"
-CLOUD_FLARE_INI="/cloudflare.ini"
-DEPLOY_HOOK="/deploy-hook.sh"
-CERT_PATH="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+CONFIG_DIR="${S3FS_MOUNT}/tls/letsencrypt"
+CERT_PATH="${CONFIG_DIR}/live/${CERTBOT_DOMAIN}/fullchain.pem"
+CLOUD_FLARE_INI="/app/cloudflare.ini"
+DEPLOY_HOOK="/app/deploy-hook.sh"
 
 renew_certificate() {
     echo "Certificates exist. Renewing..."
     certbot renew --non-interactive \
         --dns-cloudflare \
         --dns-cloudflare-credentials "${CLOUD_FLARE_INI}" \
-        --deploy-hook "${DEPLOY_HOOK}"
+        --deploy-hook "${DEPLOY_HOOK}" \
+        --config-dir "${CONFIG_DIR}"
 }
 
 create_certificate() {
     echo "Certificates do not exist. Creating..."
     certbot certonly --non-interactive \
         --agree-tos \
-        --email "${EMAIL}" \
+        --email "${CERTBOT_EMAIL}" \
         --dns-cloudflare \
         --dns-cloudflare-credentials "${CLOUD_FLARE_INI}" \
         --dns-cloudflare-propagation-seconds 60 \
-        -d "*.${DOMAIN}" \
-        --deploy-hook "${DEPLOY_HOOK}"
+        -d "*.${CERTBOT_DOMAIN}" \
+        --deploy-hook "${DEPLOY_HOOK}" \
+        --config-dir "${CONFIG_DIR}"
 }
 
 main() {

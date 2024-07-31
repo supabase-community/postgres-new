@@ -4,8 +4,7 @@
 ARG CERTBOT_VERSION=2.11.0
 FROM certbot/dns-cloudflare:v${CERTBOT_VERSION} as base
 
-# Set production environment
-# ENV NODE_ENV=production
+WORKDIR /app
 
 # Build S3FS
 FROM base as build-s3fs
@@ -33,9 +32,15 @@ FROM base
 # Install dependencies
 RUN apk add --no-cache \
   bash \
-  fuse
+  curl \
+  fuse \
+  libxml2
 
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
+COPY certbot.sh deploy-hook.sh entrypoint.sh /app/
+
+RUN chmod +x certbot.sh
+RUN chmod +x deploy-hook.sh
 
 ENTRYPOINT [ "./entrypoint.sh" ]
 
