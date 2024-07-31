@@ -5,7 +5,19 @@ import { FeatureExtractionPipelineOptions, pipeline } from '@xenova/transformers
 import { generateId } from 'ai'
 import { Chart } from 'chart.js'
 import { codeBlock } from 'common-tags'
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  cloneElement,
+  Dispatch,
+  isValidElement,
+  ReactNode,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { getDb } from './db'
@@ -467,4 +479,137 @@ const embedPromise = pipeline('feature-extraction', 'supabase/gte-small', {
 export async function embed(texts: string | string[], options?: FeatureExtractionPipelineOptions) {
   const embedFn = await embedPromise
   return embedFn(texts, options)
+}
+
+export type UseDropZoneOptions = {
+  onDrop?(files: File[]): void
+  cursorElement?: ReactNode
+}
+
+export function useDropZone<T extends HTMLElement>({
+  onDrop,
+  cursorElement,
+}: UseDropZoneOptions = {}) {
+  const [element, setElement] = useState<T>()
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+
+  const ref = useCallback((element: T | null) => {
+    setElement(element ?? undefined)
+  }, [])
+
+  const cursorRef = useRef<HTMLElement>(null)
+
+  const cursor = useMemo(() => {
+    if (!isDraggingOver) {
+      return undefined
+    }
+
+    const clonedCursor =
+      cursorElement && isValidElement<any>(cursorElement)
+        ? cloneElement(cursorElement, {
+            ref: cursorRef,
+            style: {
+              ...cursorElement.props.style,
+              pointerEvents: 'none',
+              position: 'fixed',
+            },
+          })
+        : undefined
+
+    if (!clonedCursor) {
+      return undefined
+    }
+
+    return createPortal(clonedCursor, document.body)
+  }, [cursorElement, isDraggingOver])
+
+  useEffect(() => {
+    function handleDragOver(e: DragEvent) {
+      e.preventDefault()
+
+      const items = e.dataTransfer?.items
+
+      if (items) {
+        const hasFile = Array.from(items).some((item) => item.kind === 'file')
+
+        if (hasFile) {
+          e.dataTransfer.dropEffect = 'copy'
+          setIsDraggingOver(true)
+
+          if (cursorRef.current) {
+            cursorRef.current.style.left = `${e.clientX}px`
+            cursorRef.current.style.top = `${e.clientY}px`
+          }
+        } else {
+          e.dataTransfer.dropEffect = 'none'
+        }
+      }
+    }
+
+    function handleDragLeave() {
+      setIsDraggingOver(false)
+    }
+
+    function handleDrop(e: DragEvent) {
+      e.preventDefault()
+      setIsDraggingOver(false)
+
+      const items = e.dataTransfer?.items
+
+      if (items) {
+        const files = Array.from(items)
+          .map((file) => file.getAsFile())
+          .filter((file): file is File => !!file)
+
+        onDrop?.(files)
+      }
+    }
+
+    if (element) {
+      element.addEventListener('dragover', handleDragOver)
+      element.addEventListener('dragleave', handleDragLeave)
+      element.addEventListener('drop', handleDrop)
+    }
+
+    return () => {
+      element?.removeEventListener('dragover', handleDragOver)
+      element?.removeEventListener('dragleave', handleDragLeave)
+      element?.removeEventListener('drop', handleDrop)
+    }
+  }, [element, cursor, onDrop])
+
+  return { ref, element, isDraggingOver, cursor }
+}
+
+export type UseFollowMouseOptions<P extends HTMLElement> = {
+  parentElement?: P
+}
+
+export function useFollowMouse<T extends HTMLElement, P extends HTMLElement>({
+  parentElement,
+}: UseFollowMouseOptions<P>) {
+  const [element, setElement] = useState<T>()
+
+  const ref = useCallback((element: T | null) => {
+    setElement(element ?? undefined)
+  }, [])
+
+  useEffect(() => {
+    function handleDragOver(e: DragEvent) {
+      if (element) {
+        element.style.left = `${e.offsetX}px`
+        element.style.top = `${e.offsetY}px`
+      }
+    }
+
+    if (element && parentElement) {
+      parentElement.addEventListener('dragover', handleDragOver)
+    }
+
+    return () => {
+      parentElement?.removeEventListener('dragover', handleDragOver)
+    }
+  }, [element, parentElement])
+
+  return { ref }
 }
