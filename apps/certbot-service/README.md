@@ -80,12 +80,26 @@ flyctl deploy --build-only --push -a postgres-new-certbot --image-label
 
 5. Test running the job by SSHing into cron-manager console
 
+Run this command in the cron-manager root folder:
+
 ```shell
 flyctl ssh console
 ```
+
+Once in the cron-manager instance:
 
 ```shell
 cm jobs trigger 1
 ```
 
 If you open the "postgres-new-certbot" live logs in fly.io UI, you should see the job being executed.
+
+6. You can check if the certificates are present in the Tigris bucket
+
+Run this command in the apps/db-instance folder:
+
+```shell
+flyctl storage dashboard
+```
+
+It should open the Tigris dashboard where you can check the bucket's content. The certificates should be created under `/tls`.
