@@ -27,3 +27,65 @@ docker compose up --build certbot-service
 ```
 
 The certificates will be generated in `/mnt/s3/tls`.
+
+## Deploying to fly.io
+
+1. Create a new app if it doesn't exist
+
+```shell
+flyctl apps create postgres-new-certbot
+```
+
+2. Build and deploy the Docker image to fly.io image registry
+
+```shell
+flyctl deploy --build-only --push -a postgres-new-certbot --image-label
+ latest
+```
+
+3. Set the appropriate environment variables and secrets for the app "postgres-new-certbot" (see `.env.example`) in fly.io UI (available in Bitwarden as a secure note "fly.io postgres.new cerbot .env")
+
+4. Setup [cron-manager](https://github.com/fly-apps/cron-manager?tab=readme-ov-file#getting-started) to run the certbot service every 2 weeks with the following `schedules.json`:
+
+```json
+[
+  {
+      "name": "postgres-new-certbot",
+      "app_name": "postgres-new-certbot",
+      "schedule": "0 0 1,15 * *",
+      "region": "ord",
+      "command": "./certbot.sh",
+      "command_timeout": 120,
+      "enabled": true,
+      "config": {
+          "metadata": {
+              "fly_process_group": "cron"
+          },
+          "auto_destroy": true,
+          "disable_machine_autostart": true,
+          "guest": {
+              "cpu_kind": "shared",
+              "cpus": 1,
+              "memory_mb": 256
+          },
+          "image": "registry.fly.io/postgres-new-certbot:latest",
+          "restart": {
+              "max_retries": 1,
+              "policy": "no"
+          }
+      }
+  }
+]
+```
+
+5. Test running the job by SSHing into cron-manager console
+
+```shell
+flyctl ssh console
+```
+
+```shell
+cm jobs trigger 1
+```
+
+If you open the "postgres-new-certbot" live logs in fly.io UI, you should see the job being executed.

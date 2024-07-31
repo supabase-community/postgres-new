@@ -1,0 +1,4 @@
+app = 'postgres-new-certbot'
+primary_region = 'yyz'
+
+[build]
