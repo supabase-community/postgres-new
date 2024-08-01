@@ -138,6 +138,7 @@
   --xxl: 128px;
   --content-width-screen-xl: 1128px;
   --font-family-body: Inter;
+  --radius: 0.5rem;
 }
 
 [data-theme='dark'],

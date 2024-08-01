@@ -3,76 +3,27 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FeatureExtractionPipelineOptions, pipeline } from '@xenova/transformers'
 import { generateId } from 'ai'
-import { useChat } from 'ai/react'
 import { Chart } from 'chart.js'
 import { codeBlock } from 'common-tags'
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWorkspace } from '~/components/workspace'
+import {
+  cloneElement,
+  Dispatch,
+  isValidElement,
+  ReactNode,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
-import { Report } from '~/lib/schema'
 import { getDb } from './db'
 import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { OnToolCall } from './tools'
-
-export type UseReportSuggestionsOptions = {
-  enabled?: boolean
-}
-
-export function useReportSuggestions({ enabled = true }: UseReportSuggestionsOptions) {
-  const { databaseId, appendMessage } = useWorkspace()
-  const { data: tables } = useTablesQuery({ databaseId, schemas: ['public'] })
-  const [reports, setReports] = useState<Report[]>()
-
-  const { setMessages } = useChat({
-    id: databaseId,
-    api: '/api/chat',
-    async onToolCall({ toolCall }) {
-      switch (toolCall.toolName) {
-        case 'brainstormReports': {
-          const { reports } = toolCall.args as any
-          setReports(reports)
-        }
-      }
-    },
-  })
-
-  useEffect(() => {
-    if (enabled && tables) {
-      // Provide the LLM with the current schema before invoking the tool call
-      setMessages([
-        {
-          id: generateId(),
-          role: 'assistant',
-          content: '',
-          toolInvocations: [
-            {
-              toolCallId: generateId(),
-              toolName: 'getDatabaseSchema',
-              args: {},
-              result: tables,
-            },
-          ],
-        },
-      ])
-
-      appendMessage({
-        role: 'user',
-        content: codeBlock`
-        Brainstorm 5 interesting charts that can be generated based on tables and their columns in the database.
-
-        Keep descriptions short and concise. Don't say "eg.". Descriptions should mention charting or visualizing.
-
-        Titles should be 4 words or less.
-      `,
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tables])
-
-  return { reports }
-}
 
 /**
  * Hook to load/store values from local storage with an API similar
@@ -83,7 +34,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   const queryKey = ['local-storage', key]
 
   const currentValue =
-    typeof window !== 'undefined' ? window.localStorage.getItem(key) ?? undefined : undefined
+    typeof window !== 'undefined' ? (window.localStorage.getItem(key) ?? undefined) : undefined
 
   const { data: storedValue = currentValue ? (JSON.parse(currentValue) as T) : initialValue } =
     useQuery({
@@ -528,4 +479,137 @@ const embedPromise = pipeline('feature-extraction', 'supabase/gte-small', {
 export async function embed(texts: string | string[], options?: FeatureExtractionPipelineOptions) {
   const embedFn = await embedPromise
   return embedFn(texts, options)
+}
+
+export type UseDropZoneOptions = {
+  onDrop?(files: File[]): void
+  cursorElement?: ReactNode
+}
+
+export function useDropZone<T extends HTMLElement>({
+  onDrop,
+  cursorElement,
+}: UseDropZoneOptions = {}) {
+  const [element, setElement] = useState<T>()
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+
+  const ref = useCallback((element: T | null) => {
+    setElement(element ?? undefined)
+  }, [])
+
+  const cursorRef = useRef<HTMLElement>(null)
+
+  const cursor = useMemo(() => {
+    if (!isDraggingOver) {
+      return undefined
+    }
+
+    const clonedCursor =
+      cursorElement && isValidElement<any>(cursorElement)
+        ? cloneElement(cursorElement, {
+            ref: cursorRef,
+            style: {
+              ...cursorElement.props.style,
+              pointerEvents: 'none',
+              position: 'fixed',
+            },
+          })
+        : undefined
+
+    if (!clonedCursor) {
+      return undefined
+    }
+
+    return createPortal(clonedCursor, document.body)
+  }, [cursorElement, isDraggingOver])
+
+  useEffect(() => {
+    function handleDragOver(e: DragEvent) {
+      e.preventDefault()
+
+      const items = e.dataTransfer?.items
+
+      if (items) {
+        const hasFile = Array.from(items).some((item) => item.kind === 'file')
+
+        if (hasFile) {
+          e.dataTransfer.dropEffect = 'copy'
+          setIsDraggingOver(true)
+
+          if (cursorRef.current) {
+            cursorRef.current.style.left = `${e.clientX}px`
+            cursorRef.current.style.top = `${e.clientY}px`
+          }
+        } else {
+          e.dataTransfer.dropEffect = 'none'
+        }
+      }
+    }
+
+    function handleDragLeave() {
+      setIsDraggingOver(false)
+    }
+
+    function handleDrop(e: DragEvent) {
+      e.preventDefault()
+      setIsDraggingOver(false)
+
+      const items = e.dataTransfer?.items
+
+      if (items) {
+        const files = Array.from(items)
+          .map((file) => file.getAsFile())
+          .filter((file): file is File => !!file)
+
+        onDrop?.(files)
+      }
+    }
+
+    if (element) {
+      element.addEventListener('dragover', handleDragOver)
+      element.addEventListener('dragleave', handleDragLeave)
+      element.addEventListener('drop', handleDrop)
+    }
+
+    return () => {
+      element?.removeEventListener('dragover', handleDragOver)
+      element?.removeEventListener('dragleave', handleDragLeave)
+      element?.removeEventListener('drop', handleDrop)
+    }
+  }, [element, cursor, onDrop])
+
+  return { ref, element, isDraggingOver, cursor }
+}
+
+export type UseFollowMouseOptions<P extends HTMLElement> = {
+  parentElement?: P
+}
+
+export function useFollowMouse<T extends HTMLElement, P extends HTMLElement>({
+  parentElement,
+}: UseFollowMouseOptions<P>) {
+  const [element, setElement] = useState<T>()
+
+  const ref = useCallback((element: T | null) => {
+    setElement(element ?? undefined)
+  }, [])
+
+  useEffect(() => {
+    function handleDragOver(e: DragEvent) {
+      if (element) {
+        element.style.left = `${e.offsetX}px`
+        element.style.top = `${e.offsetY}px`
+      }
+    }
+
+    if (element && parentElement) {
+      parentElement.addEventListener('dragover', handleDragOver)
+    }
+
+    return () => {
+      parentElement?.removeEventListener('dragover', handleDragOver)
+    }
+  }, [element, parentElement])
+
+  return { ref }
 }

@@ -10,6 +10,7 @@ import {
   CircleEllipsis,
   Database as DbIcon,
   Loader,
+  LogOut,
   PackagePlus,
   Pencil,
   Trash2,
@@ -24,12 +25,14 @@ import { useDatabaseUpdateMutation } from '~/data/databases/database-update-muta
 import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { Database } from '~/lib/db'
 import { cn } from '~/lib/utils'
+import { useApp } from './app-provider'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
 export type LayoutProps = PropsWithChildren
 
 export default function Layout({ children }: LayoutProps) {
+  const { user, signOut } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -108,6 +111,18 @@ export default function Layout({ children }: LayoutProps) {
                     </>
                   )}
                 </div>
+              )}
+
+              {user && (
+                <Button
+                  className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"
+                  onClick={async () => {
+                    await signOut()
+                  }}
+                >
+                  <LogOut size={18} strokeWidth={2} />
+                  Sign out
+                </Button>
               )}
             </m.div>
           )}

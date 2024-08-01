@@ -24,6 +24,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Popover, PopoverContent, PopoverSeparator, PopoverTrigger } from '~/components/ui/popover'
 import { cn } from '~/lib/utils'
+import { useApp } from '../app-provider'
 import { useWorkspace } from '../workspace'
 
 // ReactFlow is scaling everything by the factor of 2
@@ -164,6 +165,7 @@ function TableColumn({
     },
   })
 
+  const { user } = useApp()
   const { appendMessage } = useWorkspace()
 
   return (
@@ -356,12 +358,14 @@ function TableColumn({
               placeholder={`Rename ${column.name}`}
               autoComplete="off"
               autoFocus
+              disabled={!user}
             />
           </form>
         ) : (
           <>
             <Button
               className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+              disabled={!user}
               onClick={() => setIsRenaming(true)}
             >
               <Pencil size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
@@ -370,6 +374,7 @@ function TableColumn({
             <PopoverClose asChild>
               <Button
                 className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                disabled={!user}
                 onClick={() =>
                   appendMessage({
                     role: 'user',
@@ -389,6 +394,7 @@ function TableColumn({
             <PopoverClose asChild>
               <Button
                 className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                disabled={!user}
                 onClick={() =>
                   appendMessage({
                     role: 'user',
@@ -408,6 +414,7 @@ function TableColumn({
             <PopoverClose asChild>
               <Button
                 className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                disabled={!user}
                 onClick={() =>
                   appendMessage({
                     role: 'user',
@@ -424,6 +431,7 @@ function TableColumn({
             <PopoverClose asChild>
               <Button
                 className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
+                disabled={!user}
                 onClick={() =>
                   appendMessage({
                     role: 'user',

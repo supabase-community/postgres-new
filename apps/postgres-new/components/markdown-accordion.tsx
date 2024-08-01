@@ -1,4 +1,6 @@
 import { DatabaseZap } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   Accordion,
   AccordionContent,
@@ -6,23 +8,20 @@ import {
   AccordionTrigger,
 } from '~/components/ui/accordion'
 import { cn } from '~/lib/utils'
-import { CodeBlock } from './code-block'
 
-export type CodeAccordionProps = {
+export type MarkdownAccordionProps = {
   title: string
-  language: 'sql'
-  code: string
+  content: string
   error?: string
   className?: string
 }
 
-export default function CodeAccordion({
+export default function MarkdownAccordion({
   title,
-  language,
-  code,
+  content,
   error,
   className,
-}: CodeAccordionProps) {
+}: MarkdownAccordionProps) {
   return (
     <Accordion type="single" collapsible>
       <AccordionItem
@@ -40,13 +39,12 @@ export default function CodeAccordion({
           </div>
         </AccordionTrigger>
         <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2">
-          <CodeBlock
-            className={cn(`language-${language}`, 'border-none px-0 pb-4 !bg-inherit')}
-            hideLineNumbers
-            hideCopy
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            className="prose text-xs mt-2 [&_ul>li::before]:top-2 [&_ol>li::before]:top-0"
           >
-            {code}
-          </CodeBlock>
+            {content}
+          </ReactMarkdown>
           {error && <div className="text-destructive-600 text-xs">{error}</div>}
         </AccordionContent>
       </AccordionItem>

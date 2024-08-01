@@ -7,24 +7,22 @@ import { ArrowDown, ArrowUp, Paperclip, Square } from 'lucide-react'
 import {
   ChangeEvent,
   FormEventHandler,
-  ReactNode,
-  cloneElement,
-  isValidElement,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
-import { createPortal } from 'react-dom'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
 import { TablesData } from '~/data/tables/tables-query'
 import { saveFile } from '~/lib/files'
-import { useAutoScroll, useReportSuggestions } from '~/lib/hooks'
+import { useAutoScroll, useDropZone } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
+import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
+import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
 
 export function getInitialMessages(tables: TablesData): Message[] {
@@ -37,6 +35,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
       content: '',
       toolInvocations: [
         {
+          state: 'result',
           toolCallId: generateId(),
           toolName: 'getDatabaseSchema',
           args: {},
@@ -47,137 +46,9 @@ export function getInitialMessages(tables: TablesData): Message[] {
   ]
 }
 
-type UseDropZoneOptions = {
-  onDrop?(files: File[]): void
-  cursorElement?: ReactNode
-}
-
-function useDropZone<T extends HTMLElement>({ onDrop, cursorElement }: UseDropZoneOptions = {}) {
-  const [element, setElement] = useState<T>()
-  const [isDraggingOver, setIsDraggingOver] = useState(false)
-
-  const ref = useCallback((element: T | null) => {
-    setElement(element ?? undefined)
-  }, [])
-
-  const cursorRef = useRef<HTMLElement>(null)
-
-  const cursor = useMemo(() => {
-    if (!isDraggingOver) {
-      return undefined
-    }
-
-    const clonedCursor =
-      cursorElement && isValidElement<any>(cursorElement)
-        ? cloneElement(cursorElement, {
-            ref: cursorRef,
-            style: {
-              ...cursorElement.props.style,
-              pointerEvents: 'none',
-              position: 'fixed',
-            },
-          })
-        : undefined
-
-    if (!clonedCursor) {
-      return undefined
-    }
-
-    return createPortal(clonedCursor, document.body)
-  }, [cursorElement, isDraggingOver])
-
-  useEffect(() => {
-    function handleDragOver(e: DragEvent) {
-      e.preventDefault()
-
-      const items = e.dataTransfer?.items
-
-      if (items) {
-        const hasFile = Array.from(items).some((item) => item.kind === 'file')
-
-        if (hasFile) {
-          e.dataTransfer.dropEffect = 'copy'
-          setIsDraggingOver(true)
-
-          if (cursorRef.current) {
-            cursorRef.current.style.left = `${e.clientX}px`
-            cursorRef.current.style.top = `${e.clientY}px`
-          }
-        } else {
-          e.dataTransfer.dropEffect = 'none'
-        }
-      }
-    }
-
-    function handleDragLeave() {
-      setIsDraggingOver(false)
-    }
-
-    function handleDrop(e: DragEvent) {
-      e.preventDefault()
-      setIsDraggingOver(false)
-
-      const items = e.dataTransfer?.items
-
-      if (items) {
-        const files = Array.from(items)
-          .map((file) => file.getAsFile())
-          .filter((file): file is File => !!file)
-
-        onDrop?.(files)
-      }
-    }
-
-    if (element) {
-      element.addEventListener('dragover', handleDragOver)
-      element.addEventListener('dragleave', handleDragLeave)
-      element.addEventListener('drop', handleDrop)
-    }
-
-    return () => {
-      element?.removeEventListener('dragover', handleDragOver)
-      element?.removeEventListener('dragleave', handleDragLeave)
-      element?.removeEventListener('drop', handleDrop)
-    }
-  }, [element, cursor, onDrop])
-
-  return { ref, element, isDraggingOver, cursor }
-}
-
-type UseFollowMouseOptions<P extends HTMLElement> = {
-  parentElement?: P
-}
-
-function useFollowMouse<T extends HTMLElement, P extends HTMLElement>({
-  parentElement,
-}: UseFollowMouseOptions<P>) {
-  const [element, setElement] = useState<T>()
-
-  const ref = useCallback((element: T | null) => {
-    setElement(element ?? undefined)
-  }, [])
-
-  useEffect(() => {
-    function handleDragOver(e: DragEvent) {
-      if (element) {
-        element.style.left = `${e.offsetX}px`
-        element.style.top = `${e.offsetY}px`
-      }
-    }
-
-    if (element && parentElement) {
-      parentElement.addEventListener('dragover', handleDragOver)
-    }
-
-    return () => {
-      parentElement?.removeEventListener('dragover', handleDragOver)
-    }
-  }, [element, parentElement])
-
-  return { ref }
-}
-
 export default function Chat() {
+  const { user, isLoadingUser } = useApp()
+
   const {
     databaseId,
     isLoadingMessages,
@@ -187,9 +58,6 @@ export default function Chat() {
     appendMessage,
     stopReply,
   } = useWorkspace()
-
-  const [brainstormIdeas] = useState(false) // temporarily turn off for now
-  const { reports } = useReportSuggestions({ enabled: brainstormIdeas })
 
   const { input, setInput, handleInputChange, isLoading } = useChat({
     id: databaseId,
@@ -216,6 +84,7 @@ export default function Chat() {
         content: '',
         toolInvocations: [
           {
+            state: 'result',
             toolCallId: generateId(),
             toolName: 'requestCsv',
             args: {},
@@ -243,6 +112,10 @@ export default function Chat() {
     cursor: dropZoneCursor,
   } = useDropZone({
     async onDrop(files) {
+      if (!user) {
+        return
+      }
+
       const [file] = files
 
       if (file && file.type === 'text/csv') {
@@ -298,7 +171,8 @@ export default function Chat() {
 
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
-  const isSubmitEnabled = !isLoadingMessages && !isLoadingSchema && Boolean(input.trim())
+  const isSubmitEnabled =
+    !isLoadingMessages && !isLoadingSchema && Boolean(input.trim()) && user !== undefined
 
   return (
     <div ref={dropZoneRef} className="h-full flex flex-col items-stretch relative">
@@ -392,86 +266,35 @@ export default function Chat() {
           </div>
         ) : (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
-            <m.h3
-              layout
-              className="text-2xl font-light"
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                show: { opacity: 1, y: 0 },
-              }}
-              initial="hidden"
-              animate="show"
-            >
-              What would you like to create?
-            </m.h3>
-            <div>
-              {brainstormIdeas && (
-                <>
-                  {reports ? (
-                    <m.div
-                      className="flex flex-row gap-6 flex-wrap justify-center items-start"
-                      variants={{
-                        show: {
-                          transition: {
-                            staggerChildren: 0.05,
-                          },
-                        },
-                      }}
-                      initial="hidden"
-                      animate="show"
-                    >
-                      {reports.map((report) => (
-                        <m.div
-                          key={report.name}
-                          layoutId={`report-suggestion-${report.name}`}
-                          className="w-64 h-32 flex flex-col overflow-ellipsis rounded-md cursor-pointer"
-                          onMouseDown={() =>
-                            appendMessage({ role: 'user', content: report.description })
-                          }
-                          variants={{
-                            hidden: { scale: 0 },
-                            show: { scale: 1 },
-                          }}
-                        >
-                          <div className="p-4 bg-neutral-200 text-sm rounded-t-md text-neutral-600 font-bold text-center">
-                            {report.name}
-                          </div>
-                          <div className="flex-1 p-4 flex flex-col justify-center border border-neutral-200 text-neutral-500 text-xs font-normal italic rounded-b-md text-center overflow-hidden">
-                            {report.description}
-                          </div>
-                        </m.div>
-                      ))}
-                    </m.div>
-                  ) : (
-                    <m.div
-                      className="flex flex-row gap-4 justify-center items-center"
-                      variants={{
-                        hidden: {
-                          opacity: 0,
-                          y: -10,
-                        },
-                        show: {
-                          opacity: 1,
-                          y: 0,
-                          transition: {
-                            delay: 0.5,
-                          },
-                        },
-                      }}
-                      initial="hidden"
-                      animate="show"
-                    >
-                      <m.div layoutId="ai-loading-icon">
-                        <AiIconAnimation loading />
-                      </m.div>
-                      <h3 className="text-lg italic font-light text-neutral-500">
-                        Brainstorming some ideas
-                      </h3>
-                    </m.div>
-                  )}
-                </>
-              )}
-            </div>
+            {user ? (
+              <m.h3
+                layout
+                className="text-2xl font-light"
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 },
+                }}
+                initial="hidden"
+                animate="show"
+              >
+                What would you like to create?
+              </m.h3>
+            ) : (
+              <m.div
+                className="flex flex-col items-center gap-4 max-w-lg"
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 },
+                }}
+                initial="hidden"
+                animate="show"
+              >
+                <SignInButton />
+                <p className="font-lighter  text-center">
+                  To prevent abuse we ask you to sign in before chatting with AI.
+                </p>
+              </m.div>
+            )}
           </div>
         )}
         <AnimatePresence>
@@ -501,6 +324,24 @@ export default function Chat() {
         </AnimatePresence>
       </div>
       <div className="flex flex-col items-center gap-2 pb-2 relative">
+        <AnimatePresence>
+          {!user && !isLoadingUser && isConversationStarted && (
+            <m.div
+              className="flex flex-col items-center gap-4 max-w-lg my-4"
+              variants={{
+                hidden: { opacity: 0, y: 100 },
+                show: { opacity: 1, y: 0 },
+              }}
+              animate="show"
+              exit="hidden"
+            >
+              <SignInButton />
+              <p className="font-lighter text-center text-sm">
+                To prevent abuse we ask you to sign in before chatting with AI.
+              </p>
+            </m.div>
+          )}
+        </AnimatePresence>
         <form
           className="flex items-end py-2 px-3 rounded-[28px] bg-neutral-100 w-full max-w-4xl"
           onSubmit={handleFormSubmit}
@@ -525,10 +366,14 @@ export default function Chat() {
             </m.div>
           )}
           <Button
-            className="w-8 h-8 p-1.5 my-1 bg-inherit"
+            className="w-8 h-8 p-1.5 my-1 bg-inherit transition-colors"
             type="button"
             onClick={(e) => {
               e.preventDefault()
+
+              if (!user) {
+                return
+              }
 
               // Create a file input element
               const fileInput = document.createElement('input')
@@ -553,7 +398,7 @@ export default function Chat() {
               // Trigger the click event on the file input element
               fileInput.click()
             }}
-            disabled={isLoading}
+            disabled={isLoading || !user}
           >
             <Paperclip size={20} />
           </Button>
@@ -567,6 +412,7 @@ export default function Chat() {
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
             autoFocus
+            disabled={!user}
             rows={Math.min(input.split('\n').length, 10)}
             onKeyDown={(e) => {
               if (!(e.target instanceof HTMLTextAreaElement)) {
@@ -593,13 +439,13 @@ export default function Chat() {
               <Square fill="white" strokeWidth={0} className="w-3.5 h-3.5" />
             </Button>
           ) : (
-            <Button
-              className="rounded-full w-8 h-8 p-1.5 my-1 text-neutral-50 bg-neutral-800"
+            <button
+              className="rounded-full w-8 h-8 p-1.5 my-1 text-neutral-50 bg-neutral-800 disabled:bg-neutral-500 flex justify-center items-center"
               type="submit"
               disabled={!isSubmitEnabled}
             >
               <ArrowUp />
-            </Button>
+            </button>
           )}
         </form>
         <div className="text-xs text-neutral-500">
