@@ -32,7 +32,7 @@ const loadFramerFeatures = () => import('./framer-features').then((res) => res.d
 export type LayoutProps = PropsWithChildren
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, signOut } = useApp()
+  const { user, signOut, pgliteVersion, pgVersion } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -113,6 +113,21 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               )}
 
+              <div className="flex flex-col gap-2 text-xs text-lighter text-center justify-center">
+                {pgliteVersion && (
+                  <span>
+                    <a
+                      className="underline"
+                      href="https://github.com/electric-sql/pglite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      PGlite
+                    </a>{' '}
+                    {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
+                  </span>
+                )}
+              </div>
               {user && (
                 <Button
                   className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"

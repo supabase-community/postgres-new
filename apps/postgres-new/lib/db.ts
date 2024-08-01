@@ -9,13 +9,13 @@ export type Database = {
   isHidden: boolean
 }
 
-// Hardcoding to v16 (PGlite v0.2.0+) for now, in the future we should
-// dynamically check this somehow
-const currentPgVersion = '16'
+let runtimePgVersion: string
 const prefix = 'playground'
 
 let metaDbPromise: Promise<PGliteInterface> | undefined
 const databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
+
+getRuntimePgVersion()
 
 export async function getMetaDb() {
   if (metaDbPromise) {
@@ -187,12 +187,14 @@ export async function handleUnsupportedPGVersion(dbPath: string) {
 
   if (databaseExists) {
     const version = await getPGliteDBVersion(dbPath)
+    const runtimeVersion = await getRuntimePgVersion()
 
     console.debug(`PG version of '${dbPath}' DB is ${version}`)
+    console.debug(`PG version of PGlite runtime is ${runtimeVersion}`)
 
-    if (version !== currentPgVersion) {
+    if (version !== runtimeVersion) {
       console.warn(
-        `DB '${dbPath}' is on PG version ${version}, deleting and replacing with version ${currentPgVersion}`
+        `DB '${dbPath}' is on PG version ${version}, deleting and replacing with version ${runtimeVersion}`
       )
 
       await deleteIndexedDb(`/pglite/${dbPath}`)
@@ -218,6 +220,31 @@ export async function deleteIndexedDb(name: string) {
       reject('IndexedDB database was blocked when deleting')
     }
   })
+}
+
+/**
+ * Gets the Postgres version used by the current PGlite runtime.
+ */
+export async function getRuntimePgVersion() {
+  if (runtimePgVersion !== undefined) {
+    return runtimePgVersion
+  }
+
+  // Create a temp DB
+  const db = new PGlite()
+
+  const {
+    rows: [{ version }],
+  } = await db.query<{ version: string }>(
+    `select split_part(current_setting('server_version'), '.', 1) as version;`
+  )
+
+  runtimePgVersion = version
+
+  // TODO: await this after PGlite v0.2.0-alpha.3 (currently a bug with closing DB)
+  db.close()
+
+  return version
 }
 
 type Migration = {
