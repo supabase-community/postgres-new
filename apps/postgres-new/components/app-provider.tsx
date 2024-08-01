@@ -76,6 +76,7 @@ export default function AppProvider({ children }: AppProps) {
     setUser(undefined)
   }, [supabase])
 
+  const isPreview = process.env.NEXT_PUBLIC_IS_PREVIEW === 'true'
   const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
   const { value: pgVersion } = useAsyncMemo(() => getRuntimePgVersion(), [])
 
@@ -86,6 +87,7 @@ export default function AppProvider({ children }: AppProps) {
         isLoadingUser,
         signIn,
         signOut,
+        isPreview,
         pgliteVersion,
         pgVersion,
       }}
@@ -100,6 +102,7 @@ export type AppContextValues = {
   isLoadingUser: boolean
   signIn: () => Promise<User | undefined>
   signOut: () => Promise<void>
+  isPreview: boolean
   pgliteVersion?: string
   pgVersion?: string
 }
