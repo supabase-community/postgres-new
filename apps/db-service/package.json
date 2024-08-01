@@ -9,7 +9,7 @@
     "psql": "psql 'host=localhost port=5432 user=postgres sslmode=verify-ca sslrootcert=ca-cert.pem'"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.2.0-alpha.3",
+    "@electric-sql/pglite": "0.2.0-alpha.3",
     "pg-gateway": "^0.2.5-alpha.2"
   },
   "devDependencies": {
