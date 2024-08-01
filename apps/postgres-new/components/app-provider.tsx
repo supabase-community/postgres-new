@@ -13,6 +13,8 @@ import {
   useEffect,
   useState,
 } from 'react'
+import { getRuntimePgVersion } from '~/lib/db'
+import { useAsyncMemo } from '~/lib/hooks'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -74,6 +76,9 @@ export default function AppProvider({ children }: AppProps) {
     setUser(undefined)
   }, [supabase])
 
+  const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
+  const { value: pgVersion } = useAsyncMemo(() => getRuntimePgVersion(), [])
+
   return (
     <AppContext.Provider
       value={{
@@ -81,6 +86,8 @@ export default function AppProvider({ children }: AppProps) {
         isLoadingUser,
         signIn,
         signOut,
+        pgliteVersion,
+        pgVersion,
       }}
     >
       {children}
@@ -93,6 +100,8 @@ export type AppContextValues = {
   isLoadingUser: boolean
   signIn: () => Promise<User | undefined>
   signOut: () => Promise<void>
+  pgliteVersion?: string
+  pgVersion?: string
 }
 
 export const AppContext = createContext<AppContextValues | undefined>(undefined)
