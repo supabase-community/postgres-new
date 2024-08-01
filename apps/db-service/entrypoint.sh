@@ -4,8 +4,8 @@ set -e
 set -o pipefail
 
 cleanup() {
-  echo "Unmounting s3fs..."
-  fusermount -u $S3FS_MOUNT
+  echo "Unmounting S3 bucket..."
+  umount $S3FS_MOUNT
   exit 0
 }
 
@@ -21,7 +21,7 @@ trap 'cleanup' EXIT
 mkdir -p $S3FS_MOUNT
 
 # Mount the S3 bucket
-s3fs $BUCKET_NAME $S3FS_MOUNT -o use_path_request_style -o url=$AWS_ENDPOINT_URL_S3 -o endpoint=$AWS_REGION
+mount-s3 $BUCKET_NAME $S3FS_MOUNT --force-path-style --endpoint-url $AWS_ENDPOINT_URL_S3 --region $AWS_REGION 
 
 # Check if the mount was successful
 if mountpoint -q $S3FS_MOUNT; then

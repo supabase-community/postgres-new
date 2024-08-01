@@ -12,21 +12,6 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
-# Build S3FS
-FROM base as build-s3fs
-
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y \
-    libfuse-dev
-
-RUN git clone https://github.com/s3fs-fuse/s3fs-fuse.git --branch v1.94 && \
-    cd s3fs-fuse && \
-    ./autogen.sh && \
-    ./configure && \
-    make && \
-    make install
-
 # Build app
 FROM base as build-app
 
@@ -53,13 +38,16 @@ RUN npm prune --production
 # Final stage for app image
 FROM base
 
+# Download mountpoint-s3
+RUN wget https://s3.amazonaws.com/mountpoint-s3-release/latest/arm64/mount-s3.deb
+
 # Install dependencies
 RUN apt-get update && \
     apt-get install -y \
     fuse \
+    ./mount-s3.deb \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 COPY --from=build-app /app /app
 
 ENTRYPOINT [ "./entrypoint.sh" ]

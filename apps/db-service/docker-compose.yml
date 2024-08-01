@@ -3,13 +3,8 @@ services:
     image: db-service
     build:
       context: .
-    environment:
-      AWS_ENDPOINT_URL_S3: http://minio:9000
-      BUCKET_NAME: test
-      AWS_REGION: us-east-1 # default region for s3-compatible APIs
-      S3FS_MOUNT: /mnt/s3
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
+    env_file:
+      - .env
     ports:
       - 5432:5432
     devices:
@@ -23,13 +18,8 @@ services:
     image: tls-init
     build:
       context: .
-    environment:
-      AWS_ENDPOINT_URL_S3: http://minio:9000
-      BUCKET_NAME: test
-      AWS_REGION: us-east-1 # default region for s3-compatible APIs
-      S3FS_MOUNT: /mnt/s3
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
+    env_file:
+      - .env
     devices:
       - /dev/fuse
     cap_add:
@@ -43,9 +33,11 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_REGION: us-east-2
     ports:
       - 9000:9000
-    command: server /data
+      - 9001:9001
+    command: server /data --console-address ":9001"
     healthcheck:
       test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
       interval: 5s
