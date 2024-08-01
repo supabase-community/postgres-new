@@ -1,0 +1,90 @@
+db-service-1  | Server listening on port 5432
+db-service-1  | Serving database '12345'
+db-service-1  | /app/dist/index.js PGDATA='/tmp/pglite/base'
+db-service-1  | PREFIX='/tmp/pglite'
+db-service-1  | MODE='REACT'
+db-service-1  | REPL='N'
+db-service-1  | prerun(C-node) worker= false
+db-service-1  | # no '/tmp/pgdata' directory, creating one ...
+db-service-1  | # USER=web_user
+db-service-1  | # LOGNAME=web_user
+db-service-1  | # PATH=/
+db-service-1  | # PWD=/
+db-service-1  | # HOME=/home/web_user
+db-service-1  | # LANG=C.UTF-8
+db-service-1  | # _=/app/dist/index.js
+db-service-1  | # PGDATA=/tmp/pglite/base
+db-service-1  | # PREFIX=/tmp/pglite
+db-service-1  | # MODE=REACT
+db-service-1  | # REPL=N
+db-service-1  | # ENVIRONMENT=node
+db-service-1  | # PGSYSCONFDIR=/tmp/pglite
+db-service-1  | # PGCLIENTENCODING=UTF8
+db-service-1  | # LC_CTYPE=C
+db-service-1  | # PGUSER=postgres
+db-service-1  | # PG_COLOR=always
+db-service-1  | # argv0 (/tmp/pglite/bin/postgres) PGUSER=postgres PGDATA=/tmp/pglite/base
+db-service-1  | pglite: no db
+db-service-1  | pg_initdb: no db found at : /tmp/pglite/base
+db-service-1  | popen failure: Function not implemented
+db-service-1  | # WARNING: program "postgres" is needed by initdb but was not found in the same directory as "/tmp/pglite/bin/initdb"
+db-service-1  | The files belonging to this database system will be owned by user "postgres".
+db-service-1  | This user must also own the server process.
+db-service-1  | 
+db-service-1  | # 3442
+db-service-1  | The database cluster will be initialized with this locale configuration:
+db-service-1  |   provider:    libc
+db-service-1  |   LC_COLLATE:  C
+db-service-1  |   LC_CTYPE:    C.UTF-8
+db-service-1  |   LC_MESSAGES: C
+db-service-1  |   LC_MONETARY: C
+db-service-1  |   LC_NUMERIC:  C
+db-service-1  |   LC_TIME:     C
+db-service-1  | # 2651
+db-service-1  | # 2705
+db-service-1  | # 2706
+db-service-1  | # 3444
+db-service-1  | The default text search configuration will be set to "english".
+db-service-1  | # 3446
+db-service-1  | 
+db-service-1  | Data page checksums are disabled.
+db-service-1  | 
+db-service-1  | # 3458
+db-service-1  | fixing permissions on existing directory /tmp/pglite/base ... ok
+db-service-1  | creating subdirectories ... ok
+db-service-1  | creating configuration files ... ok
+db-service-1  | # popen["/tmp/pglite/bin/postgres" --boot -X 1048576  -F -c log_checkpoints=false  ] (BOOT)
+db-service-1  | # pg_pclose(/tmp/initdb.boot.txt) 129:../../src/include/pg_config_os.h
+db-service-1  | running bootstrap script ... ok
+db-service-1  | # popen["/tmp/pglite/bin/postgres" --single -F -O -j -c search_path=pg_catalog -c exit_on_error=true -c log_checkpoints=false  template1 >/dev/null] (SINGLE)
+db-service-1  | performing post-bootstrap initialization ... ok
+db-service-1  | # 3461: TODO: fsync_pgdata ?
+db-service-1  | # pg_initdb_main result = 0
+db-service-1  | # pg_pclose(/tmp/initdb.single.txt) 129:../../src/include/pg_config_os.h
+db-service-1  | 2024-08-01 15:02:20.610 GMT [42] DEBUG:  invoking IpcMemoryCreate(size=144367616)
+db-service-1  | # FIXING: int shmget (key_t __key=6, size_t __size=40, int __shmflg=1920) pagesize default=65536
+db-service-1  | # FIXING: void *shmat (int __shmid=666, const void *__shmaddr=0, int __shmflg=0)
+db-service-1  | 2024-08-01 15:02:21.682 GMT [42] DEBUG:  dynamic shared memory system will support 224 segments
+db-service-1  | 2024-08-01 15:02:21.684 GMT [42] DEBUG:  created dynamic shared memory control segment 982032434 (5388 bytes)
+db-service-1  | 2024-08-01 15:02:21.684 GMT [42] DEBUG:  transaction ID wrap limit is 2147483650, limited by database with OID 1
+db-service-1  | 2024-08-01 15:02:21.684 GMT [42] DEBUG:  MultiXactId wrap limit is 2147483648, limited by database with OID 1
+db-service-1  | 2024-08-01 15:02:22.256 GMT [42] DEBUG:  creating and filling new WAL file
+db-service-1  | 2024-08-01 15:02:26.479 GMT [42] DEBUG:  done creating and filling new WAL file
+db-service-1  | # 360: InitPostgres(boot): /home/runner/work/pglite/pglite/postgresql-16.3/src/backend/bootstrap/bootstrap.c
+db-service-1  | 2024-08-01 15:02:40.948 GMT [42] DEBUG:  InitPostgres
+db-service-1  | 2024-08-01 15:02:40.948 GMT [42] NOTICE:  database system was shut down at 2024-08-01 15:02:21 GMT
+db-service-1  | 2024-08-01 15:02:44.793 GMT [42] DEBUG:  checkpoint record is at 0/100028
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  redo record is at 0/100028; shutdown true
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  next transaction ID: 3; next OID: 10000
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  next MultiXactId: 1; next MultiXactOffset: 0
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  oldest unfrozen transaction ID: 3, in database 1
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  oldest MultiXactId: 1, in database 1
+db-service-1  | 2024-08-01 15:02:44.794 GMT [42] DEBUG:  commit timestamp Xid oldest/newest: 0/0
+db-service-1  | 2024-08-01 15:02:44.795 GMT [42] DEBUG:  transaction ID wrap limit is 2147483650, limited by database with OID 1
+db-service-1  | 2024-08-01 15:02:44.795 GMT [42] DEBUG:  MultiXactId wrap limit is 2147483648, limited by database with OID 1
+db-service-1  | 2024-08-01 15:02:46.972 GMT [42] DEBUG:  starting up replication slots
+db-service-1  | 2024-08-01 15:02:47.166 GMT [42] DEBUG:  xmin required by slots: data 0, catalog 0
+db-service-1  | 2024-08-01 15:02:47.360 GMT [42] DEBUG:  starting up replication origin progress state
+db-service-1  | 2024-08-01 15:02:48.124 GMT [42] DEBUG:  reading stats file "pg_stat/pgstat.stat"
+db-service-1  | 2024-08-01 15:02:48.690 GMT [42] DEBUG:  MultiXactId wrap limit is 2147483648, limited by database with OID 1
+db-service-1  | 2024-08-01 15:02:48.690 GMT [42] DEBUG:  MultiXact member stop limit is now 4294914944 based on MultiXact 1

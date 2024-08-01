@@ -62,7 +62,9 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      db = new PGlite(`${dbDir}/${databaseId}`)
+      db = new PGlite(`${dbDir}/${databaseId}`, {
+        debug: 5
+      })
     },
     async onStartup() {
       if (!db) {

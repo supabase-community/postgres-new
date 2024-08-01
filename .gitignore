@@ -39,3 +39,5 @@ next-env.d.ts
 dbs/
 tls/
 dist/
+
+.env
