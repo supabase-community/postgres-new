@@ -119,22 +119,6 @@ export default function Layout({ children }: LayoutProps) {
                     )}
                   </div>
                 )}
-
-                <div className="flex flex-col gap-2 text-xs text-lighter text-center justify-center">
-                  {pgliteVersion && (
-                    <span>
-                      <a
-                        className="underline"
-                        href="https://github.com/electric-sql/pglite"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        PGlite
-                      </a>{' '}
-                      {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
-                    </span>
-                  )}
-                </div>
                 {user && (
                   <Button
                     className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"
@@ -173,7 +157,7 @@ export default function Layout({ children }: LayoutProps) {
               </m.div>
             </div>
           )}
-          <m.div layout="position" className="w-full h-full">
+          <m.div layout="position" className="w-full h-full min-w-0">
             {children}
           </m.div>
         </div>

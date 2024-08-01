@@ -323,7 +323,7 @@ export default function Chat() {
           )}
         </AnimatePresence>
       </div>
-      <div className="flex flex-col items-center gap-2 pb-2 relative">
+      <div className="flex flex-col items-center gap-3 pb-1 relative">
         <AnimatePresence>
           {!user && !isLoadingUser && isConversationStarted && (
             <m.div

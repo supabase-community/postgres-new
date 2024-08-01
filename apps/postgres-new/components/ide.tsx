@@ -12,6 +12,7 @@ import { tabsSchema, TabValue } from '~/lib/schema'
 import { assertDefined, isMigrationStatement } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import { useBreakpoint } from '~/lib/use-breakpoint'
+import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
 import { useWorkspace } from './workspace'
 
@@ -21,6 +22,7 @@ const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
 export type IDEProps = PropsWithChildren
 
 export default function IDE({ children }: IDEProps) {
+  const { pgliteVersion, pgVersion } = useApp()
   const { databaseId } = useWorkspace()
   const [tab, setTab] = useState<TabValue>('diagram')
 
@@ -92,89 +94,48 @@ export default function IDE({ children }: IDEProps) {
   const migrationsSql = (initialMigrationSql + '\n' + migrationStatements?.join('\n\n')).trim()
 
   return (
-    <Tabs
-      className="flex-1 h-full flex flex-col items-stretch"
-      value={tab}
-      onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
-    >
-      <TabsList className="grid w-full grid-cols-3 lg:grid-cols-2">
+    <div className="flex-1 h-full flex flex-col items-stretch gap-3">
+      <Tabs
+        className="flex-1 flex flex-col items-stretch"
+        value={tab}
+        onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
+      >
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-2">
+          {isSmallBreakpoint && (
+            <TabsTrigger value="chat" className="flex items-center gap-1">
+              <MessageSquareMore size={14} />
+              <span className="hidden xs:inline">Chat</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="diagram" className="flex items-center gap-1">
+            <Workflow size={14} />
+            <span className="hidden xs:inline">Diagram</span>
+          </TabsTrigger>
+          <TabsTrigger value="migrations" className="flex items-center gap-1">
+            <FileCode size={14} />
+            <span className="hidden xs:inline">Migrations</span>
+          </TabsTrigger>
+          {/* Temporarily hide seeds until we get pg_dump working */}
+          {false && (
+            <TabsTrigger value="seeds" className="flex items-center gap-1">
+              <Sprout size={14} />
+              <span className="hidden xs:inline">Seeds</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
+
         {isSmallBreakpoint && (
-          <TabsTrigger value="chat" className="flex items-center gap-1">
-            <MessageSquareMore size={14} />
-            <span className="hidden xs:inline">Chat</span>
-          </TabsTrigger>
+          <TabsContent value="chat" className="flex-1 h-full min-h-0">
+            {children}
+          </TabsContent>
         )}
-        <TabsTrigger value="diagram" className="flex items-center gap-1">
-          <Workflow size={14} />
-          <span className="hidden xs:inline">Diagram</span>
-        </TabsTrigger>
-        <TabsTrigger value="migrations" className="flex items-center gap-1">
-          <FileCode size={14} />
-          <span className="hidden xs:inline">Migrations</span>
-        </TabsTrigger>
-        {/* Temporarily hide seeds until we get pg_dump working */}
-        {false && (
-          <TabsTrigger value="seeds" className="flex items-center gap-1">
-            <Sprout size={14} />
-            <span className="hidden xs:inline">Seeds</span>
-          </TabsTrigger>
-        )}
-      </TabsList>
-
-      {isSmallBreakpoint && (
-        <TabsContent value="chat" className="flex-1 h-full min-h-0">
-          {children}
+        <TabsContent value="diagram" className="h-full">
+          <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
         </TabsContent>
-      )}
-      <TabsContent value="diagram" className="h-full">
-        <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
-      </TabsContent>
-      <TabsContent value="migrations" className="h-full py-4 rounded-md bg-[#1e1e1e]">
-        <Editor
-          language="pgsql"
-          value={migrationsSql}
-          theme="vs-dark"
-          options={{
-            tabSize: 2,
-            minimap: {
-              enabled: false,
-            },
-            fontSize: 13,
-            readOnly: true,
-          }}
-          onMount={async (editor, monaco) => {
-            // Register pgsql formatter
-            monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
-              async provideDocumentFormattingEdits(model) {
-                const currentCode = editor.getValue()
-                const formattedCode = format(currentCode, {
-                  language: 'postgresql',
-                  keywordCase: 'lower',
-                })
-                return [
-                  {
-                    range: model.getFullModelRange(),
-                    text: formattedCode,
-                  },
-                ]
-              },
-            })
-
-            // Format on cmd+s
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
-              await editor.getAction('editor.action.formatDocument').run()
-            })
-
-            // Run format on the initial value
-            await editor.getAction('editor.action.formatDocument').run()
-          }}
-        />
-      </TabsContent>
-      {/* Temporarily hide seeds until we get pg_dump working */}
-      {false && (
-        <TabsContent value="seeds" className="h-full py-4 rounded-md bg-[#1e1e1e]">
+        <TabsContent value="migrations" className="h-full py-4 rounded-md bg-[#1e1e1e]">
           <Editor
             language="pgsql"
+            value={migrationsSql}
             theme="vs-dark"
             options={{
               tabSize: 2,
@@ -204,15 +165,74 @@ export default function IDE({ children }: IDEProps) {
 
               // Format on cmd+s
               editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
-                await editor.getAction('editor.action.formatDocument').run()
+                await editor.getAction('editor.action.formatDocument')?.run()
               })
 
               // Run format on the initial value
-              await editor.getAction('editor.action.formatDocument').run()
+              await editor.getAction('editor.action.formatDocument')?.run()
             }}
           />
         </TabsContent>
-      )}
-    </Tabs>
+        {/* Temporarily hide seeds until we get pg_dump working */}
+        {false && (
+          <TabsContent value="seeds" className="h-full py-4 rounded-md bg-[#1e1e1e]">
+            <Editor
+              language="pgsql"
+              theme="vs-dark"
+              options={{
+                tabSize: 2,
+                minimap: {
+                  enabled: false,
+                },
+                fontSize: 13,
+                readOnly: true,
+              }}
+              onMount={async (editor, monaco) => {
+                // Register pgsql formatter
+                monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
+                  async provideDocumentFormattingEdits(model) {
+                    const currentCode = editor.getValue()
+                    const formattedCode = format(currentCode, {
+                      language: 'postgresql',
+                      keywordCase: 'lower',
+                    })
+                    return [
+                      {
+                        range: model.getFullModelRange(),
+                        text: formattedCode,
+                      },
+                    ]
+                  },
+                })
+
+                // Format on cmd+s
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
+                  await editor.getAction('editor.action.formatDocument')?.run()
+                })
+
+                // Run format on the initial value
+                await editor.getAction('editor.action.formatDocument')?.run()
+              }}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
+
+      <div className="flex flex-col pb-1 text-xs text-neutral-500 text-center justify-center">
+        {pgliteVersion && (
+          <span>
+            <a
+              className="underline"
+              href="https://github.com/electric-sql/pglite"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              PGlite
+            </a>{' '}
+            {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
