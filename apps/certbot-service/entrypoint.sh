@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
-set -o pipefail
+set -euo pipefail
 
+# s3fs ################################
 cleanup() {
   echo "Unmounting s3fs..."
-  umount $S3FS_MOUNT
+  fusermount -u $S3FS_MOUNT
   exit 0
 }
 
@@ -17,7 +17,7 @@ trap 'forward_signal SIGINT' SIGINT
 trap 'forward_signal SIGTERM' SIGTERM
 trap 'cleanup' EXIT
 
-# Create the s3 mount point directory
+# Create the mount point directory
 mkdir -p $S3FS_MOUNT
 
 # Mount the S3 bucket
@@ -30,6 +30,10 @@ else
   echo "Failed to mount S3 bucket"
   exit 1
 fi
+
+# cloudflare.ini ######################
+echo "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN" > /app/cloudflare.ini
+chmod 600 /app/cloudflare.ini
 
 # Execute the original command
 "$@" &

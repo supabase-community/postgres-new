@@ -22,5 +22,5 @@ cpu_kind = 'shared'
 cpus = 1
 
 [mounts]
-source = "postgres-new-data"
+source = "postgres_new_data"
 destination = "/mnt/data"
