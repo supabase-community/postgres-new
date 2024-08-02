@@ -5,13 +5,13 @@ import TablesGraph from './table-graph'
 
 export type SchemaGraphProps = {
   databaseId: string
-  schema: string
+  schemas: string[]
 }
 
-export default function SchemaGraph({ databaseId, schema }: SchemaGraphProps) {
+export default function SchemaGraph({ databaseId, schemas }: SchemaGraphProps) {
   return (
     <ReactFlowProvider>
-      <TablesGraph databaseId={databaseId} schema={schema} />
+      <TablesGraph databaseId={databaseId} schemas={schemas} />
     </ReactFlowProvider>
   )
 }

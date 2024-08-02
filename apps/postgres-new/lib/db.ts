@@ -9,10 +9,13 @@ export type Database = {
   isHidden: boolean
 }
 
+let runtimePgVersion: string
 const prefix = 'playground'
 
 let metaDbPromise: Promise<PGliteInterface> | undefined
 const databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
+
+getRuntimePgVersion()
 
 export async function getMetaDb() {
   if (metaDbPromise) {
@@ -20,6 +23,8 @@ export async function getMetaDb() {
   }
 
   async function run() {
+    await handleUnsupportedPGVersion('meta')
+
     const metaDb = new PGlite(`idb://meta`, {
       extensions: {
         vector,
@@ -47,6 +52,7 @@ export async function getDb(id: string) {
 
   async function run() {
     const metaDb = await getMetaDb()
+
     const {
       rows: [database],
     } = await metaDb.query<Database>('select * from databases where id = $1', [id])
@@ -55,7 +61,11 @@ export async function getDb(id: string) {
       throw new Error(`Database with ID '${id}' doesn't exist`)
     }
 
-    const db = new PGlite(`idb://${prefix}-${id}`, {
+    const dbPath = `${prefix}-${id}`
+
+    await handleUnsupportedPGVersion(dbPath)
+
+    const db = new PGlite(`idb://${dbPath}`, {
       extensions: {
         vector,
       },
@@ -88,21 +98,153 @@ export async function closeDb(id: string) {
 export async function deleteDb(id: string) {
   await closeDb(id)
 
-  // TODO: fix issue where PGlite holds on the IndexedDB preventing delete
+  // TODO: fix issue where PGlite holds on to the IndexedDB preventing delete
   // Once fixed, turn this into an `await` so we can forward legitimate errors
-  new Promise<void>((resolve, reject) => {
-    const req = indexedDB.deleteDatabase(`/pglite/${prefix}-${id}`)
+  deleteIndexedDb(`/pglite/${prefix}-${id}`)
+}
+
+/**
+ * Peeks into the files of an IndexedDB-backed PGlite database
+ * and returns the Postgres version it was created under (via `./PG_VERSION`).
+ *
+ * Useful to detect version compatibility since it doesn't require instantiating
+ * a PGlite instance.
+ */
+export async function getPGliteDBVersion(id: string) {
+  const dbPath = `/pglite/${id}`
+  const versionPath = `${dbPath}/PG_VERSION`
+
+  const dbs = await indexedDB.databases()
+  const databaseExists = dbs.some((db) => db.name === dbPath)
+
+  if (!databaseExists) {
+    return undefined
+  }
+
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      const req = indexedDB.open(dbPath)
+
+      req.onsuccess = async () => {
+        const db = req.result
+
+        try {
+          const transaction = db.transaction(['FILE_DATA'], 'readonly')
+          const objectStore = transaction.objectStore('FILE_DATA')
+
+          const getReq: IDBRequest<{ contents: Int8Array }> = objectStore.get(versionPath)
+
+          getReq.onerror = () => {
+            db.close()
+            reject(
+              getReq.error
+                ? `An error occurred when retrieving '${versionPath}' from IndexedDB database: ${getReq.error.message}`
+                : `An unknown error occurred when retrieving '${versionPath}' from IndexedDB database`
+            )
+          }
+
+          getReq.onsuccess = () => {
+            const decoder = new TextDecoder()
+            const version = decoder.decode(getReq.result.contents).trim()
+            db.close()
+            resolve(version)
+          }
+        } catch (err) {
+          db.close()
+          reject(
+            err && err instanceof Error
+              ? `An error occurred when opening 'FILE_DATA' object store from IndexedDB database: ${err.message}`
+              : `An unknown error occurred when opening 'FILE_DATA' object store from IndexedDB database`
+          )
+        }
+      }
+      req.onerror = () => {
+        reject(
+          req.error
+            ? `An error occurred when opening IndexedDB database: ${req.error.message}`
+            : 'An unknown error occurred when opening IndexedDB database'
+        )
+      }
+      req.onblocked = () => {
+        reject('IndexedDB database was blocked when opening')
+      }
+    })
+  } catch (err) {
+    // If the retrieval failed, the DB is corrupt or not initialized, return undefined
+    return undefined
+  }
+}
+
+/**
+ * Handles scenario where client had created DB with an old version of PGlite (likely 0.1.5, PG v15).
+ * For now we'll simply delete and recreate it, which loses data (as 0.1.5 was only used before official release).
+ *
+ * In the future we need to come up with an upgrade strategy.
+ */
+export async function handleUnsupportedPGVersion(dbPath: string) {
+  const dbs = await indexedDB.databases()
+  const databaseExists = dbs.some((db) => db.name === `/pglite/${dbPath}`)
+
+  if (databaseExists) {
+    const version = await getPGliteDBVersion(dbPath)
+    const runtimeVersion = await getRuntimePgVersion()
+
+    console.debug(`PG version of '${dbPath}' DB is ${version}`)
+    console.debug(`PG version of PGlite runtime is ${runtimeVersion}`)
+
+    if (version !== runtimeVersion) {
+      console.warn(
+        `DB '${dbPath}' is on PG version ${version}, deleting and replacing with version ${runtimeVersion}`
+      )
+
+      await deleteIndexedDb(`/pglite/${dbPath}`)
+    }
+  }
+}
+
+export async function deleteIndexedDb(name: string) {
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(name)
 
     req.onsuccess = () => {
       resolve()
     }
     req.onerror = () => {
-      reject('An error occurred when deleted database')
+      reject(
+        req.error
+          ? `An error occurred when deleting IndexedDB database: ${req.error.message}`
+          : 'An unknown error occurred when deleting IndexedDB database'
+      )
     }
     req.onblocked = () => {
-      reject('Database is blocked')
+      reject('IndexedDB database was blocked when deleting')
     }
   })
+}
+
+/**
+ * Gets the Postgres version used by the current PGlite runtime.
+ */
+export async function getRuntimePgVersion() {
+  if (runtimePgVersion !== undefined) {
+    return runtimePgVersion
+  }
+
+  // Create a temp DB
+  const db = new PGlite()
+
+  const {
+    rows: [{ version }],
+  } = await db.query<{ version: string }>(
+    `select split_part(current_setting('server_version'), '.', 1) as version;`
+  )
+
+  runtimePgVersion = version
+
+  // TODO: await this after PGlite v0.2.0-alpha.3 (currently a bug with closing DB)
+  db.close()
+
+  return version
 }
 
 type Migration = {
