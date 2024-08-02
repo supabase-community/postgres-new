@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "0.2.0-alpha.3",
-    "pg-gateway": "^0.2.5-alpha.2"
+    "pg-gateway": "^0.2.5-alpha.2",
+    "tar": "^7.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.11",
+    "@types/tar": "^6.1.13",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   }

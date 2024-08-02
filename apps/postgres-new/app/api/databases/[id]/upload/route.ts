@@ -1,7 +1,6 @@
 import { CompleteMultipartUploadCommandOutput, S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { NextRequest } from 'next/server'
-import { entries } from 'streaming-tar'
 
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 
@@ -25,48 +24,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const databaseId = params.id
-  const directoryPrefix = `dbs/${databaseId}`
-  const tarEntryStream = req.body.pipeThrough(new DecompressionStream('gzip'))
-  const uploads: Promise<CompleteMultipartUploadCommandOutput>[] = []
+  const key = `dbs/${databaseId}.tar.gz`
 
-  for await (const entry of entries(tarEntryStream)) {
-    let upload: Upload
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: process.env.S3_BUCKET,
+      Key: key,
+      Body: req.body,
+    },
+  })
 
-    switch (entry.type) {
-      case 'file': {
-        const buffer = new Uint8Array(await entry.arrayBuffer())
-        upload = new Upload({
-          client: s3Client,
-          params: {
-            Bucket: process.env.S3_BUCKET,
-            Key: `${directoryPrefix}${entry.name}`,
-            Body: buffer,
-          },
-        })
-        break
-      }
-      case 'directory': {
-        // Directories end in '/' and have an empty body
-        upload = new Upload({
-          client: s3Client,
-          params: {
-            Bucket: process.env.S3_BUCKET,
-            Key: `${directoryPrefix}${entry.name}/`,
-            Body: new Uint8Array(),
-          },
-        })
-        await entry.skip()
-        break
-      }
-      default: {
-        continue
-      }
-    }
-
-    uploads.push(upload.done())
-  }
-
-  await Promise.all(uploads)
+  await upload.done()
 
   return new Response(
     JSON.stringify({

@@ -2,13 +2,22 @@ import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { mkdir, readFile } from 'node:fs/promises'
 import net from 'node:net'
+import fs from 'node:fs'
+import { createReadStream } from 'node:fs'
+import { pipeline } from 'node:stream/promises'
+import { createGunzip } from 'node:zlib'
+import { extract } from 'tar'
 import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
 
-const s3fsMount = process.env.S3FS_MOUNT ?? '.'
+const dataMount = process.env.DATA_MOUNT ?? './data'
+const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
-const dbDir = `${s3fsMount}/dbs`
-const tlsDir = `${s3fsMount}/tls`
 
+const dumpDir = `${s3fsMount}/dbs`
+const tlsDir = `${s3fsMount}/tls`
+const dbDir = `${dataMount}/dbs`
+
+await mkdir(dumpDir, { recursive: true })
 await mkdir(dbDir, { recursive: true })
 await mkdir(tlsDir, { recursive: true })
 
@@ -75,7 +84,35 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      db = new PGlite(`${dbDir}/${databaseId}`, {
+      const dbPath = `${dbDir}/${databaseId}`;
+
+      if (!fs.existsSync(dbPath)) {
+        console.log(`Database '${databaseId}' is not cached, downloading...`)
+
+        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`;
+
+        if (!fs.existsSync(dumpPath)) {
+          connection.sendError({
+            severity: 'FATAL',
+            code: 'XX000',
+            message: `database ${databaseId} not found`,
+          })
+          connection.socket.end()
+          return
+        }
+
+        // Create a directory for the database
+        await mkdir(dbPath, { recursive: true });
+
+        // Extract the .tar.gz file
+        await pipeline(
+          createReadStream(dumpPath),
+          createGunzip(),
+          extract({ cwd: dbPath,  })
+        );
+      }
+
+      db = new PGlite(dbPath, {
         extensions: {
           vector,
         },
