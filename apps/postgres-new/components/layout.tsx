@@ -217,7 +217,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
       className={cn(
         'group text-sm w-full relative bg-inherit justify-start bg-neutral-100 hover:bg-neutral-200 flex gap-3 p-3 rounded-md overflow-hidden data-[active=true]:bg-neutral-200'
       )}
-      href={`/d/${database.id}`}
+      href={`/db/${database.id}`}
     >
       <span className="text-nowrap">{database.name ?? 'My database'}</span>
       <div

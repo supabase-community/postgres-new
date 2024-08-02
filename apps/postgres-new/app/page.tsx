@@ -1,6 +1,6 @@
 'use client'
 
-import { generateId } from 'ai'
+import { customAlphabet } from 'nanoid'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect } from 'react'
 import Workspace from '~/components/workspace'
@@ -10,6 +10,13 @@ import { getDb } from '~/lib/db'
 import { useLocalStorage } from '~/lib/hooks'
 
 export const dynamic = 'force-static'
+
+// Use a DNS safe alphabet
+const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16)
+
+function uniqueId() {
+  return nanoid()
+}
 
 export default function Page() {
   const router = useRouter()
@@ -29,7 +36,7 @@ export default function Page() {
   )
 
   // Track the next database ID in local storage
-  const [nextDatabaseId] = useLocalStorage('next-db-id', generateId())
+  const [nextDatabaseId] = useLocalStorage('next-db-id', uniqueId())
 
   // The very first DB needs to be loaded on mount
   useEffect(() => {
@@ -44,10 +51,10 @@ export default function Page() {
         await updateDatabase({ id: nextDatabaseId, name: null, isHidden: false })
 
         // Navigate to this DB's path
-        router.push(`/d/${nextDatabaseId}`)
+        router.push(`/db/${nextDatabaseId}`)
 
         // Pre-load the next DB (but without causing a re-render)
-        const nextId = generateId(12)
+        const nextId = uniqueId()
         localStorage.setItem('next-db-id', JSON.stringify(nextId))
         preloadDb(nextId)
       }}
