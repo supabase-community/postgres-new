@@ -38,6 +38,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.338.0",
     "monaco-editor": "^0.49.0",
+    "nanoid": "^5.0.7",
     "next": "14.2.3",
     "next-themes": "^0.3.0",
     "react": "^18",
