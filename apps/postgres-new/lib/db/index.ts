@@ -1,6 +1,8 @@
-import { PGlite, PGliteInterface, Transaction } from '@electric-sql/pglite'
-import { vector } from '@electric-sql/pglite/vector'
+import type { PGliteInterface, PGliteOptions, Transaction } from '@electric-sql/pglite'
+import { PGliteWorker } from '@electric-sql/pglite/worker'
+
 import { codeBlock } from 'common-tags'
+import { nanoid } from 'nanoid'
 
 export type Database = {
   id: string
@@ -17,6 +19,28 @@ const databaseConnections = new Map<string, Promise<PGliteInterface> | undefined
 
 getRuntimePgVersion()
 
+/**
+ * Creates a PGlite instance that runs in a web worker
+ */
+async function createPGlite(dataDir?: string, options?: PGliteOptions) {
+  if (typeof window === 'undefined') {
+    throw new Error('PGlite worker instances are only available in the browser')
+  }
+
+  return PGliteWorker.create(
+    // Note the below syntax is required by webpack in order to
+    // identify the worker properly during static analysis
+    // see: https://webpack.js.org/guides/web-workers/
+    new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+    {
+      // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
+      id: dataDir ?? nanoid(),
+      dataDir,
+      ...options,
+    }
+  )
+}
+
 export async function getMetaDb() {
   if (metaDbPromise) {
     return await metaDbPromise
@@ -25,11 +49,7 @@ export async function getMetaDb() {
   async function run() {
     await handleUnsupportedPGVersion('meta')
 
-    const metaDb = new PGlite(`idb://meta`, {
-      extensions: {
-        vector,
-      },
-    })
+    const metaDb = await createPGlite('idb://meta')
     await metaDb.waitReady
     await runMigrations(metaDb, metaMigrations)
     return metaDb
@@ -65,11 +85,7 @@ export async function getDb(id: string) {
 
     await handleUnsupportedPGVersion(dbPath)
 
-    const db = new PGlite(`idb://${dbPath}`, {
-      extensions: {
-        vector,
-      },
-    })
+    const db = await createPGlite(`idb://${dbPath}`)
     await db.waitReady
     await runMigrations(db, migrations)
 
@@ -231,7 +247,7 @@ export async function getRuntimePgVersion() {
   }
 
   // Create a temp DB
-  const db = new PGlite()
+  const db = await createPGlite()
 
   const {
     rows: [{ version }],
