@@ -49,7 +49,7 @@ export default function Layout({ children }: LayoutProps) {
               there.
             </div>
           )}
-          <div className="flex-1 flex flex-col lg:flex-row">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0">
             <AnimatePresence initial={false} mode="popLayout">
               {showSidebar && (
                 <m.div
