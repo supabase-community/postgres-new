@@ -37,13 +37,19 @@ export default function Page() {
 
   // Track the next database ID in local storage
   const nextDatabaseId = useMemo(() => {
+    const id = uniqueId()
+
+    // To prevent Next.js from failing SSR
+    if (typeof window === 'undefined') {
+      return id
+    }
+
     // For historical reasons this value exists as JSON
     let idJson = localStorage.getItem('next-db-id')
     if (idJson) {
       return JSON.parse(idJson)
     }
 
-    const id = uniqueId()
     localStorage.setItem('next-db-id', JSON.stringify(id))
     return id
   }, [])
