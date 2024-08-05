@@ -1,16 +1,13 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FeatureExtractionPipelineOptions, pipeline } from '@xenova/transformers'
 import { generateId } from 'ai'
 import { Chart } from 'chart.js'
 import { codeBlock } from 'common-tags'
 import {
   cloneElement,
-  Dispatch,
   isValidElement,
   ReactNode,
-  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
@@ -24,50 +21,6 @@ import { getDb } from './db'
 import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { OnToolCall } from './tools'
-
-/**
- * Hook to load/store values from local storage with an API similar
- * to `useState()`.
- */
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const queryClient = useQueryClient()
-  const queryKey = ['local-storage', key]
-
-  const currentValue =
-    typeof window !== 'undefined' ? (window.localStorage.getItem(key) ?? undefined) : undefined
-
-  const { data: storedValue = currentValue ? (JSON.parse(currentValue) as T) : initialValue } =
-    useQuery({
-      queryKey,
-      queryFn: () => {
-        if (typeof window === 'undefined') {
-          return initialValue
-        }
-
-        const item = window.localStorage.getItem(key)
-
-        if (!item) {
-          window.localStorage.setItem(key, JSON.stringify(initialValue))
-          return initialValue
-        }
-
-        return JSON.parse(item) as T
-      },
-    })
-
-  const setValue: Dispatch<SetStateAction<T>> = (value) => {
-    const valueToStore = value instanceof Function ? value(storedValue) : value
-
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(key, JSON.stringify(valueToStore))
-    }
-
-    queryClient.setQueryData(queryKey, valueToStore)
-    queryClient.invalidateQueries({ queryKey })
-  }
-
-  return [storedValue, setValue] as const
-}
 
 export function useDebounce<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)

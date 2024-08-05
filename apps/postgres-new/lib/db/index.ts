@@ -1,6 +1,8 @@
-import { PGlite, PGliteInterface, Transaction } from '@electric-sql/pglite'
-import { vector } from '@electric-sql/pglite/vector'
+import type { PGliteInterface, PGliteOptions, Transaction } from '@electric-sql/pglite'
+import { PGliteWorker } from '@electric-sql/pglite/worker'
+
 import { codeBlock } from 'common-tags'
+import { nanoid } from 'nanoid'
 
 export type Database = {
   id: string
@@ -17,6 +19,28 @@ const databaseConnections = new Map<string, Promise<PGliteInterface> | undefined
 
 getRuntimePgVersion()
 
+/**
+ * Creates a PGlite instance that runs in a web worker
+ */
+async function createPGlite(dataDir?: string, options?: PGliteOptions) {
+  if (typeof window === 'undefined') {
+    throw new Error('PGlite worker instances are only available in the browser')
+  }
+
+  return PGliteWorker.create(
+    // Note the below syntax is required by webpack in order to
+    // identify the worker properly during static analysis
+    // see: https://webpack.js.org/guides/web-workers/
+    new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+    {
+      // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
+      id: dataDir ?? nanoid(),
+      dataDir,
+      ...options,
+    }
+  )
+}
+
 export async function getMetaDb() {
   if (metaDbPromise) {
     return await metaDbPromise
@@ -25,12 +49,7 @@ export async function getMetaDb() {
   async function run() {
     await handleUnsupportedPGVersion('meta')
 
-    const metaDb = new PGlite(`idb://meta`, {
-      extensions: {
-        vector,
-      },
-    })
-    await metaDb.waitReady
+    const metaDb = await createPGlite('idb://meta')
     await runMigrations(metaDb, metaMigrations)
     return metaDb
   }
@@ -43,6 +62,16 @@ export async function getMetaDb() {
   return await metaDbPromise
 }
 
+export async function dbExists(id: string) {
+  const metaDb = await getMetaDb()
+
+  const {
+    rows: [database],
+  } = await metaDb.query<Database>('select * from databases where id = $1', [id])
+
+  return database !== undefined
+}
+
 export async function getDb(id: string) {
   const openDatabasePromise = databaseConnections.get(id)
 
@@ -51,13 +80,9 @@ export async function getDb(id: string) {
   }
 
   async function run() {
-    const metaDb = await getMetaDb()
+    const exists = await dbExists(id)
 
-    const {
-      rows: [database],
-    } = await metaDb.query<Database>('select * from databases where id = $1', [id])
-
-    if (!database) {
+    if (!exists) {
       throw new Error(`Database with ID '${id}' doesn't exist`)
     }
 
@@ -65,12 +90,7 @@ export async function getDb(id: string) {
 
     await handleUnsupportedPGVersion(dbPath)
 
-    const db = new PGlite(`idb://${dbPath}`, {
-      extensions: {
-        vector,
-      },
-    })
-    await db.waitReady
+    const db = await createPGlite(`idb://${dbPath}`)
     await runMigrations(db, migrations)
 
     return db
@@ -97,10 +117,7 @@ export async function closeDb(id: string) {
 
 export async function deleteDb(id: string) {
   await closeDb(id)
-
-  // TODO: fix issue where PGlite holds on to the IndexedDB preventing delete
-  // Once fixed, turn this into an `await` so we can forward legitimate errors
-  deleteIndexedDb(`/pglite/${prefix}-${id}`)
+  await deleteIndexedDb(`/pglite/${prefix}-${id}`)
 }
 
 /**
@@ -203,23 +220,24 @@ export async function handleUnsupportedPGVersion(dbPath: string) {
 }
 
 export async function deleteIndexedDb(name: string) {
-  await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.deleteDatabase(name)
+  // Sometimes IndexedDB is still finishing a transaction even after PGlite closes
+  // causing the delete to be blocked, so loop until the delete is successful
+  while (true) {
+    const closed = await new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(name)
 
-    req.onsuccess = () => {
-      resolve()
-    }
-    req.onerror = () => {
-      reject(
-        req.error
-          ? `An error occurred when deleting IndexedDB database: ${req.error.message}`
-          : 'An unknown error occurred when deleting IndexedDB database'
-      )
-    }
-    req.onblocked = () => {
-      reject('IndexedDB database was blocked when deleting')
-    }
-  })
+      req.onsuccess = () => {
+        resolve(true)
+      }
+      req.onerror = () => {
+        reject(req.error ?? 'An unknown error occurred when deleting IndexedDB database')
+      }
+      req.onblocked = () => {
+        resolve(false)
+      }
+    })
+    if (closed) break
+  }
 }
 
 /**
@@ -231,7 +249,7 @@ export async function getRuntimePgVersion() {
   }
 
   // Create a temp DB
-  const db = new PGlite()
+  const db = await createPGlite()
 
   const {
     rows: [{ version }],
