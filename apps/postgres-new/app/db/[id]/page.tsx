@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import Workspace from '~/components/workspace'
-import { getDb } from '~/lib/db'
 
 export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
@@ -11,6 +11,7 @@ export default function Page({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function run() {
+      const { getDb } = await import('~/lib/db')
       try {
         await getDb(databaseId)
       } catch (err) {
@@ -20,5 +21,11 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [databaseId, router])
 
-  return <Workspace databaseId={databaseId} visibility="local" />
+  return (
+    <ErrorBoundary fallback={<div>Error fallback</div>}>
+      <Suspense fallback={<div>Suspense fallback</div>}>
+        <Workspace databaseId={databaseId} visibility="local" />
+      </Suspense>
+    </ErrorBoundary>
+  )
 }
