@@ -1,6 +1,5 @@
 'use client'
 
-import { FeatureExtractionPipelineOptions, pipeline } from '@xenova/transformers'
 import { generateId } from 'ai'
 import { Chart } from 'chart.js'
 import { codeBlock } from 'common-tags'
@@ -18,6 +17,7 @@ import { createPortal } from 'react-dom'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { getDb } from './db'
+import { embed } from './embed'
 import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { OnToolCall } from './tools'
@@ -382,12 +382,10 @@ export function useOnToolCall(databaseId: string) {
           const { texts } = toolCall.args
 
           try {
-            const tensor = await embed(texts, {
+            const embeddings = await embed(texts, {
               normalize: true,
               pooling: 'mean',
             })
-
-            const embeddings: number[][] = tensor.tolist()
 
             const sql = codeBlock`
               insert into meta.embeddings
@@ -423,15 +421,6 @@ export function useOnToolCall(databaseId: string) {
     },
     [refetchTables, updateDatabase, databaseId, vectorDataTypeId]
   )
-}
-
-const embedPromise = pipeline('feature-extraction', 'supabase/gte-small', {
-  quantized: true,
-})
-
-export async function embed(texts: string | string[], options?: FeatureExtractionPipelineOptions) {
-  const embedFn = await embedPromise
-  return embedFn(texts, options)
 }
 
 export type UseDropZoneOptions = {

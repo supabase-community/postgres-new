@@ -29,6 +29,7 @@
     "chartjs-adapter-date-fns": "^3.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "comlink": "^4.4.1",
     "common-tags": "^1.8.2",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.2.10",
