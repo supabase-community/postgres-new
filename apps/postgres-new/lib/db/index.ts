@@ -1,6 +1,6 @@
 import type { PGliteInterface, PGliteOptions, Transaction } from '@electric-sql/pglite'
 import { PGliteWorker } from '@electric-sql/pglite/worker'
-
+import { Message } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
 
@@ -11,258 +11,369 @@ export type Database = {
   isHidden: boolean
 }
 
-let runtimePgVersion: string
-const prefix = 'playground'
+export class DbManager {
+  runtimePgVersion: string | undefined
+  prefix = 'playground'
 
-let metaDbPromise: Promise<PGliteInterface> | undefined
-const databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
+  metaDbPromise: Promise<PGliteInterface> | undefined
+  databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
 
-getRuntimePgVersion()
-
-/**
- * Creates a PGlite instance that runs in a web worker
- */
-async function createPGlite(dataDir?: string, options?: PGliteOptions) {
-  if (typeof window === 'undefined') {
-    throw new Error('PGlite worker instances are only available in the browser')
+  constructor() {
+    // Preload the PG version
+    this.getRuntimePgVersion()
   }
 
-  return PGliteWorker.create(
-    // Note the below syntax is required by webpack in order to
-    // identify the worker properly during static analysis
-    // see: https://webpack.js.org/guides/web-workers/
-    new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
-    {
-      // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
-      id: dataDir ?? nanoid(),
-      dataDir,
-      ...options,
-    }
-  )
-}
-
-export async function getMetaDb() {
-  if (metaDbPromise) {
-    return await metaDbPromise
-  }
-
-  async function run() {
-    await handleUnsupportedPGVersion('meta')
-
-    const metaDb = await createPGlite('idb://meta')
-    await runMigrations(metaDb, metaMigrations)
-    return metaDb
-  }
-
-  metaDbPromise = run().catch((err) => {
-    metaDbPromise = undefined
-    throw err
-  })
-
-  return await metaDbPromise
-}
-
-export async function dbExists(id: string) {
-  const metaDb = await getMetaDb()
-
-  const {
-    rows: [database],
-  } = await metaDb.query<Database>('select * from databases where id = $1', [id])
-
-  return database !== undefined
-}
-
-export async function getDb(id: string) {
-  const openDatabasePromise = databaseConnections.get(id)
-
-  if (openDatabasePromise) {
-    return await openDatabasePromise
-  }
-
-  async function run() {
-    const exists = await dbExists(id)
-
-    if (!exists) {
-      throw new Error(`Database with ID '${id}' doesn't exist`)
+  /**
+   * Creates a PGlite instance that runs in a web worker
+   */
+  static async createPGlite(dataDir?: string, options?: PGliteOptions) {
+    if (typeof window === 'undefined') {
+      throw new Error('PGlite worker instances are only available in the browser')
     }
 
-    const dbPath = `${prefix}-${id}`
-
-    await handleUnsupportedPGVersion(dbPath)
-
-    const db = await createPGlite(`idb://${dbPath}`)
-    await runMigrations(db, migrations)
-
-    return db
+    return PGliteWorker.create(
+      // Note the below syntax is required by webpack in order to
+      // identify the worker properly during static analysis
+      // see: https://webpack.js.org/guides/web-workers/
+      new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+      {
+        // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
+        id: dataDir ?? nanoid(),
+        dataDir,
+        ...options,
+      }
+    )
   }
 
-  const promise = run().catch((err) => {
-    databaseConnections.delete(id)
-    throw err
-  })
+  async getMetaDb() {
+    if (this.metaDbPromise) {
+      return await this.metaDbPromise
+    }
 
-  databaseConnections.set(id, promise)
+    const run = async () => {
+      await this.handleUnsupportedPGVersion('meta')
 
-  return await promise
-}
+      const metaDb = await DbManager.createPGlite('idb://meta')
+      await runMigrations(metaDb, metaMigrations)
+      return metaDb
+    }
 
-export async function closeDb(id: string) {
-  let db = await databaseConnections.get(id)
+    this.metaDbPromise = run().catch((err) => {
+      this.metaDbPromise = undefined
+      throw err
+    })
 
-  if (db && !db.closed) {
-    await db.close()
-    databaseConnections.delete(id)
-  }
-}
-
-export async function deleteDb(id: string) {
-  await closeDb(id)
-  await deleteIndexedDb(`/pglite/${prefix}-${id}`)
-}
-
-/**
- * Peeks into the files of an IndexedDB-backed PGlite database
- * and returns the Postgres version it was created under (via `./PG_VERSION`).
- *
- * Useful to detect version compatibility since it doesn't require instantiating
- * a PGlite instance.
- */
-export async function getPGliteDBVersion(id: string) {
-  const dbPath = `/pglite/${id}`
-  const versionPath = `${dbPath}/PG_VERSION`
-
-  const dbs = await indexedDB.databases()
-  const databaseExists = dbs.some((db) => db.name === dbPath)
-
-  if (!databaseExists) {
-    return undefined
+    return await this.metaDbPromise
   }
 
-  try {
-    return await new Promise<string>((resolve, reject) => {
-      const req = indexedDB.open(dbPath)
+  async getMessages(databaseId: string) {
+    const metaDb = await this.getMetaDb()
+    const { rows: messages } = await metaDb.query<Message>(
+      codeBlock`
+        select id, role, content, tool_invocations as "toolInvocations", created_at as "createdAt"
+        from messages where database_id = $1
+        order by created_at asc
+      `,
+      [databaseId]
+    )
+    return messages
+  }
 
-      req.onsuccess = async () => {
-        const db = req.result
+  async createMessage(databaseId: string, message: Message) {
+    const metaDb = await this.getMetaDb()
 
-        try {
-          const transaction = db.transaction(['FILE_DATA'], 'readonly')
-          const objectStore = transaction.objectStore('FILE_DATA')
+    if (message.toolInvocations) {
+      await metaDb.query(
+        'insert into messages (id, database_id, role, content, tool_invocations) values ($1, $2, $3, $4, $5)',
+        [
+          message.id,
+          databaseId,
+          message.role,
+          message.content,
+          JSON.stringify(message.toolInvocations),
+        ]
+      )
+    } else {
+      await metaDb.query(
+        'insert into messages (id, database_id, role, content) values ($1, $2, $3, $4)',
+        [message.id, databaseId, message.role, message.content]
+      )
+    }
+  }
 
-          const getReq: IDBRequest<{ contents: Int8Array }> = objectStore.get(versionPath)
+  async getDatabases() {
+    const metaDb = await this.getMetaDb()
 
-          getReq.onerror = () => {
+    const { rows: databases } = await metaDb.query<Database>(
+      codeBlock`
+      select id, name, created_at as "createdAt", is_hidden as "isHidden"
+      from databases
+      where is_hidden = false
+    `
+    )
+
+    return databases
+  }
+
+  async getDatabase(id: string) {
+    const metaDb = await this.getMetaDb()
+
+    const {
+      rows: [database],
+    } = await metaDb.query<Database>(
+      codeBlock`
+      select id, name, created_at as "createdAt", is_hidden as "isHidden"
+      from databases
+      where id = $1
+    `,
+      [id]
+    )
+
+    return database
+  }
+
+  async createDatabase(id: string, { isHidden }: Pick<Database, 'isHidden'>) {
+    const metaDb = await this.getMetaDb()
+
+    const {
+      rows: [database],
+    } = await metaDb.query<Database>(
+      codeBlock`
+        insert into databases (id, is_hidden)
+        values ($1, $2)
+        on conflict (id) do nothing
+        returning id, name, created_at as "createdAt", is_hidden as "isHidden"
+      `,
+      [id, isHidden]
+    )
+
+    return database
+  }
+
+  async updateDatabase(id: string, { name, isHidden }: Pick<Database, 'name' | 'isHidden'>) {
+    const metaDb = await this.getMetaDb()
+
+    const {
+      rows: [database],
+    } = await metaDb.query<Database>(
+      codeBlock`
+      update databases
+      set name = $2, is_hidden = $3
+      where id = $1
+      returning id, name, created_at as "createdAt"
+    `,
+      [id, name, isHidden]
+    )
+
+    return database
+  }
+
+  async deleteDatabase(id: string) {
+    const metaDb = await this.getMetaDb()
+
+    await metaDb.query<Database>(
+      codeBlock`
+      delete from databases
+      where id = $1
+    `,
+      [id]
+    )
+
+    await this.deleteDbInstance(id)
+  }
+
+  async getDbInstance(id: string) {
+    const openDatabasePromise = this.databaseConnections.get(id)
+
+    if (openDatabasePromise) {
+      return await openDatabasePromise
+    }
+
+    const run = async () => {
+      const database = await this.getDatabase(id)
+
+      if (!database) {
+        throw new Error(`Database with ID '${id}' doesn't exist`)
+      }
+
+      const dbPath = `${this.prefix}-${id}`
+
+      await this.handleUnsupportedPGVersion(dbPath)
+
+      const db = await DbManager.createPGlite(`idb://${dbPath}`)
+      await runMigrations(db, migrations)
+
+      return db
+    }
+
+    const promise = run().catch((err) => {
+      this.databaseConnections.delete(id)
+      throw err
+    })
+
+    this.databaseConnections.set(id, promise)
+
+    return await promise
+  }
+
+  async closeDbInstance(id: string) {
+    let db = await this.databaseConnections.get(id)
+
+    if (db && !db.closed) {
+      await db.close()
+      this.databaseConnections.delete(id)
+    }
+  }
+
+  async deleteDbInstance(id: string) {
+    await this.closeDbInstance(id)
+    await this.deleteIndexedDb(`/pglite/${this.prefix}-${id}`)
+  }
+
+  /**
+   * Peeks into the files of an IndexedDB-backed PGlite database
+   * and returns the Postgres version it was created under (via `./PG_VERSION`).
+   *
+   * Useful to detect version compatibility since it doesn't require instantiating
+   * a PGlite instance.
+   */
+  async getPGliteDBVersion(id: string) {
+    const dbPath = `/pglite/${id}`
+    const versionPath = `${dbPath}/PG_VERSION`
+
+    const dbs = await indexedDB.databases()
+    const databaseExists = dbs.some((db) => db.name === dbPath)
+
+    if (!databaseExists) {
+      return undefined
+    }
+
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const req = indexedDB.open(dbPath)
+
+        req.onsuccess = async () => {
+          const db = req.result
+
+          try {
+            const transaction = db.transaction(['FILE_DATA'], 'readonly')
+            const objectStore = transaction.objectStore('FILE_DATA')
+
+            const getReq: IDBRequest<{ contents: Int8Array }> = objectStore.get(versionPath)
+
+            getReq.onerror = () => {
+              db.close()
+              reject(
+                getReq.error
+                  ? `An error occurred when retrieving '${versionPath}' from IndexedDB database: ${getReq.error.message}`
+                  : `An unknown error occurred when retrieving '${versionPath}' from IndexedDB database`
+              )
+            }
+
+            getReq.onsuccess = () => {
+              const decoder = new TextDecoder()
+              const version = decoder.decode(getReq.result.contents).trim()
+              db.close()
+              resolve(version)
+            }
+          } catch (err) {
             db.close()
             reject(
-              getReq.error
-                ? `An error occurred when retrieving '${versionPath}' from IndexedDB database: ${getReq.error.message}`
-                : `An unknown error occurred when retrieving '${versionPath}' from IndexedDB database`
+              err && err instanceof Error
+                ? `An error occurred when opening 'FILE_DATA' object store from IndexedDB database: ${err.message}`
+                : `An unknown error occurred when opening 'FILE_DATA' object store from IndexedDB database`
             )
           }
-
-          getReq.onsuccess = () => {
-            const decoder = new TextDecoder()
-            const version = decoder.decode(getReq.result.contents).trim()
-            db.close()
-            resolve(version)
-          }
-        } catch (err) {
-          db.close()
+        }
+        req.onerror = () => {
           reject(
-            err && err instanceof Error
-              ? `An error occurred when opening 'FILE_DATA' object store from IndexedDB database: ${err.message}`
-              : `An unknown error occurred when opening 'FILE_DATA' object store from IndexedDB database`
+            req.error
+              ? `An error occurred when opening IndexedDB database: ${req.error.message}`
+              : 'An unknown error occurred when opening IndexedDB database'
           )
         }
-      }
-      req.onerror = () => {
-        reject(
-          req.error
-            ? `An error occurred when opening IndexedDB database: ${req.error.message}`
-            : 'An unknown error occurred when opening IndexedDB database'
-        )
-      }
-      req.onblocked = () => {
-        reject('IndexedDB database was blocked when opening')
-      }
-    })
-  } catch (err) {
-    // If the retrieval failed, the DB is corrupt or not initialized, return undefined
-    return undefined
-  }
-}
-
-/**
- * Handles scenario where client had created DB with an old version of PGlite (likely 0.1.5, PG v15).
- * For now we'll simply delete and recreate it, which loses data (as 0.1.5 was only used before official release).
- *
- * In the future we need to come up with an upgrade strategy.
- */
-export async function handleUnsupportedPGVersion(dbPath: string) {
-  const dbs = await indexedDB.databases()
-  const databaseExists = dbs.some((db) => db.name === `/pglite/${dbPath}`)
-
-  if (databaseExists) {
-    const version = await getPGliteDBVersion(dbPath)
-    const runtimeVersion = await getRuntimePgVersion()
-
-    console.debug(`PG version of '${dbPath}' DB is ${version}`)
-    console.debug(`PG version of PGlite runtime is ${runtimeVersion}`)
-
-    if (version !== runtimeVersion) {
-      console.warn(
-        `DB '${dbPath}' is on PG version ${version}, deleting and replacing with version ${runtimeVersion}`
-      )
-
-      await deleteIndexedDb(`/pglite/${dbPath}`)
+        req.onblocked = () => {
+          reject('IndexedDB database was blocked when opening')
+        }
+      })
+    } catch (err) {
+      // If the retrieval failed, the DB is corrupt or not initialized, return undefined
+      return undefined
     }
   }
-}
 
-export async function deleteIndexedDb(name: string) {
-  // Sometimes IndexedDB is still finishing a transaction even after PGlite closes
-  // causing the delete to be blocked, so loop until the delete is successful
-  while (true) {
-    const closed = await new Promise((resolve, reject) => {
-      const req = indexedDB.deleteDatabase(name)
+  /**
+   * Handles scenario where client had created DB with an old version of PGlite (likely 0.1.5, PG v15).
+   * For now we'll simply delete and recreate it, which loses data (as 0.1.5 was only used before official release).
+   *
+   * In the future we need to come up with an upgrade strategy.
+   */
+  async handleUnsupportedPGVersion(dbPath: string) {
+    const dbs = await indexedDB.databases()
+    const databaseExists = dbs.some((db) => db.name === `/pglite/${dbPath}`)
 
-      req.onsuccess = () => {
-        resolve(true)
-      }
-      req.onerror = () => {
-        reject(req.error ?? 'An unknown error occurred when deleting IndexedDB database')
-      }
-      req.onblocked = () => {
-        resolve(false)
-      }
-    })
-    if (closed) break
-  }
-}
+    if (databaseExists) {
+      const version = await this.getPGliteDBVersion(dbPath)
+      const runtimeVersion = await this.getRuntimePgVersion()
 
-/**
- * Gets the Postgres version used by the current PGlite runtime.
- */
-export async function getRuntimePgVersion() {
-  if (runtimePgVersion !== undefined) {
-    return runtimePgVersion
+      console.debug(`PG version of '${dbPath}' DB is ${version}`)
+      console.debug(`PG version of PGlite runtime is ${runtimeVersion}`)
+
+      if (version !== runtimeVersion) {
+        console.warn(
+          `DB '${dbPath}' is on PG version ${version}, deleting and replacing with version ${runtimeVersion}`
+        )
+
+        await this.deleteIndexedDb(`/pglite/${dbPath}`)
+      }
+    }
   }
 
-  // Create a temp DB
-  const db = await createPGlite()
+  async deleteIndexedDb(name: string) {
+    // Sometimes IndexedDB is still finishing a transaction even after PGlite closes
+    // causing the delete to be blocked, so loop until the delete is successful
+    while (true) {
+      const closed = await new Promise((resolve, reject) => {
+        const req = indexedDB.deleteDatabase(name)
 
-  const {
-    rows: [{ version }],
-  } = await db.query<{ version: string }>(
-    `select split_part(current_setting('server_version'), '.', 1) as version;`
-  )
+        req.onsuccess = () => {
+          resolve(true)
+        }
+        req.onerror = () => {
+          reject(req.error ?? 'An unknown error occurred when deleting IndexedDB database')
+        }
+        req.onblocked = () => {
+          resolve(false)
+        }
+      })
+      if (closed) break
+    }
+  }
 
-  runtimePgVersion = version
+  /**
+   * Gets the Postgres version used by the current PGlite runtime.
+   */
+  async getRuntimePgVersion() {
+    if (this.runtimePgVersion !== undefined) {
+      return this.runtimePgVersion
+    }
 
-  // TODO: await this after PGlite v0.2.0-alpha.3 (currently a bug with closing DB)
-  db.close()
+    // Create a temp DB
+    const db = await DbManager.createPGlite()
 
-  return version
+    const {
+      rows: [{ version }],
+    } = await db.query<{ version: string }>(
+      `select split_part(current_setting('server_version'), '.', 1) as version;`
+    )
+
+    this.runtimePgVersion = version
+
+    // TODO: await this after PGlite v0.2.0-alpha.3 (currently a bug with closing DB)
+    db.close()
+
+    return version
+  }
 }
 
 type Migration = {

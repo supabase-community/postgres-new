@@ -6,8 +6,6 @@ import { Inter } from 'next/font/google'
 import Layout from '~/components/layout'
 import Providers from '~/components/providers'
 import { cn } from '~/lib/utils'
-import { ErrorBoundary } from 'react-error-boundary'
-import { Suspense } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,13 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn(inter.className)}>
-        <ErrorBoundary fallback={<div>Error fallback</div>}>
-          <Suspense fallback={<div>Suspense fallback</div>}>
-            <Providers>
-              <Layout>{children}</Layout>
-            </Providers>
-          </Suspense>
-        </ErrorBoundary>
+        <Providers>
+          <Layout>{children}</Layout>
+        </Providers>
       </body>
     </html>
   )

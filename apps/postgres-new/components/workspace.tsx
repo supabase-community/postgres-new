@@ -2,13 +2,13 @@
 
 import { CreateMessage, Message, useChat } from 'ai/react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
-import { getDatabase } from '~/data/databases/database-query'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId } from '~/lib/util'
+import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
 
@@ -33,6 +33,7 @@ export type WorkspaceProps = {
 }
 
 export default function Workspace({ databaseId, visibility, onStart }: WorkspaceProps) {
+  const { dbManager } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -57,9 +58,13 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
       await saveMessage({ message })
 
-      const database = await getDatabase(databaseId)
+      const database = await dbManager.getDatabase(databaseId)
       const isStartOfConversation = database.isHidden && !message.toolInvocations
 
       if (isStartOfConversation) {

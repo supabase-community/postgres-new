@@ -1,6 +1,6 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
-import { codeBlock } from 'common-tags'
-import { Database, getMetaDb } from '~/lib/db'
+import { useApp } from '~/components/app-provider'
+import { Database } from '~/lib/db'
 import { getDatabaseQueryKey } from './database-query'
 import { getDatabasesQueryKey } from './databases-query'
 
@@ -15,25 +15,15 @@ export const useDatabaseUpdateMutation = ({
   onError,
   ...options
 }: Omit<UseMutationOptions<Database, Error, DatabaseUpdateVariables>, 'mutationFn'> = {}) => {
+  const { dbManager } = useApp()
   const queryClient = useQueryClient()
 
   return useMutation<Database, Error, DatabaseUpdateVariables>({
     mutationFn: async ({ id, name, isHidden }) => {
-      const metaDb = await getMetaDb()
-
-      const {
-        rows: [database],
-      } = await metaDb.query<Database>(
-        codeBlock`
-          update databases
-          set name = $2, is_hidden = $3
-          where id = $1
-          returning id, name, created_at as "createdAt"
-        `,
-        [id, name, isHidden]
-      )
-
-      return database
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+      return await dbManager.updateDatabase(id, { name, isHidden })
     },
     async onSuccess(data, variables, context) {
       await Promise.all([queryClient.invalidateQueries({ queryKey: getDatabasesQueryKey() })])
