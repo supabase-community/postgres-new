@@ -12,6 +12,7 @@ import { tabsSchema, TabValue } from '~/lib/schema'
 import { assertDefined, isMigrationStatement } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import { useBreakpoint } from '~/lib/use-breakpoint'
+import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
 import { useWorkspace } from './workspace'
@@ -19,9 +20,11 @@ import { useWorkspace } from './workspace'
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
 
-export type IDEProps = PropsWithChildren
+export type IDEProps = PropsWithChildren<{
+  className?: string
+}>
 
-export default function IDE({ children }: IDEProps) {
+export default function IDE({ children, className }: IDEProps) {
   const { pgliteVersion, pgVersion } = useApp()
   const { databaseId } = useWorkspace()
   const [tab, setTab] = useState<TabValue>('diagram')
@@ -94,7 +97,7 @@ export default function IDE({ children }: IDEProps) {
   const migrationsSql = (initialMigrationSql + '\n' + migrationStatements?.join('\n\n')).trim()
 
   return (
-    <div className="flex-1 h-full flex flex-col items-stretch gap-3">
+    <div className={cn('flex flex-col items-stretch gap-3', className)}>
       <Tabs
         className="flex-1 flex flex-col items-stretch"
         value={tab}
