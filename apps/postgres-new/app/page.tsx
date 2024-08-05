@@ -62,6 +62,7 @@ export default function Page() {
   return (
     <Workspace
       databaseId={nextDatabaseId}
+      visibility="local"
       onStart={async () => {
         // Make the DB no longer hidden
         await updateDatabase({ id: nextDatabaseId, name: null, isHidden: false })
