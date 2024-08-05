@@ -64,7 +64,7 @@ export default function TablesGraph({
   )
 
   useEffect(() => {
-    if (tables) {
+    if (tables && tables.length > 0) {
       getGraphDataFromTables(tables).then(({ nodes, edges }) => {
         reactFlowInstance.setNodes(nodes)
         reactFlowInstance.setEdges(edges)
