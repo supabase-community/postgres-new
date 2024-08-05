@@ -83,3 +83,9 @@ To stop all Docker containers, run:
 ```shell
 docker compose down
 ```
+
+## Deployment
+
+The db-service is deployed on Fly.io.
+
+A Tigris bucket is used to store the DB tarballs and the TLS certificates.

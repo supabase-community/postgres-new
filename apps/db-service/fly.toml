@@ -1,17 +1,17 @@
 app = 'postgres-new-dev'
 primary_region = 'yyz'
 
-[[service]]
+[[services]]
 internal_port = 5432
 protocol = "tcp"
 auto_stop_machines = true
 auto_start_machines = true
 min_machines_running = 0
 
-[[service.ports]]
+[[services.ports]]
 port = 5432
 
-[[service.concurrency]]
+[services.concurrency]
 type = "connections"
 hard_limit = 25
 soft_limit = 20
@@ -22,5 +22,5 @@ cpu_kind = 'shared'
 cpus = 1
 
 [mounts]
-source = "postgres-new-data"
+source = "postgres_new_data"
 destination = "/mnt/data"
