@@ -3,7 +3,7 @@ import { PostgresTable } from '@gregnr/postgres-meta/base'
 import { uniqBy } from 'lodash'
 import { Info, Loader } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -31,10 +31,11 @@ export default function TablesGraph({
 }) {
   const { resolvedTheme } = useTheme()
   const { visibility } = useWorkspace()
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const { data: allTables, error, isError, isLoading } = useTablesQuery({ databaseId, schemas })
 
-  const tables = allTables?.filter((table) => table.schema === 'public')
+  const tables = useMemo(() => allTables?.filter((table) => table.schema === 'public'), [allTables])
 
   const isEmpty = tables && tables.length === 0
 
@@ -52,24 +53,28 @@ export default function TablesGraph({
     []
   )
 
-  const fitView = useCallback(() => {
-    reactFlowInstance.fitView({
-      padding: 0.4,
-      duration: 500,
-    })
-  }, [reactFlowInstance])
+  const fitView = useCallback(
+    (duration = 500) => {
+      reactFlowInstance.fitView({
+        padding: 0.4,
+        duration,
+      })
+    },
+    [reactFlowInstance]
+  )
 
   useEffect(() => {
-    if (tables) {
+    if (tables && tables.length > 0) {
       getGraphDataFromTables(tables).then(({ nodes, edges }) => {
         reactFlowInstance.setNodes(nodes)
         reactFlowInstance.setEdges(edges)
 
-        // it needs to happen during next event tick
-        setTimeout(() => fitView(), 100)
+        // `fitView` needs to happen during next event tick
+        setTimeout(() => fitView(isFirstLoad ? 0 : 500), 0)
+        setIsFirstLoad(false)
       })
     }
-  }, [reactFlowInstance, tables, resolvedTheme, fitView])
+  }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
 
   return (
     <div className="flex flex-col w-full h-full bg-neutral-800 rounded-md border-[0.5px] border-neutral-800 overflow-hidden">
