@@ -25,7 +25,6 @@ export type IDEProps = PropsWithChildren<{
 }>
 
 export default function IDE({ children, className }: IDEProps) {
-  const { pgliteVersion, pgVersion } = useApp()
   const { databaseId } = useWorkspace()
   const [tab, setTab] = useState<TabValue>('diagram')
 
@@ -99,7 +98,7 @@ export default function IDE({ children, className }: IDEProps) {
   return (
     <div className={cn('flex flex-col items-stretch gap-3', className)}>
       <Tabs
-        className="flex-1 flex flex-col items-stretch"
+        className="h-full flex-1 flex flex-col items-stretch"
         value={tab}
         onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
       >
@@ -128,53 +127,60 @@ export default function IDE({ children, className }: IDEProps) {
         </TabsList>
 
         {isSmallBreakpoint && (
-          <TabsContent value="chat" className="flex-1 h-full min-h-0">
+          <TabsContent value="chat" className="flex-1 h-full min-h-0 overflow-y-auto">
             {children}
           </TabsContent>
         )}
         <TabsContent value="diagram" className="h-full">
-          <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
+          <div className="h-full flex flex-col gap-3">
+            <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
+            <Footer />
+          </div>
         </TabsContent>
-        <TabsContent value="migrations" className="h-full py-4 rounded-md bg-[#1e1e1e]">
-          <Editor
-            language="pgsql"
-            value={migrationsSql}
-            theme="vs-dark"
-            options={{
-              tabSize: 2,
-              minimap: {
-                enabled: false,
-              },
-              fontSize: 13,
-              readOnly: true,
-            }}
-            onMount={async (editor, monaco) => {
-              // Register pgsql formatter
-              monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
-                async provideDocumentFormattingEdits(model) {
-                  const currentCode = editor.getValue()
-                  const formattedCode = format(currentCode, {
-                    language: 'postgresql',
-                    keywordCase: 'lower',
-                  })
-                  return [
-                    {
-                      range: model.getFullModelRange(),
-                      text: formattedCode,
-                    },
-                  ]
+        <TabsContent value="migrations" className="h-full">
+          <div className="h-full flex flex-col gap-3">
+            <Editor
+              className=" py-4 rounded-md bg-[#1e1e1e]"
+              language="pgsql"
+              value={migrationsSql}
+              theme="vs-dark"
+              options={{
+                tabSize: 2,
+                minimap: {
+                  enabled: false,
                 },
-              })
+                fontSize: 13,
+                readOnly: true,
+              }}
+              onMount={async (editor, monaco) => {
+                // Register pgsql formatter
+                monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
+                  async provideDocumentFormattingEdits(model) {
+                    const currentCode = editor.getValue()
+                    const formattedCode = format(currentCode, {
+                      language: 'postgresql',
+                      keywordCase: 'lower',
+                    })
+                    return [
+                      {
+                        range: model.getFullModelRange(),
+                        text: formattedCode,
+                      },
+                    ]
+                  },
+                })
 
-              // Format on cmd+s
-              editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
+                // Format on cmd+s
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
+                  await editor.getAction('editor.action.formatDocument')?.run()
+                })
+
+                // Run format on the initial value
                 await editor.getAction('editor.action.formatDocument')?.run()
-              })
-
-              // Run format on the initial value
-              await editor.getAction('editor.action.formatDocument')?.run()
-            }}
-          />
+              }}
+            />
+            <Footer />
+          </div>
         </TabsContent>
         {/* Temporarily hide seeds until we get pg_dump working */}
         {false && (
@@ -220,22 +226,27 @@ export default function IDE({ children, className }: IDEProps) {
           </TabsContent>
         )}
       </Tabs>
+    </div>
+  )
+}
 
-      <div className="flex flex-col pb-1 text-xs text-neutral-500 text-center justify-center">
-        {pgliteVersion && (
-          <span>
-            <a
-              className="underline"
-              href="https://github.com/electric-sql/pglite"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              PGlite
-            </a>{' '}
-            {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
-          </span>
-        )}
-      </div>
+function Footer() {
+  const { pgliteVersion, pgVersion } = useApp()
+  return (
+    <div className="flex flex-col pb-1 text-xs text-neutral-500 text-center justify-center">
+      {pgliteVersion && (
+        <span>
+          <a
+            className="underline"
+            href="https://github.com/electric-sql/pglite"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            PGlite
+          </a>{' '}
+          {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
+        </span>
+      )}
     </div>
   )
 }

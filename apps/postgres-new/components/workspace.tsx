@@ -103,7 +103,7 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
       }}
     >
       <div className="w-full h-full flex flex-col lg:flex-row gap-8">
-        <IDE className="flex-1 h-full py-6 pl-6">
+        <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
           <Chat />
         </IDE>
         {!isSmallBreakpoint && (
