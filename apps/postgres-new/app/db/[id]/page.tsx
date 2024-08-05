@@ -1,8 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Suspense, useEffect } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
 
@@ -26,11 +25,5 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [dbManager, databaseId, router])
 
-  return (
-    <ErrorBoundary fallback={<div>Error fallback</div>}>
-      <Suspense fallback={<div>Suspense fallback</div>}>
-        <Workspace databaseId={databaseId} visibility="local" />
-      </Suspense>
-    </ErrorBoundary>
-  )
+  return <Workspace databaseId={databaseId} visibility="local" />
 }
