@@ -1,8 +1,7 @@
 import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir, readFile, access } from 'node:fs/promises'
 import net from 'node:net'
-import fs from 'node:fs'
 import { createReadStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
@@ -32,6 +31,15 @@ function getIdFromServerName(serverName: string) {
   // ie. 12345.db.example.com -> 12345
   const [id] = serverName.split('.')
   return id
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const server = net.createServer((socket) => {
@@ -86,12 +94,12 @@ const server = net.createServer((socket) => {
 
       const dbPath = `${dbDir}/${databaseId}`;
 
-      if (!fs.existsSync(dbPath)) {
+      if (!(await fileExists(dbPath))) {
         console.log(`Database '${databaseId}' is not cached, downloading...`)
 
         const dumpPath = `${dumpDir}/${databaseId}.tar.gz`;
 
-        if (!fs.existsSync(dumpPath)) {
+        if (!(await fileExists(dumpPath))) {
           connection.sendError({
             severity: 'FATAL',
             code: 'XX000',
