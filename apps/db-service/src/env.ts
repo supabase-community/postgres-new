@@ -5,10 +5,10 @@ export const env = {
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ?? 'minioadmin',
   BUCKET_NAME: process.env.BUCKET_NAME ?? 'test',
   CACHE_DISK_USAGE_THRESHOLD: parseInt(process.env.CACHE_DISK_USAGE_THRESHOLD ?? '90'),
+  CACHE_PATH: process.env.CACHE_PATH ?? './dbs',
   CACHE_SCHEDULE_INTERVAL: parseInt(process.env.CACHE_SCHEDULE_INTERVAL ?? '1'),
   CACHE_TIMESTAMP_FILE: process.env.CACHE_TIMESTAMP_FILE ?? './delete_cache_last_run',
   CACHE_TTL: parseInt(process.env.CACHE_TTL ?? '24'),
-  DATABASES_PATH: process.env.DATABASES_PATH ?? './dbs',
   S3FS_MOUNT: process.env.S3FS_MOUNT ?? './s3',
   WILDCARD_DOMAIN: process.env.WILDCARD_DOMAIN ?? 'db.example.com',
 }

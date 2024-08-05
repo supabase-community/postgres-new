@@ -15,7 +15,7 @@ const dumpDir = path.join(env.S3FS_MOUNT, 'dbs')
 const tlsDir = path.join(env.S3FS_MOUNT, 'tls')
 
 await mkdir(dumpDir, { recursive: true })
-await mkdir(env.DATABASES_PATH, { recursive: true })
+await mkdir(env.CACHE_PATH, { recursive: true })
 await mkdir(tlsDir, { recursive: true })
 
 const tls: TlsOptions = {
@@ -95,7 +95,7 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      const dbPath = path.join(env.DATABASES_PATH, databaseId);
+      const dbPath = path.join(env.CACHE_PATH, databaseId);
 
       if (!(await fileExists(dbPath))) {
         console.log(`Database '${databaseId}' is not cached, downloading...`)

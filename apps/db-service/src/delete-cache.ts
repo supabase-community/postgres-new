@@ -10,9 +10,9 @@ async function deleteOldFolders() {
     const ttlInMillis = env.CACHE_TTL * 60 * 60 * 1000;
 
     try {
-        const folders = await fs.readdir(env.DATABASES_PATH);
+        const folders = await fs.readdir(env.CACHE_PATH);
         for (const folder of folders) {
-            const folderPath = path.join(env.DATABASES_PATH, folder);
+            const folderPath = path.join(env.CACHE_PATH, folder);
             const stats = await fs.stat(folderPath);
 
             if (stats.isDirectory() && (now - stats.mtimeMs) > ttlInMillis) {
@@ -52,12 +52,12 @@ async function getDiskUsage() {
 };
 
 async function getFoldersByModificationTime() {
-    const folders = await fs.readdir(env.DATABASES_PATH, { withFileTypes: true });
+    const folders = await fs.readdir(env.CACHE_PATH, { withFileTypes: true });
     const folderStats = await Promise.all(
         folders
             .filter(dirent => dirent.isDirectory())
             .map(async dirent => {
-                const fullPath = path.join(env.DATABASES_PATH, dirent.name);
+                const fullPath = path.join(env.CACHE_PATH, dirent.name);
                 const stats = await fs.stat(fullPath);
                 return { path: fullPath, mtime: stats.mtime.getTime() };
             })
