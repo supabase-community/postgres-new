@@ -43,9 +43,9 @@ flyctl deploy --build-only --push -a postgres-new-certbot --image-label
  latest
 ```
 
-3. Set the appropriate environment variables and secrets for the app "postgres-new-certbot" (see `.env.example`) in fly.io UI (available in Bitwarden as a secure note "fly.io postgres.new cerbot .env")
+1. Set the appropriate environment variables and secrets for the app "postgres-new-certbot" (see `.env.example`) in fly.io UI.
 
-4. Setup [cron-manager](https://github.com/fly-apps/cron-manager?tab=readme-ov-file#getting-started) to run the certbot service every 2 weeks with the following `schedules.json`:
+2. Setup [cron-manager](https://github.com/fly-apps/cron-manager?tab=readme-ov-file#getting-started) to run the certbot service every 2 weeks with the following `schedules.json`:
 
 ```json
 [
