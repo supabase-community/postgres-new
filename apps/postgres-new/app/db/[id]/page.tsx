@@ -20,5 +20,5 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [databaseId, router])
 
-  return <Workspace databaseId={databaseId} />
+  return <Workspace databaseId={databaseId} visibility="local" />
 }
