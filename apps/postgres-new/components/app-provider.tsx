@@ -20,6 +20,9 @@ import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
 
+// Create a singleton DbManager that isn't exposed to double mounting
+const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
+
 export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
@@ -76,10 +79,6 @@ export default function AppProvider({ children }: AppProps) {
 
     setUser(undefined)
   }, [supabase])
-
-  const dbManager = useMemo(() => {
-    return typeof window !== 'undefined' ? new DbManager() : undefined
-  }, [])
 
   const isPreview = process.env.NEXT_PUBLIC_IS_PREVIEW === 'true'
   const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION

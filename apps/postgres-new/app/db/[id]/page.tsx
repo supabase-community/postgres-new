@@ -17,7 +17,7 @@ export default function Page({ params }: { params: { id: string } }) {
       }
 
       try {
-        await dbManager.closeDbInstance(databaseId)
+        await dbManager.getDbInstance(databaseId)
       } catch (err) {
         router.push('/')
       }
