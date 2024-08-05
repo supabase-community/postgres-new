@@ -12,12 +12,27 @@ import { ensureMessageId } from '~/lib/util'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
 
+// TODO: support public/private DBs that live in the cloud
+export type Visibility = 'local'
+
 export type WorkspaceProps = {
+  /**
+   * The unique ID for this database.
+   */
   databaseId: string
+
+  /**
+   * The visibility of this database/conversation.
+   */
+  visibility: Visibility
+
+  /**
+   * Callback called when the conversation has started.
+   */
   onStart?: () => void | Promise<void>
 }
 
-export default function Workspace({ databaseId, onStart }: WorkspaceProps) {
+export default function Workspace({ databaseId, visibility, onStart }: WorkspaceProps) {
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -84,14 +99,15 @@ export default function Workspace({ databaseId, onStart }: WorkspaceProps) {
         messages,
         appendMessage,
         stopReply,
+        visibility,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row p-6 gap-8">
-        <IDE>
+      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+        <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
           <Chat />
         </IDE>
         {!isSmallBreakpoint && (
-          <div className="flex-1 h-full overflow-x-auto">
+          <div className="flex-1 h-full overflow-x-auto pb-6 pr-6">
             <Chat />
           </div>
         )}
@@ -106,6 +122,7 @@ export type WorkspaceContextValues = {
   isLoadingSchema: boolean
   isConversationStarted: boolean
   messages: Message[]
+  visibility: Visibility
   appendMessage(message: Message | CreateMessage): Promise<void>
   stopReply(): void
 }
