@@ -1,6 +1,6 @@
 import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import { mkdir, readFile, access } from 'node:fs/promises'
+import { mkdir, readFile, access, rm } from 'node:fs/promises'
 import net from 'node:net'
 import { createReadStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
@@ -111,12 +111,24 @@ const server = net.createServer((socket) => {
         // Create a directory for the database
         await mkdir(dbPath, { recursive: true });
 
-        // Extract the .tar.gz file
-        await pipeline(
-          createReadStream(dumpPath),
-          createGunzip(),
-          extract({ cwd: dbPath,  })
-        );
+        try {
+          // Extract the .tar.gz file
+          await pipeline(
+            createReadStream(dumpPath),
+            createGunzip(),
+            extract({ cwd: dbPath })
+          );
+        } catch (error) {
+          console.error(error);
+          await rm(dbPath, { recursive: true, force: true }); // Clean up the partially created directory
+          connection.sendError({
+            severity: 'FATAL',
+            code: 'XX000',
+            message: `Error extracting database: ${(error as Error).message}`,
+          });
+          connection.socket.end();
+          return;
+        }
       }
 
       db = new PGlite(dbPath, {

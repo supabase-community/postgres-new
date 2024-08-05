@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 
 S3FS_MOUNT=${S3FS_MOUNT:=.}
-DOMAIN="${DOMAIN:=*.db.example.com}"
+DOMAIN="*.${WILDCARD_DOMAIN:=db.example.com}"
 CERT_DIR="$S3FS_MOUNT/tls"
 
 mkdir -p $CERT_DIR
