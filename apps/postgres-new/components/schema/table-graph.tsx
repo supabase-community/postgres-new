@@ -77,7 +77,7 @@ export default function TablesGraph({
   }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
 
   return (
-    <div className="flex flex-col w-full h-full bg-neutral-800 rounded-md border-[0.5px] border-neutral-800 overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-muted/50 rounded-md border overflow-hidden">
       <ReactFlow
         className=""
         defaultNodes={[]}
@@ -86,12 +86,12 @@ export default function TablesGraph({
           type: 'smoothstep',
           deletable: false,
           style: {
-            stroke: 'hsl(var(--border-stronger))',
-            strokeWidth: 2,
-            strokeDasharray: 10,
-            strokeDashoffset: -10,
+            stroke: 'hsl(var(--muted-foreground))',
+            strokeWidth: 1,
+            strokeDasharray: 6,
+            strokeDashoffset: -12,
             // Manually create animation so that it doesn't interfere with our custom edge component
-            animation: 'dashdraw 0.5s linear infinite',
+            animation: 'dashdraw 1s linear infinite',
           },
         }}
         nodeTypes={nodeTypes}
@@ -106,12 +106,13 @@ export default function TablesGraph({
         <Background
           gap={32}
           className={cn(
-            'bg-neutral-800 transition-colors',
-            isLoading || isError || isEmpty ? 'text-neutral-700' : 'text-neutral-500'
+            'bg-muted/5 transition-colors',
+            isLoading || isError || isEmpty ? 'text-secondary-foreground' : 'text-foreground'
+            // 'text-yellow'
           )}
           variant={BackgroundVariant.Dots}
-          size={2}
-          color="currentColor"
+          size={1}
+          color="hsl(var(--muted-foreground)/.5)"
         />
 
         <div className="absolute w-full h-full flex justify-center items-center text-center p-4 font-medium">

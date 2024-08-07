@@ -77,7 +77,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
 
   if (data.isForeign) {
     return (
-      <header className="text-[1.1rem] px-4 py-2 border-[1px] rounded-[8px] bg-neutral text-default flex gap-2 items-center">
+      <header className="text-[1.1rem] px-4 py-2 border-[1px] rounded-[8px] bg-foreground text-background flex gap-2 items-center">
         {data.name}
         {targetPosition && (
           <Handle
@@ -96,7 +96,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
 
   return (
     <m.div
-      className="overflow-hidden rounded-[8px] bg-card"
+      className="overflow-hidden rounded-[8px] border shadow-md"
       style={{ width: TABLE_NODE_WIDTH / 2 }}
       variants={{
         hidden: {
@@ -114,9 +114,12 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
       }}
     >
       <header
-        className={cn('text-[1.1rem] px-4 text-foreground flex gap-2 items-center', itemHeight)}
+        className={cn(
+          'text-[1.1rem] px-3 bg-foreground dark:bg-muted text-background dark:text-foreground flex gap-2 items-center',
+          itemHeight
+        )}
       >
-        <Table2 strokeWidth={2} size={24} className="" />
+        <Table2 strokeWidth={1.3} size={21} className="text-muted-foreground" />
 
         {/* Animate the old title out and new title in */}
         <AnimatePresence mode="popLayout">
@@ -190,8 +193,8 @@ function TableColumn({
         <m.div
           className={cn(
             'text-[16px] leading-10 relative flex flex-row justify-items-start',
-            'bg-neutral-300 hover:bg-neutral-200 data-[state=open]:bg-neutral-200',
-            'border-t border-neutral-200',
+            'bg-card hover:bg-accent data-[state=open]:bg-accent',
+            'border-t ',
             'border-t-[1px]',
             'overflow-hidden',
             itemHeight

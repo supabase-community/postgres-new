@@ -11,7 +11,12 @@ const queryClient = new QueryClient()
 export default function Providers({ children }: PropsWithChildren) {
   return (
     // Force theme until we implement dark mode
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      storageKey="jonny"
+      disableTransitionOnChange
+    >
       <QueryClientProvider client={queryClient}>
         <AppProvider>{children}</AppProvider>
       </QueryClientProvider>
