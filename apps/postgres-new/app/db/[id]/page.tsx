@@ -2,23 +2,28 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
-import { getDb } from '~/lib/db'
 
 export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
   const router = useRouter()
+  const { dbManager } = useApp()
 
   useEffect(() => {
     async function run() {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
       try {
-        await getDb(databaseId)
+        await dbManager.getDbInstance(databaseId)
       } catch (err) {
         router.push('/')
       }
     }
     run()
-  }, [databaseId, router])
+  }, [dbManager, databaseId, router])
 
   return <Workspace databaseId={databaseId} visibility="local" />
 }
