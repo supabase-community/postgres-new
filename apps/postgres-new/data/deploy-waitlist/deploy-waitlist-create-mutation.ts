@@ -1,8 +1,8 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '~/utils/supabase/client'
-import { getIsOnPublishWaitlistQueryKey } from './publish-waitlist-query'
+import { getIsOnDeployWaitlistQueryKey } from './deploy-waitlist-query'
 
-export const usePublishWaitlistCreateMutation = ({
+export const useDeployWaitlistCreateMutation = ({
   onSuccess,
   onError,
   ...options
@@ -13,7 +13,7 @@ export const usePublishWaitlistCreateMutation = ({
     mutationFn: async () => {
       const supabase = createClient()
 
-      const { error } = await supabase.from('publish_waitlist').insert({})
+      const { error } = await supabase.from('deploy_waitlist').insert({})
 
       if (error) {
         throw error
@@ -21,7 +21,7 @@ export const usePublishWaitlistCreateMutation = ({
     },
     async onSuccess(data, variables, context) {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getIsOnPublishWaitlistQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getIsOnDeployWaitlistQueryKey() }),
       ])
       return onSuccess?.(data, variables, context)
     },

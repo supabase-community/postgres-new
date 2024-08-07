@@ -34,7 +34,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      publish_waitlist: {
+      deploy_waitlist: {
         Row: {
           created_at: string
           id: number
@@ -52,7 +52,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "publish_waitlist_user_id_fkey"
+            foreignKeyName: "deploy_waitlist_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

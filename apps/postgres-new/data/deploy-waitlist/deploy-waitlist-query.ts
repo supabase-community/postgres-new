@@ -1,14 +1,14 @@
 import { UseQueryOptions, useQuery } from '@tanstack/react-query'
 import { createClient } from '~/utils/supabase/client'
 
-export const useIsOnPublishWaitlistQuery = (
+export const useIsOnDeployWaitlistQuery = (
   options: Omit<UseQueryOptions<boolean, Error>, 'queryKey' | 'queryFn'> = {}
 ) => {
   const supabase = createClient()
 
   return useQuery<boolean, Error>({
     ...options,
-    queryKey: getIsOnPublishWaitlistQueryKey(),
+    queryKey: getIsOnDeployWaitlistQueryKey(),
     queryFn: async () => {
       const { data, error } = await supabase.auth.getUser()
       if (error) {
@@ -17,7 +17,7 @@ export const useIsOnPublishWaitlistQuery = (
       const { user } = data
 
       const { data: waitlistRecord, error: waitlistError } = await supabase
-        .from('publish_waitlist')
+        .from('deploy_waitlist')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle()
@@ -33,4 +33,4 @@ export const useIsOnPublishWaitlistQuery = (
   })
 }
 
-export const getIsOnPublishWaitlistQueryKey = () => ['publish-waitlist']
+export const getIsOnDeployWaitlistQueryKey = () => ['deploy-waitlist']
