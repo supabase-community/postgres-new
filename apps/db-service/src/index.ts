@@ -7,22 +7,20 @@ import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
 import { extract } from 'tar'
 import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
+import { env } from './env.js'
+import path from 'node:path'
+import { deleteCache } from './delete-cache.js'
 
-const dataMount = process.env.DATA_MOUNT ?? './data'
-const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
-const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
-
-const dumpDir = `${s3fsMount}/dbs`
-const tlsDir = `${s3fsMount}/tls`
-const dbDir = `${dataMount}/dbs`
+const dumpDir = path.join(env.S3FS_MOUNT, 'dbs')
+const tlsDir = path.join(env.S3FS_MOUNT, 'tls')
 
 await mkdir(dumpDir, { recursive: true })
-await mkdir(dbDir, { recursive: true })
+await mkdir(env.CACHE_PATH, { recursive: true })
 await mkdir(tlsDir, { recursive: true })
 
 const tls: TlsOptions = {
-  key: await readFile(`${tlsDir}/key.pem`),
-  cert: await readFile(`${tlsDir}/cert.pem`),
+  key: await readFile(path.join(tlsDir, 'key.pem')),
+  cert: await readFile(path.join(tlsDir, 'cert.pem')),
 }
 
 function getIdFromServerName(serverName: string) {
@@ -77,7 +75,7 @@ const server = net.createServer((socket) => {
         return
       }
 
-      if (!tlsInfo.sniServerName.endsWith(wildcardDomain)) {
+      if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
         connection.sendError({
           severity: 'FATAL',
           code: '08000',
@@ -87,16 +85,22 @@ const server = net.createServer((socket) => {
         return
       }
 
+      try {
+        await deleteCache()
+      } catch (err) {
+        console.error(`Error deleting cache: ${err}`)
+      }
+
       const databaseId = getIdFromServerName(tlsInfo.sniServerName)
 
       console.log(`Serving database '${databaseId}'`)
 
-      const dbPath = `${dbDir}/${databaseId}`;
+      const dbPath = path.join(env.CACHE_PATH, databaseId);
 
       if (!(await fileExists(dbPath))) {
         console.log(`Database '${databaseId}' is not cached, downloading...`)
 
-        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`;
+        const dumpPath = path.join(dumpDir, `${databaseId}.tar.gz`);
 
         if (!(await fileExists(dumpPath))) {
           connection.sendError({

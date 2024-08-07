@@ -20,6 +20,9 @@ trap 'cleanup' EXIT
 # Create the s3 mount point directory
 mkdir -p $S3FS_MOUNT
 
+# Create the cache path directory
+mkdir -p $CACHE_PATH
+
 # Mount the S3 bucket
 s3fs $BUCKET_NAME $S3FS_MOUNT -o use_path_request_style -o url=$AWS_ENDPOINT_URL_S3 -o endpoint=$AWS_REGION
 

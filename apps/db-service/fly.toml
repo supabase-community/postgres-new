@@ -1,10 +1,19 @@
 app = 'postgres-new-dev'
 primary_region = 'yyz'
 
+[env]
+CACHE_DISK_USAGE_THRESHOLD = "90"
+CACHE_SCHEDULE_INTERVAL = "1"
+CACHE_TIMESTAMP_FILE = "/var/lib/postgres-new/delete_cache_last_run"
+CACHE_TTL = "24"
+CACHE_PATH = "/var/lib/postgres-new/cache"
+S3FS_MOUNT = "/mnt/s3"
+WILDCARD_DOMAIN = "db.postgres.new"
+
 [[services]]
 internal_port = 5432
 protocol = "tcp"
-auto_stop_machines = true
+auto_stop_machines = "suspend"
 auto_start_machines = true
 min_machines_running = 0
 
@@ -20,7 +29,3 @@ soft_limit = 20
 memory = '1gb'
 cpu_kind = 'shared'
 cpus = 1
-
-[mounts]
-source = "postgres_new_data"
-destination = "/mnt/data"
