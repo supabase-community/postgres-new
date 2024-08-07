@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
-import config from './config/tailwind.config'
+const { fontFamily } = require('tailwindcss/defaultTheme')
 
-export default config({
+export default {
   darkMode: ['class'],
   content: [
     './pages/**/*.{ts,tsx}',
@@ -34,8 +34,8 @@ export default config({
           foreground: 'hsl(var(--secondary-foreground))',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
+          foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -55,9 +55,14 @@ export default config({
         },
       },
       borderRadius: {
+        xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      fontFamily: {
+        sans: ['var(--font-sans)', ...fontFamily.sans],
+        // mono: ["var(--font-mono)", ...fontFamily.mono],
       },
       keyframes: {
         'accordion-down': {
@@ -68,12 +73,56 @@ export default config({
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'caret-blink': {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'caret-blink': 'caret-blink 1.25s ease-out infinite',
       },
+      // @ts-expect-error
+      typography: ({ theme }) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': 'var(--foreground)',
+            '--tw-prose-headings': 'var(--primary)',
+            '--tw-prose-lead': 'var(--secondary-foreground)',
+            '--tw-prose-links': 'var(--primary)',
+            '--tw-prose-bold': 'var(--primary)',
+            '--tw-prose-counters': 'var(--muted-foreground)',
+            '--tw-prose-bullets': 'var(--accent-foreground)',
+            '--tw-prose-hr': 'var(--border)',
+            '--tw-prose-quotes': 'var(--primary)',
+            '--tw-prose-quote-borders': 'var(--border)',
+            '--tw-prose-captions': 'var(--secondary-foreground)',
+            '--tw-prose-code': 'var(--primary)',
+            '--tw-prose-pre-code': 'var(--input)',
+            '--tw-prose-pre-bg': 'var(--primary)',
+            '--tw-prose-th-borders': 'var(--border)',
+            '--tw-prose-td-borders': 'var(--input)',
+            '--tw-prose-invert-body': 'var(--muted)',
+            '--tw-prose-invert-headings': 'var(--primary-foreground)',
+            '--tw-prose-invert-lead': 'var(--secondary)',
+            '--tw-prose-invert-links': 'var(--primary-foreground)',
+            '--tw-prose-invert-bold': 'var(--primary-foreground)',
+            '--tw-prose-invert-counters': 'var(--muted)',
+            '--tw-prose-invert-bullets': 'var(--accent)',
+            '--tw-prose-invert-hr': 'var(--border)',
+            '--tw-prose-invert-quotes': 'var(--accent)',
+            '--tw-prose-invert-quote-borders': 'var(--border)',
+            '--tw-prose-invert-captions': 'var(--muted)',
+            '--tw-prose-invert-code': 'var(--primary-foreground)',
+            '--tw-prose-invert-pre-code': 'var(--secondary)',
+            '--tw-prose-invert-pre-bg': 'rgba(0, 0, 0, 0.5)',
+            '--tw-prose-invert-th-borders': 'var(--border)',
+            '--tw-prose-invert-td-borders': 'var(--border)',
+          },
+        },
+      }),
     },
   },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config)
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+} satisfies Config

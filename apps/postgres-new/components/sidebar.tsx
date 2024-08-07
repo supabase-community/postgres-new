@@ -37,7 +37,7 @@ export default function Sidebar() {
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
-            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-neutral-100"
+            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card"
             variants={{
               hidden: { opacity: 0, x: '-100%' },
               show: { opacity: 1, x: 0 },
@@ -52,12 +52,13 @@ export default function Sidebar() {
                 <TooltipTrigger asChild>
                   <m.div layout="position" layoutId="sidebar-collapse">
                     <Button
-                      className="bg-inherit hover:bg-neutral-200 text-sm flex gap-3"
+                      variant={'ghost'}
+                      size={'icon'}
                       onClick={() => {
                         setShowSidebar(false)
                       }}
                     >
-                      <ArrowLeftToLine />
+                      <ArrowLeftToLine size={14} />
                     </Button>
                   </m.div>
                 </TooltipTrigger>
@@ -69,12 +70,12 @@ export default function Sidebar() {
                 <TooltipTrigger asChild>
                   <m.div layout="position" layoutId="new-database-button">
                     <Button
-                      className="bg-inherit hover:bg-neutral-200 text-sm flex gap-3"
+                      size={'icon'}
                       onClick={() => {
                         router.push('/')
                       }}
                     >
-                      <PackagePlus />
+                      <PackagePlus size={14} />
                     </Button>
                   </m.div>
                 </TooltipTrigger>
@@ -142,12 +143,13 @@ export default function Sidebar() {
               <TooltipTrigger asChild>
                 <m.div layoutId="sidebar-collapse">
                   <Button
-                    className="bg-inherit justify-start hover:bg-neutral-200 text-sm flex gap-3"
+                    variant={'ghost'}
+                    size="icon"
                     onClick={() => {
                       setShowSidebar(true)
                     }}
                   >
-                    <ArrowRightToLine />
+                    <ArrowRightToLine size={14} />
                   </Button>
                 </m.div>
               </TooltipTrigger>
@@ -159,12 +161,12 @@ export default function Sidebar() {
               <TooltipTrigger asChild>
                 <m.div layoutId="new-database-button">
                   <Button
-                    className="bg-inherit justify-end hover:bg-neutral-200 text-sm flex gap-3"
+                    size={'icon'}
                     onClick={() => {
                       router.push('/')
                     }}
                   >
-                    <PackagePlus />
+                    <PackagePlus size={14} />
                   </Button>
                 </m.div>
               </TooltipTrigger>
