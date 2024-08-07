@@ -11,13 +11,17 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react'
-import { getRuntimePgVersion } from '~/lib/db'
+import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
+
+// Create a singleton DbManager that isn't exposed to double mounting
+const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
 
 export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
@@ -78,7 +82,13 @@ export default function AppProvider({ children }: AppProps) {
 
   const isPreview = process.env.NEXT_PUBLIC_IS_PREVIEW === 'true'
   const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
-  const { value: pgVersion } = useAsyncMemo(() => getRuntimePgVersion(), [])
+  const { value: pgVersion } = useAsyncMemo(async () => {
+    if (!dbManager) {
+      throw new Error('dbManager is not available')
+    }
+
+    return await dbManager.getRuntimePgVersion()
+  }, [dbManager])
 
   return (
     <AppContext.Provider
@@ -88,6 +98,7 @@ export default function AppProvider({ children }: AppProps) {
         signIn,
         signOut,
         isPreview,
+        dbManager,
         pgliteVersion,
         pgVersion,
       }}
@@ -103,6 +114,7 @@ export type AppContextValues = {
   signIn: () => Promise<User | undefined>
   signOut: () => Promise<void>
   isPreview: boolean
+  dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
 }

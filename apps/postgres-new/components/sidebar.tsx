@@ -11,19 +11,24 @@ import {
   PackagePlus,
   Pencil,
   Trash2,
+  Upload,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
+import { usePublishWaitlistCreateMutation } from '~/data/publish-waitlist/publish-waitlist-create-mutation'
+import { useIsOnPublishWaitlistQuery } from '~/data/publish-waitlist/publish-waitlist-query'
 import { Database } from '~/lib/db'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
+import { CodeBlock } from './code-block'
 
 export default function Sidebar() {
   const { user, signOut } = useApp()
@@ -205,117 +210,192 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
+  const { user } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
 
   const [isRenaming, setIsRenaming] = useState(false)
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false)
+
+  const { data: isOnPublishWaitlist } = useIsOnPublishWaitlistQuery()
+  const { mutateAsync: joinPublishWaitlist } = usePublishWaitlistCreateMutation()
 
   return (
-    <Link
-      data-active={isActive || isPopoverOpen}
-      className={cn(
-        'group text-sm w-full relative bg-inherit justify-start bg-neutral-100 hover:bg-neutral-200 flex gap-3 p-3 rounded-md overflow-hidden data-[active=true]:bg-neutral-200'
-      )}
-      href={`/db/${database.id}`}
-    >
-      <span className="text-nowrap">{database.name ?? 'My database'}</span>
-      <div
-        className={cn(
-          'absolute right-0 top-0 bottom-0',
-          'w-8 bg-gradient-to-l from-neutral-100 from-0%',
-          'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
-          'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
-        )}
-      />
-      <Popover
+    <>
+      <Dialog
+        open={isPublishDialogOpen}
         onOpenChange={(open) => {
-          setIsPopoverOpen(open)
-          if (!open) {
-            setIsRenaming(false)
-          }
+          setIsPublishDialogOpen(open)
         }}
-        open={isPopoverOpen}
       >
-        <PopoverTrigger
-          asChild
-          onClick={(e) => {
-            e.preventDefault()
-            setIsPopoverOpen(true)
-          }}
-        >
-          <div
-            className={cn(
-              'hidden group-hover:flex absolute right-0 top-0 bottom-0 p-2 opacity-50 items-center',
-              isActive || isPopoverOpen ? 'flex' : undefined
-            )}
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Database publishing is in Private Alpha</DialogTitle>
+            <div className="py-2 border-b" />
+          </DialogHeader>
+          <h2 className="font-medium">What is database publishing?</h2>
+          <p>
+            Publish your database so that it can be accessed outside the browser using any Postgres
+            client:
+          </p>
+          <CodeBlock
+            className="language-curl bg-neutral-800"
+            language="curl"
+            hideLineNumbers
+            theme="dark"
           >
-            <CircleEllipsis size={24} />
+            {`psql "postgres://postgres:<password>@<your-unique-server>/postgres"`}
+          </CodeBlock>
+          <div className="flex justify-center items-center mt-3">
+            <AnimatePresence initial={false}>
+              {!isOnPublishWaitlist ? (
+                <button
+                  className="px-4 py-3 bg-black text-white rounded-md"
+                  onClick={async () => {
+                    await joinPublishWaitlist()
+                  }}
+                >
+                  Join Private Alpha
+                </button>
+              ) : (
+                <m.div
+                  className="px-4 py-3 border-2 rounded-md text-center border-dashed"
+                  variants={{
+                    hidden: { scale: 0 },
+                    show: { scale: 1 },
+                  }}
+                  initial="hidden"
+                  animate="show"
+                >
+                  <h3 className="font-medium mb-2">🎉 You&apos;re on the list!</h3>
+                  <p>We&apos;ll let you know when you have access to publish.</p>
+                </m.div>
+              )}
+            </AnimatePresence>
           </div>
-        </PopoverTrigger>
+        </DialogContent>
+      </Dialog>
 
-        <PopoverContent className="p-2 flex flex-col overflow-hidden w-auto" portal>
-          {isRenaming ? (
-            <form
-              className="w-72"
-              onSubmit={async (e) => {
-                e.preventDefault()
-
-                if (e.target instanceof HTMLFormElement) {
-                  const formData = new FormData(e.target)
-                  const name = formData.get('name')
-
-                  if (typeof name === 'string') {
-                    await updateDatabase({ ...database, name })
-                  }
-                }
-
-                setIsPopoverOpen(false)
-                setIsRenaming(false)
-              }}
-            >
-              <input
-                name="name"
-                className="flex-grow w-full border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
-                placeholder={`Rename ${database.name}`}
-                defaultValue={database.name ?? undefined}
-                autoComplete="off"
-                autoFocus
-              />
-            </form>
-          ) : (
-            <div className="flex flex-col items-stretch w-32">
-              <Button
-                className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                onClick={async (e) => {
-                  e.preventDefault()
-                  setIsRenaming(true)
-                }}
-              >
-                <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
-
-                <span>Rename</span>
-              </Button>
-              <Button
-                className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
-                onClick={async (e) => {
-                  e.preventDefault()
-                  setIsPopoverOpen(false)
-                  await deleteDatabase({ id: database.id })
-
-                  if (isActive) {
-                    router.push('/')
-                  }
-                }}
-              >
-                <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
-
-                <span>Delete</span>
-              </Button>
-            </div>
+      <Link
+        data-active={isActive || isPopoverOpen}
+        className={cn(
+          'group text-sm w-full relative bg-inherit justify-start bg-neutral-100 hover:bg-neutral-200 flex gap-3 p-3 rounded-md overflow-hidden data-[active=true]:bg-neutral-200'
+        )}
+        href={`/db/${database.id}`}
+      >
+        <span className="text-nowrap">{database.name ?? 'My database'}</span>
+        <div
+          className={cn(
+            'absolute right-0 top-0 bottom-0',
+            'w-8 bg-gradient-to-l from-neutral-100 from-0%',
+            'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
+            'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
           )}
-        </PopoverContent>
-      </Popover>
-    </Link>
+        />
+        <Popover
+          onOpenChange={(open) => {
+            setIsPopoverOpen(open)
+            if (!open) {
+              setIsRenaming(false)
+            }
+          }}
+          open={isPopoverOpen}
+        >
+          <PopoverTrigger
+            asChild
+            onClick={(e) => {
+              e.preventDefault()
+              setIsPopoverOpen(true)
+            }}
+          >
+            <div
+              className={cn(
+                'hidden group-hover:flex absolute right-0 top-0 bottom-0 p-2 opacity-50 items-center',
+                isActive || isPopoverOpen ? 'flex' : undefined
+              )}
+            >
+              <CircleEllipsis size={24} />
+            </div>
+          </PopoverTrigger>
+
+          <PopoverContent className="p-2 flex flex-col overflow-hidden w-auto" portal>
+            {isRenaming ? (
+              <form
+                className="w-72"
+                onSubmit={async (e) => {
+                  e.preventDefault()
+
+                  if (e.target instanceof HTMLFormElement) {
+                    const formData = new FormData(e.target)
+                    const name = formData.get('name')
+
+                    if (typeof name === 'string') {
+                      await updateDatabase({ ...database, name })
+                    }
+                  }
+
+                  setIsPopoverOpen(false)
+                  setIsRenaming(false)
+                }}
+              >
+                <input
+                  name="name"
+                  className="flex-grow w-full border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
+                  placeholder={`Rename ${database.name}`}
+                  defaultValue={database.name ?? undefined}
+                  autoComplete="off"
+                  autoFocus
+                />
+              </form>
+            ) : (
+              <div className="flex flex-col items-stretch w-32">
+                <Button
+                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    setIsRenaming(true)
+                  }}
+                >
+                  <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                  <span>Rename</span>
+                </Button>
+                <Button
+                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+
+                    setIsPublishDialogOpen(true)
+                    setIsPopoverOpen(false)
+                  }}
+                  disabled={user === undefined}
+                >
+                  <Upload size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                  <span>Publish</span>
+                </Button>
+                <Button
+                  className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    setIsPopoverOpen(false)
+                    await deleteDatabase({ id: database.id })
+
+                    if (isActive) {
+                      router.push('/')
+                    }
+                  }}
+                >
+                  <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                  <span>Delete</span>
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </Link>
+    </>
   )
 }
