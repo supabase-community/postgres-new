@@ -38,3 +38,12 @@ export function isAutomatedUserMessage(message: Message) {
     message.data.automated === true
   )
 }
+
+export function titleToKebabCase(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-') // Replace spaces and underscores with dashes
+    .replace(/[^a-z0-9-]/g, '') // Remove any non-alphanumeric characters except dashes
+    .replace(/-+/g, '-') // Replace multiple dashes with a single dash
+    .replace(/^-|-$/g, '') // Remove leading and trailing dashes
+}

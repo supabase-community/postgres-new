@@ -6,6 +6,7 @@ import {
   ArrowRightToLine,
   CircleEllipsis,
   Database as DbIcon,
+  Download,
   Loader,
   LogOut,
   PackagePlus,
@@ -26,6 +27,7 @@ import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { usePublishWaitlistCreateMutation } from '~/data/publish-waitlist/publish-waitlist-create-mutation'
 import { useIsOnPublishWaitlistQuery } from '~/data/publish-waitlist/publish-waitlist-query'
 import { Database } from '~/lib/db'
+import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
@@ -208,7 +210,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user } = useApp()
+  const { user, dbManager } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -358,6 +360,28 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
 
                   <span>Rename</span>
+                </Button>
+                <Button
+                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+
+                    if (!dbManager) {
+                      throw new Error('dbManager is not available')
+                    }
+
+                    const db = await dbManager.getDbInstance(database.id)
+                    const dumpBlob = await db.dumpDataDir()
+
+                    const fileName = `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}`
+                    const file = new File([dumpBlob], fileName, { type: dumpBlob.type })
+
+                    downloadFile(file)
+                  }}
+                >
+                  <Download size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                  <span>Download</span>
                 </Button>
                 <Button
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
