@@ -182,7 +182,23 @@ const server = net.createServer((socket) => {
         }
       }
 
-      db = new PGlite(dbPath, {
+      db = new PGlite({
+        dataDir: dbPath,
+        extensions: {
+          vector,
+        },
+      })
+      const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
+      if (rows.length === 0) {
+        await db.exec(`
+          CREATE USER readonly_postgres;
+          GRANT pg_read_all_data TO readonly_postgres;
+        `)
+      }
+      await db.close()
+      db = new PGlite({
+        dataDir: dbPath,
+        username: 'readonly_postgres',
         extensions: {
           vector,
         },
