@@ -126,7 +126,7 @@ export default function Chat() {
     cursorElement: (
       <m.div
         layoutId={nextMessageId}
-        className="px-5 py-2.5 text-base rounded-full bg-neutral-100 flex gap-2 items-center shadow-xl z-50"
+        className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
       >
         <Paperclip size={14} /> Add file to chat
       </m.div>
