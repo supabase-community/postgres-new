@@ -2,22 +2,38 @@
 
 import { CreateMessage, Message, useChat } from 'ai/react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
-import { getDatabase } from '~/data/databases/database-query'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId } from '~/lib/util'
+import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
 
+// TODO: support public/private DBs that live in the cloud
+export type Visibility = 'local'
+
 export type WorkspaceProps = {
+  /**
+   * The unique ID for this database.
+   */
   databaseId: string
+
+  /**
+   * The visibility of this database/conversation.
+   */
+  visibility: Visibility
+
+  /**
+   * Callback called when the conversation has started.
+   */
   onStart?: () => void | Promise<void>
 }
 
-export default function Workspace({ databaseId, onStart }: WorkspaceProps) {
+export default function Workspace({ databaseId, visibility, onStart }: WorkspaceProps) {
+  const { dbManager } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -42,9 +58,13 @@ export default function Workspace({ databaseId, onStart }: WorkspaceProps) {
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
       await saveMessage({ message })
 
-      const database = await getDatabase(databaseId)
+      const database = await dbManager.getDatabase(databaseId)
       const isStartOfConversation = database.isHidden && !message.toolInvocations
 
       if (isStartOfConversation) {
@@ -84,14 +104,15 @@ export default function Workspace({ databaseId, onStart }: WorkspaceProps) {
         messages,
         appendMessage,
         stopReply,
+        visibility,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row p-6 gap-8">
-        <IDE>
+      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+        <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
           <Chat />
         </IDE>
         {!isSmallBreakpoint && (
-          <div className="flex-1 h-full overflow-x-auto">
+          <div className="flex-1 h-full overflow-x-auto pb-6 pr-6">
             <Chat />
           </div>
         )}
@@ -106,6 +127,7 @@ export type WorkspaceContextValues = {
   isLoadingSchema: boolean
   isConversationStarted: boolean
   messages: Message[]
+  visibility: Visibility
   appendMessage(message: Message | CreateMessage): Promise<void>
   stopReply(): void
 }

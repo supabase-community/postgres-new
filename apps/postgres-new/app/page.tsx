@@ -3,10 +3,10 @@
 import { customAlphabet } from 'nanoid'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
+import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
 import { useDatabaseCreateMutation } from '~/data/databases/database-create-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
-import { dbExists, getDb } from '~/lib/db'
 
 // Use a DNS safe alphabet
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16)
@@ -16,6 +16,7 @@ function uniqueId() {
 }
 
 export default function Page() {
+  const { dbManager } = useApp()
   const router = useRouter()
 
   const { mutateAsync: createDatabase } = useDatabaseCreateMutation()
@@ -26,13 +27,17 @@ export default function Page() {
    */
   const preloadDb = useCallback(
     async (id: string) => {
-      const exists = await dbExists(id)
-      if (!exists) {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
+      const database = await dbManager.getDatabase(id)
+      if (!database) {
         await createDatabase({ id, isHidden: true })
-        await getDb(id)
+        await dbManager.getDbInstance(id)
       }
     },
-    [createDatabase]
+    [dbManager, createDatabase]
   )
 
   // Track the next database ID in local storage
@@ -62,6 +67,7 @@ export default function Page() {
   return (
     <Workspace
       databaseId={nextDatabaseId}
+      visibility="local"
       onStart={async () => {
         // Make the DB no longer hidden
         await updateDatabase({ id: nextDatabaseId, name: null, isHidden: false })

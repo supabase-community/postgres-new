@@ -46,6 +46,7 @@ export interface CodeBlockProps {
   value?: string
   children?: string | string[]
   renderer?: SyntaxHighlighterProps['renderer']
+  theme?: 'auto' | 'light' | 'dark'
 }
 
 export const CodeBlock = ({
@@ -58,9 +59,10 @@ export const CodeBlock = ({
   hideCopy = false,
   hideLineNumbers = false,
   renderer,
+  theme = 'auto',
 }: CodeBlockProps) => {
   const { resolvedTheme } = useTheme()
-  const isDarkTheme = resolvedTheme?.includes('dark')!
+  const isDarkTheme = theme === 'auto' ? resolvedTheme?.includes('dark')! : theme === 'dark'
   const monokaiTheme = monokaiCustomTheme(isDarkTheme)
 
   const [copied, setCopied] = useState(false)
@@ -127,7 +129,7 @@ export const CodeBlock = ({
             // @ts-ignore
             style={monokaiTheme}
             className={cn(
-              'code-block border border-surface p-4 w-full !my-0 !bg-surface-100',
+              'code-block border border-surface p-4 w-full !my-0',
               `${!title ? '!rounded-md' : '!rounded-t-none !rounded-b-md'}`,
               `${!showLineNumbers ? 'pl-6' : ''}`,
               className

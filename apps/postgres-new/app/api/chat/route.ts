@@ -39,6 +39,8 @@ export async function POST(req: Request) {
       - Check for existing records/conflicts in the table
 
       When querying data, limit to 5 by default.
+
+      When performing FTS, always use 'simple' (languages aren't available).
       
       You also know math. All math equations and expressions must be written in KaTex and must be wrapped in double dollar \`$$\`:
         - Inline: $$\\sqrt{26}$$
