@@ -208,7 +208,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user } = useApp()
+  const { dbManager, user } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -364,8 +364,31 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   onClick={async (e) => {
                     e.preventDefault()
 
-                    setIsDeployDialogOpen(true)
-                    setIsPopoverOpen(false)
+                    if (!dbManager) {
+                      throw new Error('No dbManager')
+                    }
+
+                    const db = await dbManager.getDbInstance(database.id)
+                    const dump = await db.dumpDataDir()
+                    const response = await fetch(`/api/databases/${database.id}/upload`, {
+                      method: 'POST',
+                      body: dump,
+                    })
+
+                    type Result =
+                      | { success: true; data: { serverName: string } }
+                      | { success: false; error: string }
+
+                    const result: Result = await response.json()
+
+                    console.log(result)
+                    // if (result.success) {
+                    //   setPublishServerName(result.data.serverName)
+                    // } else {
+                    //   setPublishErrorMessage(result.error)
+                    // }
+                    // setIsDeployDialogOpen(true)
+                    // setIsPopoverOpen(false)
                   }}
                   disabled={user === undefined}
                 >

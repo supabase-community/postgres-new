@@ -6,8 +6,11 @@ import { createReadStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
 import { extract } from 'tar'
-import { hashMd5Password, PostgresConnection, TlsOptions } from 'pg-gateway'
+import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
+import { createClient } from '@supabase/supabase-js'
 
+const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 const dataMount = process.env.DATA_MOUNT ?? './data'
 const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
@@ -32,30 +35,82 @@ function getIdFromServerName(serverName: string) {
   return id
 }
 
+const PostgresErrorCodes = {
+  ConnectionException: '08000',
+} as const
+
+function sendFatalError(connection: PostgresConnection, code: string, message: string): never {
+  connection.sendError({
+    severity: 'FATAL',
+    code,
+    message,
+  })
+  connection.socket.end()
+  throw new Error(message)
+}
+
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await access(path);
-    return true;
+    await access(path)
+    return true
   } catch {
-    return false;
+    return false
   }
 }
+
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 const server = net.createServer((socket) => {
   let db: PGliteInterface
 
   const connection = new PostgresConnection(socket, {
     serverVersion: '16.3 (PGlite 0.2.0)',
-    authMode: 'md5Password',
-    tls,
-    async validateCredentials(credentials) {
-      if (credentials.authMode === 'md5Password') {
-        const { hash, salt } = credentials
-        const expectedHash = await hashMd5Password('postgres', 'postgres', salt)
-        return hash === expectedHash
-      }
-      return false
+    auth: {
+      method: 'scram-sha-256',
+      async getScramSha256Data(_, { tlsInfo }) {
+        if (!tlsInfo?.sniServerName) {
+          sendFatalError(
+            connection,
+            PostgresErrorCodes.ConnectionException,
+            'sniServerName required in TLS info'
+          )
+        }
+
+        const databaseId = getIdFromServerName(tlsInfo.sniServerName)
+        const { data, error } = await supabase
+          .from('deployed_databases')
+          .select('auth_method, auth_data')
+          .eq('database_id', databaseId)
+          .single()
+
+        if (error) {
+          sendFatalError(
+            connection,
+            PostgresErrorCodes.ConnectionException,
+            `Error getting auth data for database ${databaseId}: ${error}`
+          )
+        }
+
+        if (data === null) {
+          sendFatalError(
+            connection,
+            PostgresErrorCodes.ConnectionException,
+            `Database ${databaseId} not found`
+          )
+        }
+
+        if (data.auth_method !== 'scram-sha-256') {
+          sendFatalError(
+            connection,
+            PostgresErrorCodes.ConnectionException,
+            `Unsupported auth method for database ${databaseId}: ${data.auth_method}`
+          )
+        }
+
+        return data.auth_data as ScramSha256Data
+      },
     },
+    tls,
     async onTlsUpgrade({ tlsInfo }) {
       if (!tlsInfo) {
         connection.sendError({
@@ -91,12 +146,12 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      const dbPath = `${dbDir}/${databaseId}`;
+      const dbPath = `${dbDir}/${databaseId}`
 
       if (!(await fileExists(dbPath))) {
         console.log(`Database '${databaseId}' is not cached, downloading...`)
 
-        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`;
+        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`
 
         if (!(await fileExists(dumpPath))) {
           connection.sendError({
@@ -109,25 +164,21 @@ const server = net.createServer((socket) => {
         }
 
         // Create a directory for the database
-        await mkdir(dbPath, { recursive: true });
+        await mkdir(dbPath, { recursive: true })
 
         try {
           // Extract the .tar.gz file
-          await pipeline(
-            createReadStream(dumpPath),
-            createGunzip(),
-            extract({ cwd: dbPath })
-          );
+          await pipeline(createReadStream(dumpPath), createGunzip(), extract({ cwd: dbPath }))
         } catch (error) {
-          console.error(error);
-          await rm(dbPath, { recursive: true, force: true }); // Clean up the partially created directory
+          console.error(error)
+          await rm(dbPath, { recursive: true, force: true }) // Clean up the partially created directory
           connection.sendError({
             severity: 'FATAL',
             code: 'XX000',
             message: `Error extracting database: ${(error as Error).message}`,
-          });
-          connection.socket.end();
-          return;
+          })
+          connection.socket.end()
+          return
         }
       }
 

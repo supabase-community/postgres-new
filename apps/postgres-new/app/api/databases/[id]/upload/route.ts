@@ -1,26 +1,16 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createGzip } from 'zlib'
 import { Readable } from 'stream'
 import { createClient } from '~/utils/supabase/server'
+import { createScramSha256Data } from 'pg-gateway'
+import { randomBytes } from 'crypto'
 
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!req.body) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Missing request body',
-      }),
-      {
-        status: 400,
-      }
-    )
-  }
-
   const supabase = createClient()
 
   const {
@@ -28,7 +18,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('Unauthorized')
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Unauthorized',
+      },
+      { status: 401 }
+    )
+  }
+
+  if (!req.body) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Missing request body',
+      },
+      {
+        status: 400,
+      }
+    )
   }
 
   const databaseId = params.id
@@ -48,17 +56,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   await upload.done()
 
+  const password = generatePostgresPassword()
 
+  await supabase.from('deployed_databases').insert({
+    auth_method: 'scram-sha-256',
+    auth_data: createScramSha256Data(password),
+    database_id: databaseId,
+  })
 
-  return new Response(
-    JSON.stringify({
-      success: true,
-      data: {
-        serverName: `${databaseId}.${wildcardDomain}`,
-      },
-    }),
-    { headers: { 'content-type': 'application/json' } }
-  )
+  return NextResponse.json({
+    success: true,
+    data: {
+      username: 'readonly_postgres',
+      password,
+      serverName: `${databaseId}.${wildcardDomain}`,
+    },
+  })
 }
 
 async function* streamToAsyncIterable(stream: ReadableStream) {
@@ -72,4 +85,17 @@ async function* streamToAsyncIterable(stream: ReadableStream) {
   } finally {
     reader.releaseLock()
   }
+}
+
+function generatePostgresPassword(length: number = 32): string {
+  const validChars =
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&()*+,-./:;<=>?@[]^_`{|}~'
+  const bytes = randomBytes(length)
+  let password = ''
+
+  for (let i = 0; i < length; i++) {
+    password += validChars[bytes[i] % validChars.length]
+  }
+
+  return password
 }

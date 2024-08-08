@@ -60,6 +60,41 @@ export type Database = {
           },
         ]
       }
+      deployed_databases: {
+        Row: {
+          auth_data: Json | null
+          auth_method: string
+          created_at: string
+          database_id: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          auth_data?: Json | null
+          auth_method: string
+          created_at?: string
+          database_id: string
+          id?: never
+          user_id?: string
+        }
+        Update: {
+          auth_data?: Json | null
+          auth_method?: string
+          created_at?: string
+          database_id?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployed_databases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
