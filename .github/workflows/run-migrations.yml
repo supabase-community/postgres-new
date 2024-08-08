@@ -14,8 +14,15 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
       PROJECT_ID: ${{ vars.SUPABASE_PROD_PROJECT_ID }}
 
+      # Create placeholder vars so that supabase/config.toml can load
+      SUPABASE_AUTH_GITHUB_CLIENT_ID: ''
+      SUPABASE_AUTH_GITHUB_SECRET: ''
+      SUPABASE_AUTH_GITHUB_REDIRECT_URI: ''
+
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - run: supabase link --project-ref $PROJECT_ID
       - run: supabase db push
