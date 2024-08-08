@@ -28,7 +28,7 @@ export default function CodeAccordion({
       <AccordionItem
         value="item-1"
         className={cn(
-          'border bg-card px-3 py-2 rounded-md',
+          'border bg-muted px-3 py-2 rounded-md',
           error ? 'bg-destructive text-destructive-foreground' : undefined,
           className
         )}
@@ -47,7 +47,7 @@ export default function CodeAccordion({
           >
             {code}
           </CodeBlock>
-          {error && <div className="text-destructive-600 text-xs">{error}</div>}
+          {error && <div className="text-destructive text-xs">{error}</div>}
         </AccordionContent>
       </AccordionItem>
     </Accordion>

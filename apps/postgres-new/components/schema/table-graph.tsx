@@ -131,7 +131,7 @@ export default function TablesGraph({
           )}
 
           {isEmpty && (
-            <h2 className="text-4xl text-lighter font-light">Ask AI to create a table</h2>
+            <h2 className="text-4xl text-lighter font-light w-[500px]">Ask AI to create a table</h2>
           )}
         </div>
 
@@ -139,16 +139,19 @@ export default function TablesGraph({
 
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col"></div>
       </ReactFlow>
-      <div className="p-2.5 flex justify-center bg-white/20 text-xs text-neutral-200">
+      <div className="p-2.5 flex justify-center bg-muted text-xs text-muted-foreground border-t">
         {visibility === 'local' && (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex gap-1 items-center cursor-default">
+            <TooltipTrigger className="group flex gap-1 items-center cursor-default">
+              <span className="group-data-[state=delayed-open]:text-foreground transition">
                 Local-only database
-                <Info size={12} />
-              </div>
+              </span>
+              <Info
+                size={12}
+                className="group-data-[state=delayed-open]:text-foreground transition"
+              />
             </TooltipTrigger>
-            <TooltipContent className="bg-white text-black">
+            <TooltipContent>
               <p className="max-w-[28rem] text-center">
                 This Postgres database lives directly in your browser&apos;s IndexedDB storage and
                 not in the cloud, so it is only accessible to you.

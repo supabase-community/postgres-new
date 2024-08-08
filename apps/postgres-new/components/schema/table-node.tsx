@@ -119,7 +119,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
           itemHeight
         )}
       >
-        <Table2 strokeWidth={1.3} size={21} className="text-muted-foreground" />
+        <Table2 strokeWidth={1.3} size={21} className="text-secondary-foreground" />
 
         {/* Animate the old title out and new title in */}
         <AnimatePresence mode="popLayout">
@@ -228,7 +228,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Key size={16} strokeWidth={2} className={cn('flex-shrink-0', 'text-light')} />
+                  <Key
+                    size={16}
+                    strokeWidth={2}
+                    className={cn('flex-shrink-0', 'text-muted-foreground')}
+                  />
                 </m.div>
               )}
             </AnimatePresence>
@@ -243,7 +247,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <DiamondIcon size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <DiamondIcon
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                 </m.div>
               ) : (
                 <m.div
@@ -257,7 +265,7 @@ function TableColumn({
                     size={16}
                     strokeWidth={2}
                     fill="currentColor"
-                    className="flex-shrink-0 text-light"
+                    className="flex-shrink-0 text-muted-foreground"
                   />
                 </m.div>
               )}
@@ -273,7 +281,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Fingerprint size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <Fingerprint
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                 </m.div>
               )}
             </AnimatePresence>
@@ -288,7 +300,7 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Hash size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <Hash size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
                 </m.div>
               )}
             </AnimatePresence>
@@ -313,7 +325,7 @@ function TableColumn({
             <AnimatePresence mode="popLayout">
               <m.span
                 key={column.format}
-                className="px-4 inline-flex justify-end font-mono text-lighter text-[0.8rem]"
+                className="px-4 inline-flex justify-end font-mono text-muted-foreground text-[0.8rem]"
                 variants={inOutTop}
                 initial="hidden"
                 animate="show"
@@ -346,7 +358,7 @@ function TableColumn({
       <DropdownMenuContent
         side="right"
         align="start"
-        className="w-[300px]"
+        // className="w-content"
         onEscapeKeyDown={(e) => {
           if (isRenaming) {
             e.preventDefault()

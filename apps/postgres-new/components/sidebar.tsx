@@ -8,6 +8,7 @@ import {
   Database as DbIcon,
   Loader,
   LogOut,
+  MoreVertical,
   PackagePlus,
   Pencil,
   Trash2,
@@ -29,6 +30,13 @@ import { Database } from '~/lib/db'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
 
 export default function Sidebar() {
   const { user, signOut } = useApp()
@@ -280,20 +288,21 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
       <Link
         data-active={isActive || isPopoverOpen}
         className={cn(
-          'group text-sm w-full relative bg-inherit justify-start bg-neutral-100 hover:bg-neutral-200 flex gap-3 p-3 rounded-md overflow-hidden data-[active=true]:bg-neutral-200'
+          'group text-sm w-full relative justify-start bg-card hover:bg-muted/50 flex gap-2 px-3 h-10 items-center rounded-md overflow-hidden data-[active=true]:bg-accent transition'
         )}
         href={`/db/${database.id}`}
       >
-        <span className="text-nowrap">{database.name ?? 'My database'}</span>
-        <div
-          className={cn(
-            'absolute right-0 top-0 bottom-0',
-            'w-8 bg-gradient-to-l from-neutral-100 from-0%',
-            'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
-            'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
-          )}
-        />
-        <Popover
+        <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
+        {/* <div
+            className={cn(
+              'absolute right-0 top-0 bottom-0',
+              'w-8 bg-gradient-to-l from-neutral-100 from-0%',
+              'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
+              'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
+            )}
+          /> */}
+        <DropdownMenu
+          modal={false}
           onOpenChange={(open) => {
             setIsPopoverOpen(open)
             if (!open) {
@@ -302,24 +311,26 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           }}
           open={isPopoverOpen}
         >
-          <PopoverTrigger
-            asChild
+          <DropdownMenuTrigger
+            className="group/trigger"
             onClick={(e) => {
               e.preventDefault()
               setIsPopoverOpen(true)
             }}
           >
-            <div
+            <MoreVertical
+              size={16}
               className={cn(
-                'hidden group-hover:flex absolute right-0 top-0 bottom-0 p-2 opacity-50 items-center',
-                isActive || isPopoverOpen ? 'flex' : undefined
+                isActive
+                  ? 'text-muted-foreground'
+                  : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
+                'group-data-[state=open]/trigger:text-foreground',
+                'transition'
               )}
-            >
-              <CircleEllipsis size={24} />
-            </div>
-          </PopoverTrigger>
+            />
+          </DropdownMenuTrigger>
 
-          <PopoverContent className="p-2 flex flex-col overflow-hidden w-auto" portal>
+          <DropdownMenuContent side="right" align="start">
             {isRenaming ? (
               <form
                 className="w-72"
@@ -350,34 +361,40 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
               </form>
             ) : (
               <div className="flex flex-col items-stretch w-32">
-                <Button
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
                     e.preventDefault()
                     setIsRenaming(true)
                   }}
                 >
-                  <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
-
+                  <Pencil
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                   <span>Rename</span>
-                </Button>
-                <Button
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
                     e.preventDefault()
-
                     setIsPublishDialogOpen(true)
                     setIsPopoverOpen(false)
                   }}
                   disabled={user === undefined}
                 >
-                  <Upload size={16} strokeWidth={2} className="flex-shrink-0" />
-
+                  <Upload
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                   <span>Publish</span>
-                </Button>
-                <Button
-                  className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
                     e.preventDefault()
                     setIsPopoverOpen(false)
                     await deleteDatabase({ id: database.id })
@@ -387,14 +404,17 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     }
                   }}
                 >
-                  <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
-
+                  <Trash2
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                   <span>Delete</span>
-                </Button>
+                </DropdownMenuItem>
               </div>
             )}
-          </PopoverContent>
-        </Popover>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </Link>
     </>
   )

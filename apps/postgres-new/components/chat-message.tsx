@@ -39,7 +39,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
               x: 0,
             },
           }}
-          className="self-end px-5 py-2.5 text-base rounded-3xl bg-foreground text-background whitespace-pre-wrap"
+          className="self-end px-5 py-2.5 text-base rounded-3xl bg-border text-foreground whitespace-pre-wrap"
         >
           {message.content}
         </m.div>
