@@ -301,14 +301,6 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         href={`/db/${database.id}`}
       >
         <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
-        {/* <div
-            className={cn(
-              'absolute right-0 top-0 bottom-0',
-              'w-8 bg-gradient-to-l from-neutral-100 from-0%',
-              'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
-              'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
-            )}
-          /> */}
         <DropdownMenu
           modal={false}
           onOpenChange={(open) => {

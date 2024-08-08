@@ -358,7 +358,6 @@ function TableColumn({
       <DropdownMenuContent
         side="right"
         align="start"
-        // className="w-content"
         onEscapeKeyDown={(e) => {
           if (isRenaming) {
             e.preventDefault()

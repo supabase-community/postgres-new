@@ -108,7 +108,6 @@ export default function TablesGraph({
           className={cn(
             'bg-muted/5 transition-colors',
             isLoading || isError || isEmpty ? 'text-secondary-foreground' : 'text-foreground'
-            // 'text-yellow'
           )}
           variant={BackgroundVariant.Dots}
           size={1}
