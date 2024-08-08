@@ -135,6 +135,7 @@ export default function Sidebar() {
               <m.div layout="position" layoutId="sign-out-button">
                 <Button
                   className="w-full gap-2"
+                  variant="secondary"
                   onClick={async () => {
                     await signOut()
                   }}
@@ -202,6 +203,7 @@ export default function Sidebar() {
                 <m.div layout="position" layoutId="sign-out-button">
                   <Button
                     size={'icon'}
+                    variant="secondary"
                     onClick={async () => {
                       await signOut()
                     }}
