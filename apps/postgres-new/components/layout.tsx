@@ -31,7 +31,7 @@ export default function Layout({ children }: LayoutProps) {
           )}
 
           {/* <main className="flex-1 flex flex-col"> */}
-          <Header />
+          {/* <Header /> */}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
             {!isSmallBreakpoint && <Sidebar />}

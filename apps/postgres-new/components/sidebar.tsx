@@ -131,7 +131,6 @@ export default function Sidebar() {
             <UserDropdown />
             {user && (
               <Button
-                className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"
                 onClick={async () => {
                   await signOut()
                 }}
@@ -162,7 +161,7 @@ export default function Sidebar() {
                   </Button>
                 </m.div>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black text-white">
+              <TooltipContent side="right">
                 <p>Open sidebar</p>
               </TooltipContent>
             </Tooltip>
@@ -179,7 +178,7 @@ export default function Sidebar() {
                   </Button>
                 </m.div>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black text-white">
+              <TooltipContent side="right">
                 <p>New database</p>
               </TooltipContent>
             </Tooltip>
@@ -190,16 +189,16 @@ export default function Sidebar() {
               <TooltipTrigger asChild>
                 <m.div layout="position" layoutId="sign-out-button">
                   <Button
-                    className="bg-inherit justify-end justify-self-end hover:bg-neutral-200 text-sm flex gap-3"
+                    size={'icon'}
                     onClick={async () => {
                       await signOut()
                     }}
                   >
-                    <LogOut size={18} strokeWidth={3} />
+                    <LogOut size={16} strokeWidth={1.3} />
                   </Button>
                 </m.div>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black text-white">
+              <TooltipContent side="right">
                 <p>Sign out</p>
               </TooltipContent>
             </Tooltip>
