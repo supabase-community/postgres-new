@@ -3,6 +3,7 @@ import { Upload } from '@aws-sdk/lib-storage'
 import { NextRequest } from 'next/server'
 import { createGzip } from 'zlib'
 import { Readable } from 'stream'
+import { createClient } from '~/utils/supabase/server'
 
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
@@ -18,6 +19,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: 400,
       }
     )
+  }
+
+  const supabase = createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
   }
 
   const databaseId = params.id
@@ -36,6 +47,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   await upload.done()
+
+
 
   return new Response(
     JSON.stringify({
