@@ -25,7 +25,7 @@ export default function CsvExport({ toolInvocation }: CsvExportProps) {
       <CodeAccordion title="Executed SQL" language="sql" code={toolInvocation.args.sql} />
       <m.div
         layoutId={toolInvocation.toolCallId}
-        className="self-start px-5 py-2.5 text-base rounded-full bg-green-300 flex gap-2 items-center text-lighter italic"
+        className="self-start px-5 py-2.5 text-base rounded-full bg-border flex gap-2 items-center text-lighter italic"
         style={{
           // same value as tailwind, used to keep constant radius during framer animation
           // see: https://www.framer.com/motion/layout-animations/##scale-correction
