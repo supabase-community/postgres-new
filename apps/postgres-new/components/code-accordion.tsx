@@ -36,7 +36,9 @@ export default function CodeAccordion({
         <AccordionTrigger
           className={cn(
             'p-0 gap-2 px-3 py-2',
-            error ? 'bg-destructive border-destructive' : undefined
+            error
+              ? 'bg-destructive border-destructive [&_svg]:text-destructive-foreground'
+              : undefined
           )}
         >
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
