@@ -15,6 +15,7 @@ jobs:
       PROJECT_ID: ${{ vars.SUPABASE_PROD_PROJECT_ID }}
 
     steps:
+      - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
       - run: supabase link --project-ref $PROJECT_ID
       - run: supabase db push
