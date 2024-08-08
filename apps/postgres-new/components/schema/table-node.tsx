@@ -119,7 +119,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
           itemHeight
         )}
       >
-        <Table2 strokeWidth={1.3} size={21} className="text-secondary-foreground" />
+        <Table2 strokeWidth={1.3} size={21} className="text-muted-foreground" />
 
         {/* Animate the old title out and new title in */}
         <AnimatePresence mode="popLayout">

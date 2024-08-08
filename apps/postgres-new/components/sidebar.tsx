@@ -61,7 +61,7 @@ export default function Sidebar() {
             animate="show"
             exit={{ opacity: 0, transition: { duration: 0 } }}
           >
-            <div className="flex justify-between text-neutral-500">
+            <div className="flex justify-between">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <m.div layout="position" layoutId="sidebar-collapse">
@@ -76,27 +76,21 @@ export default function Sidebar() {
                     </Button>
                   </m.div>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-black text-white">
+                <TooltipContent side="right">
                   <p>Close sidebar</p>
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <m.div layout="position" layoutId="new-database-button">
-                    <Button
-                      size={'icon'}
-                      onClick={() => {
-                        router.push('/')
-                      }}
-                    >
-                      <PackagePlus size={14} />
-                    </Button>
-                  </m.div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black text-white">
-                  <p>New database</p>
-                </TooltipContent>
-              </Tooltip>
+              <m.div layout="position" layoutId="new-database-button">
+                <Button
+                  onClick={() => {
+                    router.push('/')
+                  }}
+                  className="gap-2"
+                >
+                  <PackagePlus size={14} />
+                  New database
+                </Button>
+              </m.div>
             </div>
             {databases && databases.length > 0 ? (
               <m.div
