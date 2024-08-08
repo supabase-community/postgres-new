@@ -30,16 +30,16 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           )}
 
-          <main className="flex-1 flex flex-col">
-            <Header />
-            <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-              {/* TODO: make sidebar available on mobile */}
-              {!isSmallBreakpoint && <Sidebar />}
-              <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
-                {children}
-              </m.div>
-            </div>
+          {/* <main className="flex-1 flex flex-col"> */}
+          {/* <Header /> */}
+          <main className="flex-1 flex flex-col lg:flex-row min-h-0">
+            {/* TODO: make sidebar available on mobile */}
+            {!isSmallBreakpoint && <Sidebar />}
+            <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
+              {children}
+            </m.div>
           </main>
+          {/* </main> */}
         </div>
       </TooltipProvider>
     </LazyMotion>

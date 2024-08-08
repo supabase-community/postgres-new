@@ -37,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import UserDropdown from './user-dropdown'
 
 export default function Sidebar() {
   const { user, signOut } = useApp()
@@ -133,6 +134,7 @@ export default function Sidebar() {
                 )}
               </div>
             )}
+            <UserDropdown />
             {user && (
               <Button
                 className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"
@@ -188,23 +190,26 @@ export default function Sidebar() {
               </TooltipContent>
             </Tooltip>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <m.div layout="position" layoutId="sign-out-button">
-                <Button
-                  className="bg-inherit justify-end justify-self-end hover:bg-neutral-200 text-sm flex gap-3"
-                  onClick={async () => {
-                    await signOut()
-                  }}
-                >
-                  <LogOut size={18} strokeWidth={3} />
-                </Button>
-              </m.div>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-black text-white">
-              <p>Sign out</p>
-            </TooltipContent>
-          </Tooltip>
+          <div>
+            <UserDropdown />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <m.div layout="position" layoutId="sign-out-button">
+                  <Button
+                    className="bg-inherit justify-end justify-self-end hover:bg-neutral-200 text-sm flex gap-3"
+                    onClick={async () => {
+                      await signOut()
+                    }}
+                  >
+                    <LogOut size={18} strokeWidth={3} />
+                  </Button>
+                </m.div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-black text-white">
+                <p>Sign out</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       )}
     </>
