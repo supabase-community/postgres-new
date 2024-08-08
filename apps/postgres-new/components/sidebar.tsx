@@ -24,8 +24,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { usePublishWaitlistCreateMutation } from '~/data/publish-waitlist/publish-waitlist-create-mutation'
-import { useIsOnPublishWaitlistQuery } from '~/data/publish-waitlist/publish-waitlist-query'
+import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
+import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
 import { Database } from '~/lib/db'
 import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
@@ -216,28 +216,28 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
 
   const [isRenaming, setIsRenaming] = useState(false)
-  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false)
+  const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false)
 
-  const { data: isOnPublishWaitlist } = useIsOnPublishWaitlistQuery()
-  const { mutateAsync: joinPublishWaitlist } = usePublishWaitlistCreateMutation()
+  const { data: isOnDeployWaitlist } = useIsOnDeployWaitlistQuery()
+  const { mutateAsync: joinDeployWaitlist } = useDeployWaitlistCreateMutation()
 
   return (
     <>
       <Dialog
-        open={isPublishDialogOpen}
+        open={isDeployDialogOpen}
         onOpenChange={(open) => {
-          setIsPublishDialogOpen(open)
+          setIsDeployDialogOpen(open)
         }}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Database publishing is in Private Alpha</DialogTitle>
+            <DialogTitle>Deployments are in Private Alpha</DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
-          <h2 className="font-medium">What is database publishing?</h2>
+          <h2 className="font-medium">What are deployments?</h2>
           <p>
-            Publish your database so that it can be accessed outside the browser using any Postgres
-            client:
+            Deploy your database to a serverless PGlite instance so that it can be accessed outside
+            the browser using any Postgres client:
           </p>
           <CodeBlock
             className="language-curl bg-neutral-800"
@@ -249,11 +249,11 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           </CodeBlock>
           <div className="flex justify-center items-center mt-3">
             <AnimatePresence initial={false}>
-              {!isOnPublishWaitlist ? (
+              {!isOnDeployWaitlist ? (
                 <button
                   className="px-4 py-3 bg-black text-white rounded-md"
                   onClick={async () => {
-                    await joinPublishWaitlist()
+                    await joinDeployWaitlist()
                   }}
                 >
                   Join Private Alpha
@@ -268,8 +268,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   initial="hidden"
                   animate="show"
                 >
-                  <h3 className="font-medium mb-2">🎉 You&apos;re on the list!</h3>
-                  <p>We&apos;ll let you know when you have access to publish.</p>
+                  <h3 className="font-medium mb-2">🎉 You&apos;re on the waitlist!</h3>
+                  <p>We&apos;ll send you an email when you have access to deploy.</p>
                 </m.div>
               )}
             </AnimatePresence>
@@ -388,14 +388,14 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   onClick={async (e) => {
                     e.preventDefault()
 
-                    setIsPublishDialogOpen(true)
+                    setIsDeployDialogOpen(true)
                     setIsPopoverOpen(false)
                   }}
                   disabled={user === undefined}
                 >
                   <Upload size={16} strokeWidth={2} className="flex-shrink-0" />
 
-                  <span>Publish</span>
+                  <span>Deploy</span>
                 </Button>
                 <Button
                   className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
