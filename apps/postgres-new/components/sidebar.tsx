@@ -4,7 +4,6 @@ import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
   ArrowRightToLine,
-  CircleEllipsis,
   Database as DbIcon,
   Loader,
   LogOut,
@@ -19,7 +18,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
@@ -30,6 +28,7 @@ import { Database } from '~/lib/db'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
+import ThemeDropdown from './theme-dropdown'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +36,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import UserDropdown from './user-dropdown'
 
 export default function Sidebar() {
   const { user, signOut } = useApp()
@@ -128,28 +126,31 @@ export default function Sidebar() {
                 )}
               </div>
             )}
-            <UserDropdown />
+            <m.div layout="position" layoutId="theme-dropdown">
+              <ThemeDropdown className="w-full" />
+            </m.div>
             {user && (
-              <Button
-                onClick={async () => {
-                  await signOut()
-                }}
-              >
-                <m.div layout="position" layoutId="sign-out-button">
+              <m.div layout="position" layoutId="sign-out-button">
+                <Button
+                  className="w-full gap-2"
+                  onClick={async () => {
+                    await signOut()
+                  }}
+                >
                   <LogOut size={18} strokeWidth={2} />
-                </m.div>
-                Sign out
-              </Button>
+                  Sign out
+                </Button>
+              </m.div>
             )}
           </m.div>
         )}
       </AnimatePresence>
       {!showSidebar && (
-        <div className="flex flex-col pl-4 py-4 justify-between text-neutral-500">
+        <div className="flex flex-col pl-4 py-4 justify-between">
           <div className="flex flex-col gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layoutId="sidebar-collapse">
+                <m.div layout="position" layoutId="sidebar-collapse">
                   <Button
                     variant={'ghost'}
                     size="icon"
@@ -167,7 +168,7 @@ export default function Sidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layoutId="new-database-button">
+                <m.div layout="position" layoutId="new-database-button">
                   <Button
                     size={'icon'}
                     onClick={() => {
@@ -183,8 +184,17 @@ export default function Sidebar() {
               </TooltipContent>
             </Tooltip>
           </div>
-          <div>
-            <UserDropdown />
+          <div className="flex flex-col gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <m.div layout="position" layoutId="theme-dropdown">
+                  <ThemeDropdown iconOnly />
+                </m.div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Toggle theme</p>
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <m.div layout="position" layoutId="sign-out-button">
@@ -194,7 +204,7 @@ export default function Sidebar() {
                       await signOut()
                     }}
                   >
-                    <LogOut size={16} strokeWidth={1.3} />
+                    <LogOut size={16} strokeWidth={2} />
                   </Button>
                 </m.div>
               </TooltipTrigger>

@@ -9,7 +9,6 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { useApp } from './app-provider'
 import Sidebar from './sidebar'
-import Header from './header'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -29,9 +28,6 @@ export default function Layout({ children }: LayoutProps) {
               there.
             </div>
           )}
-
-          {/* <main className="flex-1 flex flex-col"> */}
-          {/* <Header /> */}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
             {!isSmallBreakpoint && <Sidebar />}
@@ -39,7 +35,6 @@ export default function Layout({ children }: LayoutProps) {
               {children}
             </m.div>
           </main>
-          {/* </main> */}
         </div>
       </TooltipProvider>
     </LazyMotion>
