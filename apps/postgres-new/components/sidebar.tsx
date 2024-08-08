@@ -316,7 +316,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           open={isPopoverOpen}
         >
           <DropdownMenuTrigger
-            className="group/trigger"
+            className="group/trigger outline-none"
             onClick={(e) => {
               e.preventDefault()
               setIsPopoverOpen(true)
@@ -356,7 +356,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
               >
                 <input
                   name="name"
-                  className="flex-grow w-full border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
+                  className="flex-grow w-full p-2 outline-none text-base bg-inherit placeholder:text-neutral-400"
                   placeholder={`Rename ${database.name}`}
                   defaultValue={database.name ?? undefined}
                   autoComplete="off"

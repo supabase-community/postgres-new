@@ -1,4 +1,3 @@
-import { PopoverClose } from '@radix-ui/react-popover'
 import { AnimatePresence, m } from 'framer-motion'
 import {
   CircleSlash,
@@ -23,15 +22,14 @@ import {
 } from 'reactflow'
 import {
   DropdownMenu,
-  DropdownMenuItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
+  DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { cn } from '~/lib/utils'
 import { useApp } from '../app-provider'
 import { useWorkspace } from '../workspace'
-import { rename } from 'fs'
 
 // ReactFlow is scaling everything by the factor of 2
 export const TABLE_NODE_WIDTH = 640
@@ -385,7 +383,7 @@ function TableColumn({
           >
             <input
               name="name"
-              className="flex-grow border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
+              className="flex-grow p-2 outline-none text-base bg-inherit placeholder:text-neutral-400"
               placeholder={`Rename ${column.name}`}
               // when esc is pressed, setIsRenaming(false) is called
               onKeyDown={(e) => {
