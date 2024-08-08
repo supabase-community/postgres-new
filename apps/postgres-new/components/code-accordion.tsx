@@ -29,14 +29,14 @@ export default function CodeAccordion({
         value="item-1"
         className={cn(
           'border bg-muted px-3 py-2 rounded-md',
-          error ? 'bg-destructive text-destructive-foreground' : undefined,
+          error ? 'border-destructive' : undefined,
           className
         )}
       >
         <AccordionTrigger className="p-0 gap-2">
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
             <DatabaseZap size={14} className="text-muted-foreground" />
-            {title}
+            <span className={cn(error ? 'text-destructive' : undefined)}>{title}</span>
           </div>
         </AccordionTrigger>
         <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2">
