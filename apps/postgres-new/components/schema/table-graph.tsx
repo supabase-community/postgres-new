@@ -116,25 +116,35 @@ export default function TablesGraph({
 
         <div className="absolute w-full h-full flex justify-center items-center text-center p-4 font-medium">
           {isLoading && (
-            <div className="flex gap-4 items-center text-lighter">
+            <div className="flex gap-4 items-center text-primary/25">
               <Loader className="animate-spin" size={28} />
               <p className="text-xl">Loading schema...</p>
             </div>
           )}
 
           {isError && (
-            <div className="flex gap-2 text-lighter">
+            <div className="flex gap-2 text-primary/25">
               <p>Error loading schema from the database:</p>
               <p>{`${error?.message ?? 'Unknown error'}`}</p>
             </div>
           )}
 
           {isEmpty && (
-            <h2 className="text-4xl text-lighter font-light w-[500px]">Ask AI to create a table</h2>
+            <h2 className="text-2xl text-primary/25 font-light w-[500px]">
+              Ask AI to create a table
+            </h2>
           )}
         </div>
 
-        <Controls showZoom={false} showInteractive={false} position="top-right" />
+        <Controls
+          className="[&.react-flow\_\_controls]:shadow-none [&_button]:bg-border [&_button:hover]:bg-background [&_button]:border-none [&_button]:text-blue [&_button]:rounded-md [&_svg]:fill-current"
+          showZoom={false}
+          showInteractive={false}
+          position="top-right"
+          fitViewOptions={{
+            duration: 200,
+          }}
+        />
 
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col"></div>
       </ReactFlow>
