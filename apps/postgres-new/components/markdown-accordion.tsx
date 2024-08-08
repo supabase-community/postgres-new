@@ -1,4 +1,4 @@
-import { DatabaseZap } from 'lucide-react'
+import { CircleX, Move3D } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -27,25 +27,42 @@ export default function MarkdownAccordion({
       <AccordionItem
         value="item-1"
         className={cn(
-          'border-2 border-neutral-100 bg-neutral-50 px-3 py-2 rounded-md',
-          error ? 'bg-destructive-300' : undefined,
+          'border rounded-md overflow-hidden',
+          error ? 'border-destructive' : undefined,
           className
         )}
       >
-        <AccordionTrigger className="p-0 gap-2">
+        <AccordionTrigger
+          className={cn(
+            'p-0 gap-2 px-3 py-2',
+            error
+              ? 'bg-destructive border-destructive [&_svg]:text-destructive-foreground'
+              : undefined
+          )}
+        >
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-            <DatabaseZap size={14} />
-            {title}
+            {error ? (
+              <CircleX
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            ) : (
+              <Move3D
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            )}
+            <span className={cn(error ? 'text-destructive-foreground' : undefined)}>{title}</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2">
+        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2 bg-background px-3">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             className="prose text-xs mt-2 [&_ul>li::before]:top-2 [&_ol>li::before]:top-0"
           >
             {content}
           </ReactMarkdown>
-          {error && <div className="text-destructive-600 text-xs">{error}</div>}
+          {error && <div className="text-red-600 text-xs">{error}</div>}
         </AccordionContent>
       </AccordionItem>
     </Accordion>

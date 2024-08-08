@@ -1,4 +1,4 @@
-import { DatabaseZap } from 'lucide-react'
+import { CircleX, DatabaseZap } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
@@ -42,10 +42,17 @@ export default function CodeAccordion({
           )}
         >
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-            <DatabaseZap
-              size={14}
-              className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
-            />
+            {error ? (
+              <CircleX
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            ) : (
+              <DatabaseZap
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            )}
             <span className={cn(error ? 'text-destructive-foreground' : undefined)}>{title}</span>
           </div>
         </AccordionTrigger>
