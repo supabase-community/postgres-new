@@ -15,9 +15,9 @@ jobs:
       PROJECT_ID: ${{ vars.SUPABASE_PROD_PROJECT_ID }}
 
       # Create placeholder vars so that supabase/config.toml can load
-      SUPABASE_AUTH_GITHUB_CLIENT_ID: ''
-      SUPABASE_AUTH_GITHUB_SECRET: ''
-      SUPABASE_AUTH_GITHUB_REDIRECT_URI: ''
+      SUPABASE_AUTH_GITHUB_CLIENT_ID: placeholder
+      SUPABASE_AUTH_GITHUB_SECRET: placeholder
+      SUPABASE_AUTH_GITHUB_REDIRECT_URI: placeholder
 
     steps:
       - uses: actions/checkout@v4
