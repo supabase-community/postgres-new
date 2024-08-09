@@ -9,6 +9,7 @@ import {
   FormEventHandler,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -47,7 +48,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser } = useApp()
+  const { user, isLoadingUser, focusRef } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -174,6 +175,15 @@ export default function Chat() {
 
   const isSubmitEnabled =
     !isLoadingMessages && !isLoadingSchema && Boolean(input.trim()) && user !== undefined
+
+  // Create imperative handle that can be used to focus the input anywhere in the app
+  useImperativeHandle(focusRef, () => ({
+    focus() {
+      if (inputRef.current) {
+        inputRef.current.focus()
+      }
+    },
+  }))
 
   return (
     <div ref={dropZoneRef} className="h-full flex flex-col items-stretch relative">

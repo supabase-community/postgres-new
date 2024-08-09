@@ -40,7 +40,7 @@ import {
 } from './ui/dropdown-menu'
 
 export default function Sidebar() {
-  const { user, signOut } = useApp()
+  const { user, signOut, focusRef } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -84,6 +84,7 @@ export default function Sidebar() {
                 <Button
                   onClick={() => {
                     router.push('/')
+                    focusRef.current?.focus()
                   }}
                   className="gap-2"
                 >
@@ -176,6 +177,7 @@ export default function Sidebar() {
                     size={'icon'}
                     onClick={() => {
                       router.push('/')
+                      focusRef.current?.focus()
                     }}
                   >
                     <PackagePlus size={14} />
