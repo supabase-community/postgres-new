@@ -448,6 +448,7 @@ function DeployDialog(
           >
             {psqlCommand}
           </CodeBlock>
+          <p>Please write down your password, it will not be shown again.</p>
         </DialogContent>
       </DialogPortal>
     </Dialog>

@@ -9,6 +9,7 @@
 import { useTheme } from 'next-themes'
 import { Children, ReactNode, useState } from 'react'
 import { Light as SyntaxHighlighter, SyntaxHighlighterProps } from 'react-syntax-highlighter'
+import { Copy } from 'lucide-react'
 
 import curl from 'highlightjs-curl'
 import bash from 'react-syntax-highlighter/dist/cjs/languages/hljs/bash'
@@ -23,6 +24,7 @@ import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql'
 import ts from 'react-syntax-highlighter/dist/cjs/languages/hljs/typescript'
 
 import { cn } from '~/lib/utils'
+import { Button } from './ui/button'
 
 export interface CodeBlockProps {
   title?: ReactNode
@@ -69,6 +71,7 @@ export const CodeBlock = ({
 
   const handleCopy = () => {
     setCopied(true)
+    navigator.clipboard.writeText(value ?? '')
     setTimeout(() => {
       setCopied(false)
     }, 1000)
@@ -168,11 +171,24 @@ export const CodeBlock = ({
           {!hideCopy && (value || children) && className ? (
             <div
               className={[
-                'absolute right-2 top-2',
+                'absolute right-1 top-1',
                 'opacity-0 group-hover:opacity-100 transition',
                 `${isDarkTheme ? 'dark' : ''}`,
               ].join(' ')}
-            ></div>
+            >
+              <Button
+                onClick={handleCopy}
+                data-size="tiny"
+                type="button"
+                variant="outline"
+                className="relative"
+              >
+                <div className="text-foreground-muted">
+                  <Copy size={14} />
+                </div>{' '}
+                <span className="truncate">Copy</span>
+              </Button>
+            </div>
           ) : null}
         </div>
       ) : (
