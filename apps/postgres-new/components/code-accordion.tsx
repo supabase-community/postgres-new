@@ -1,4 +1,4 @@
-import { DatabaseZap } from 'lucide-react'
+import { CircleX, DatabaseZap } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
@@ -28,18 +28,35 @@ export default function CodeAccordion({
       <AccordionItem
         value="item-1"
         className={cn(
-          'border-2 border-neutral-100 bg-neutral-50 px-3 py-2 rounded-md',
-          error ? 'bg-destructive-300' : undefined,
+          'border rounded-md overflow-hidden',
+          error ? 'border-destructive' : undefined,
           className
         )}
       >
-        <AccordionTrigger className="p-0 gap-2">
+        <AccordionTrigger
+          className={cn(
+            'p-0 gap-2 px-3 py-2',
+            error
+              ? 'bg-destructive border-destructive [&_svg]:text-destructive-foreground'
+              : undefined
+          )}
+        >
           <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-            <DatabaseZap size={14} />
-            {title}
+            {error ? (
+              <CircleX
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            ) : (
+              <DatabaseZap
+                size={14}
+                className={cn('text-muted-foreground', error && 'text-destructive-foreground')}
+              />
+            )}
+            <span className={cn(error ? 'text-destructive-foreground' : undefined)}>{title}</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2">
+        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2 bg-background px-3">
           <CodeBlock
             className={cn(`language-${language}`, 'border-none px-0 pb-4 !bg-inherit')}
             hideLineNumbers
@@ -47,7 +64,7 @@ export default function CodeAccordion({
           >
             {code}
           </CodeBlock>
-          {error && <div className="text-destructive-600 text-xs">{error}</div>}
+          {error && <div className="text-red-600 text-xs">{error}</div>}
         </AccordionContent>
       </AccordionItem>
     </Accordion>

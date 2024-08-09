@@ -48,6 +48,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 
 export default function Chat() {
   const { user, isLoadingUser } = useApp()
+  const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
     databaseId,
@@ -125,7 +126,7 @@ export default function Chat() {
     cursorElement: (
       <m.div
         layoutId={nextMessageId}
-        className="px-5 py-2.5 text-base rounded-full bg-neutral-100 flex gap-2 items-center shadow-xl z-50"
+        className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
       >
         <Paperclip size={14} /> Add file to chat
       </m.div>
@@ -343,7 +344,11 @@ export default function Chat() {
           )}
         </AnimatePresence>
         <form
-          className="flex items-end py-2 px-3 rounded-[28px] bg-neutral-100 w-full max-w-4xl"
+          className={cn(
+            'flex py-2 px-3 rounded-[28px] bg-muted/50 border w-full max-w-4xl items-center gap-3',
+            inputFocusState && 'border-muted-foreground',
+            'transition'
+          )}
           onSubmit={handleFormSubmit}
         >
           {/*
@@ -366,8 +371,10 @@ export default function Chat() {
             </m.div>
           )}
           <Button
-            className="w-8 h-8 p-1.5 my-1 bg-inherit transition-colors"
             type="button"
+            variant={'ghost'}
+            className="w-8 h-8 text-muted-foreground hover:text-foreground focus:text-foreground"
+            size="icon"
             onClick={(e) => {
               e.preventDefault()
 
@@ -400,17 +407,23 @@ export default function Chat() {
             }}
             disabled={isLoading || !user}
           >
-            <Paperclip size={20} />
+            <Paperclip size={16} strokeWidth={1.3} />
           </Button>
           <textarea
             ref={inputRef}
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400 resize-none"
+            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
+            onFocus={(e) => {
+              setInputFocusState(true)
+            }}
+            onBlur={(e) => {
+              setInputFocusState(false)
+            }}
             autoFocus
             disabled={!user}
             rows={Math.min(input.split('\n').length, 10)}
