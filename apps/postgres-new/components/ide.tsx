@@ -263,22 +263,16 @@ export default function IDE({ children, className }: IDEProps) {
 }
 
 function Footer() {
-  const { pgliteVersion, pgVersion } = useApp()
   return (
-    <div className="flex flex-col pb-1 text-xs text-neutral-500 text-center justify-center">
-      {pgliteVersion && (
-        <span>
-          <a
-            className="underline"
-            href="https://github.com/electric-sql/pglite"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            PGlite
-          </a>{' '}
-          {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
-        </span>
-      )}
+    <div className="flex flex-row gap-1 pb-1 text-xs text-neutral-500 text-center justify-center">
+      <a
+        className="underline cursor-pointer"
+        href="https://github.com/supabase-community/postgres-new"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Learn about postgres.new
+      </a>
     </div>
   )
 }
