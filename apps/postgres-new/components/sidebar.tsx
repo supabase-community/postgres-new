@@ -4,10 +4,11 @@ import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
   ArrowRightToLine,
-  CircleEllipsis,
   Database as DbIcon,
+  Download,
   Loader,
   LogOut,
+  MoreVertical,
   PackagePlus,
   Pencil,
   Trash2,
@@ -18,7 +19,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
@@ -26,12 +26,21 @@ import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
 import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
 import { Database } from '~/lib/db'
+import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
+import ThemeDropdown from './theme-dropdown'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
 
 export default function Sidebar() {
-  const { user, signOut } = useApp()
+  const { user, signOut, focusRef } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -42,7 +51,7 @@ export default function Sidebar() {
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
-            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-neutral-100"
+            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card"
             variants={{
               hidden: { opacity: 0, x: '-100%' },
               show: { opacity: 1, x: 0 },
@@ -52,41 +61,37 @@ export default function Sidebar() {
             animate="show"
             exit={{ opacity: 0, transition: { duration: 0 } }}
           >
-            <div className="flex justify-between text-neutral-500">
+            <div className="flex justify-between">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <m.div layout="position" layoutId="sidebar-collapse">
                     <Button
-                      className="bg-inherit hover:bg-neutral-200 text-sm flex gap-3"
+                      variant={'ghost'}
+                      size={'icon'}
                       onClick={() => {
                         setShowSidebar(false)
                       }}
                     >
-                      <ArrowLeftToLine />
+                      <ArrowLeftToLine size={14} />
                     </Button>
                   </m.div>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-black text-white">
+                <TooltipContent side="right">
                   <p>Close sidebar</p>
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <m.div layout="position" layoutId="new-database-button">
-                    <Button
-                      className="bg-inherit hover:bg-neutral-200 text-sm flex gap-3"
-                      onClick={() => {
-                        router.push('/')
-                      }}
-                    >
-                      <PackagePlus />
-                    </Button>
-                  </m.div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-black text-white">
-                  <p>New database</p>
-                </TooltipContent>
-              </Tooltip>
+              <m.div layout="position" layoutId="new-database-button">
+                <Button
+                  onClick={() => {
+                    router.push('/')
+                    focusRef.current?.focus()
+                  }}
+                  className="gap-2"
+                >
+                  <PackagePlus size={14} />
+                  New database
+                </Button>
+              </m.div>
             </div>
             {databases && databases.length > 0 ? (
               <m.div
@@ -124,77 +129,96 @@ export default function Sidebar() {
                 )}
               </div>
             )}
+            <m.div layout="position" layoutId="theme-dropdown">
+              <ThemeDropdown className="w-full" />
+            </m.div>
             {user && (
-              <Button
-                className="flex flex-row gap-2 items-center mx-2 hover:bg-black/10"
-                onClick={async () => {
-                  await signOut()
-                }}
-              >
-                <m.div layout="position" layoutId="sign-out-button">
+              <m.div layout="position" layoutId="sign-out-button">
+                <Button
+                  className="w-full gap-2"
+                  variant="secondary"
+                  onClick={async () => {
+                    await signOut()
+                  }}
+                >
                   <LogOut size={18} strokeWidth={2} />
-                </m.div>
-                Sign out
-              </Button>
+                  Sign out
+                </Button>
+              </m.div>
             )}
           </m.div>
         )}
       </AnimatePresence>
       {!showSidebar && (
-        <div className="flex flex-col pl-4 py-4 justify-between text-neutral-500">
+        <div className="flex flex-col pl-4 py-4 justify-between">
           <div className="flex flex-col gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layoutId="sidebar-collapse">
+                <m.div layout="position" layoutId="sidebar-collapse">
                   <Button
-                    className="bg-inherit justify-start hover:bg-neutral-200 text-sm flex gap-3"
+                    variant={'ghost'}
+                    size="icon"
                     onClick={() => {
                       setShowSidebar(true)
                     }}
                   >
-                    <ArrowRightToLine />
+                    <ArrowRightToLine size={14} />
                   </Button>
                 </m.div>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black text-white">
+              <TooltipContent side="right">
                 <p>Open sidebar</p>
               </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layoutId="new-database-button">
+                <m.div layout="position" layoutId="new-database-button">
                   <Button
-                    className="bg-inherit justify-end hover:bg-neutral-200 text-sm flex gap-3"
+                    size={'icon'}
                     onClick={() => {
                       router.push('/')
+                      focusRef.current?.focus()
                     }}
                   >
-                    <PackagePlus />
+                    <PackagePlus size={14} />
                   </Button>
                 </m.div>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black text-white">
+              <TooltipContent side="right">
                 <p>New database</p>
               </TooltipContent>
             </Tooltip>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <m.div layout="position" layoutId="sign-out-button">
-                <Button
-                  className="bg-inherit justify-end justify-self-end hover:bg-neutral-200 text-sm flex gap-3"
-                  onClick={async () => {
-                    await signOut()
-                  }}
-                >
-                  <LogOut size={18} strokeWidth={3} />
-                </Button>
-              </m.div>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-black text-white">
-              <p>Sign out</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex flex-col gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <m.div layout="position" layoutId="theme-dropdown">
+                  <ThemeDropdown iconOnly />
+                </m.div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Toggle theme</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <m.div layout="position" layoutId="sign-out-button">
+                  <Button
+                    size={'icon'}
+                    variant="secondary"
+                    onClick={async () => {
+                      await signOut()
+                    }}
+                  >
+                    <LogOut size={16} strokeWidth={2} />
+                  </Button>
+                </m.div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Sign out</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       )}
     </>
@@ -208,7 +232,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user } = useApp()
+  const { user, dbManager } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -278,20 +302,13 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
       <Link
         data-active={isActive || isPopoverOpen}
         className={cn(
-          'group text-sm w-full relative bg-inherit justify-start bg-neutral-100 hover:bg-neutral-200 flex gap-3 p-3 rounded-md overflow-hidden data-[active=true]:bg-neutral-200'
+          'group text-sm w-full relative justify-start bg-card hover:bg-muted/50 flex gap-2 px-3 h-10 items-center rounded-md overflow-hidden data-[active=true]:bg-accent transition'
         )}
         href={`/db/${database.id}`}
       >
-        <span className="text-nowrap">{database.name ?? 'My database'}</span>
-        <div
-          className={cn(
-            'absolute right-0 top-0 bottom-0',
-            'w-8 bg-gradient-to-l from-neutral-100 from-0%',
-            'group-hover:w-16 group-hover:from-neutral-200 group-hover:from-50%',
-            'group-data-[active=true]:w-16 group-data-[active=true]:from-neutral-200 group-data-[active=true]:from-50%'
-          )}
-        />
-        <Popover
+        <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
+        <DropdownMenu
+          modal={false}
           onOpenChange={(open) => {
             setIsPopoverOpen(open)
             if (!open) {
@@ -300,24 +317,26 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           }}
           open={isPopoverOpen}
         >
-          <PopoverTrigger
-            asChild
+          <DropdownMenuTrigger
+            className="group/trigger outline-none"
             onClick={(e) => {
               e.preventDefault()
               setIsPopoverOpen(true)
             }}
           >
-            <div
+            <MoreVertical
+              size={16}
               className={cn(
-                'hidden group-hover:flex absolute right-0 top-0 bottom-0 p-2 opacity-50 items-center',
-                isActive || isPopoverOpen ? 'flex' : undefined
+                isActive
+                  ? 'text-muted-foreground'
+                  : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
+                'group-data-[state=open]/trigger:text-foreground',
+                'transition'
               )}
-            >
-              <CircleEllipsis size={24} />
-            </div>
-          </PopoverTrigger>
+            />
+          </DropdownMenuTrigger>
 
-          <PopoverContent className="p-2 flex flex-col overflow-hidden w-auto" portal>
+          <DropdownMenuContent side="right" align="start">
             {isRenaming ? (
               <form
                 className="w-72"
@@ -339,7 +358,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
               >
                 <input
                   name="name"
-                  className="flex-grow w-full border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
+                  className="flex-grow w-full p-2 outline-none text-base bg-inherit placeholder:text-neutral-400"
                   placeholder={`Rename ${database.name}`}
                   defaultValue={database.name ?? undefined}
                   autoComplete="off"
@@ -348,18 +367,43 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
               </form>
             ) : (
               <div className="flex flex-col items-stretch w-32">
-                <Button
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
                     e.preventDefault()
                     setIsRenaming(true)
                   }}
                 >
-                  <Pencil size={16} strokeWidth={2} className="flex-shrink-0" />
-
+                  <Pencil
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                   <span>Rename</span>
-                </Button>
-                <Button
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
+                    e.preventDefault()
+
+                    if (!dbManager) {
+                      throw new Error('dbManager is not available')
+                    }
+
+                    const db = await dbManager.getDbInstance(database.id)
+                    const dumpBlob = await db.dumpDataDir()
+
+                    const fileName = `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}`
+                    const file = new File([dumpBlob], fileName, { type: dumpBlob.type })
+
+                    downloadFile(file)
+                  }}
+                >
+                  <Download size={16} strokeWidth={2} className="flex-shrink-0" />
+
+                  <span>Download</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                   onClick={async (e) => {
                     e.preventDefault()
@@ -369,13 +413,17 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   }}
                   disabled={user === undefined}
                 >
-                  <Upload size={16} strokeWidth={2} className="flex-shrink-0" />
-
-                  <span>Deploy</span>
-                </Button>
-                <Button
-                  className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
+                  <Upload
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
+                  <span>Publish</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-3"
+                  onSelect={async (e) => {
                     e.preventDefault()
                     setIsPopoverOpen(false)
                     await deleteDatabase({ id: database.id })
@@ -385,14 +433,17 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     }
                   }}
                 >
-                  <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
-
+                  <Trash2
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                   <span>Delete</span>
-                </Button>
+                </DropdownMenuItem>
               </div>
             )}
-          </PopoverContent>
-        </Popover>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </Link>
     </>
   )

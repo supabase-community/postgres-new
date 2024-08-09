@@ -8,10 +8,11 @@ import { User } from '@supabase/supabase-js'
 import {
   createContext,
   PropsWithChildren,
+  RefObject,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
+  useRef,
   useState,
 } from 'react'
 import { DbManager } from '~/lib/db'
@@ -27,7 +28,19 @@ export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
 
+  const focusRef = useRef<FocusHandle>(null)
+
   const supabase = createClient()
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((e) => {
+      focusRef.current?.focus()
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   const loadUser = useCallback(async () => {
     setIsLoadingUser(true)
@@ -97,6 +110,7 @@ export default function AppProvider({ children }: AppProps) {
         isLoadingUser,
         signIn,
         signOut,
+        focusRef,
         isPreview,
         dbManager,
         pgliteVersion,
@@ -108,11 +122,16 @@ export default function AppProvider({ children }: AppProps) {
   )
 }
 
+export type FocusHandle = {
+  focus(): void
+}
+
 export type AppContextValues = {
   user?: User
   isLoadingUser: boolean
   signIn: () => Promise<User | undefined>
   signOut: () => Promise<void>
+  focusRef: RefObject<FocusHandle>
   isPreview: boolean
   dbManager?: DbManager
   pgliteVersion?: string

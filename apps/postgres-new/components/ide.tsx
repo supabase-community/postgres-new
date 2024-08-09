@@ -16,6 +16,7 @@ import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
 import { useWorkspace } from './workspace'
+import { buttonVariants } from './ui/button'
 
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
@@ -105,28 +106,56 @@ export default function IDE({ children, className }: IDEProps) {
         value={tab}
         onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
       >
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-2 !h-min bg-muted">
           {isSmallBreakpoint && (
-            <TabsTrigger value="chat" className="flex items-center gap-1">
+            <TabsTrigger
+              value="chat"
+              className={cn(
+                buttonVariants({ variant: tab === 'chat' ? 'default' : 'ghost' }),
+                tab === 'chat' && '!shadow-sm',
+                'gap-2'
+              )}
+            >
               <MessageSquareMore size={14} />
-              <span className="hidden xs:inline">Chat</span>
+              <span className="hidden sm:inline">Chat</span>
             </TabsTrigger>
           )}
-          <TabsTrigger value="diagram" className="flex items-center gap-1">
+          <TabsTrigger
+            value="diagram"
+            className={cn(
+              buttonVariants({ variant: tab === 'diagram' ? 'default' : 'ghost' }),
+              tab === 'diagram' && '!shadow-sm',
+              'gap-2'
+            )}
+          >
             <Workflow size={14} />
-            <span className="hidden xs:inline">Diagram</span>
+            <span className="hidden sm:inline">Diagram</span>
           </TabsTrigger>
-          <TabsTrigger value="migrations" className="flex items-center gap-1">
+          <TabsTrigger
+            value="migrations"
+            className={cn(
+              buttonVariants({ variant: tab === 'migrations' ? 'default' : 'ghost' }),
+              tab === 'migrations' && '!shadow-sm',
+              'gap-2'
+            )}
+          >
             <FileCode size={14} />
-            <span className="hidden xs:inline">Migrations</span>
+            <span className="hidden sm:inline">Migrations</span>
           </TabsTrigger>
           {/* Temporarily hide seeds until we get pg_dump working */}
-          {false && (
-            <TabsTrigger value="seeds" className="flex items-center gap-1">
+          {/* {false && (
+            <TabsTrigger
+              value="seeds"
+              className={cn(
+                buttonVariants({ variant: tab === 'seeds' ? 'default' : 'ghost' }),
+                tab === 'seeds' && '!shadow-sm',
+                'gap-2'
+              )}
+            >
               <Sprout size={14} />
-              <span className="hidden xs:inline">Seeds</span>
+              <span className="hidden sm:inline">Seeds</span>
             </TabsTrigger>
-          )}
+          )} */}
         </TabsList>
 
         {isSmallBreakpoint && (
@@ -234,22 +263,16 @@ export default function IDE({ children, className }: IDEProps) {
 }
 
 function Footer() {
-  const { pgliteVersion, pgVersion } = useApp()
   return (
-    <div className="flex flex-col pb-1 text-xs text-neutral-500 text-center justify-center">
-      {pgliteVersion && (
-        <span>
-          <a
-            className="underline"
-            href="https://github.com/electric-sql/pglite"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            PGlite
-          </a>{' '}
-          {pgliteVersion} {pgVersion && <>(PG {pgVersion})</>}
-        </span>
-      )}
+    <div className="flex flex-row gap-1 pb-1 text-xs text-neutral-500 text-center justify-center">
+      <a
+        className="underline cursor-pointer"
+        href="https://github.com/supabase-community/postgres-new"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Learn about postgres.new
+      </a>
     </div>
   )
 }

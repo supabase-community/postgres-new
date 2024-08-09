@@ -1,4 +1,3 @@
-import { PopoverClose } from '@radix-ui/react-popover'
 import { AnimatePresence, m } from 'framer-motion'
 import {
   CircleSlash,
@@ -21,8 +20,13 @@ import {
   useOnViewportChange,
   useUpdateNodeInternals,
 } from 'reactflow'
-import { Button } from '~/components/ui/button'
-import { Popover, PopoverContent, PopoverSeparator, PopoverTrigger } from '~/components/ui/popover'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { cn } from '~/lib/utils'
 import { useApp } from '../app-provider'
 import { useWorkspace } from '../workspace'
@@ -71,7 +75,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
 
   if (data.isForeign) {
     return (
-      <header className="text-[1.1rem] px-4 py-2 border-[1px] rounded-[8px] bg-alternative text-default flex gap-2 items-center">
+      <header className="text-[1.1rem] px-4 py-2 border-[1px] rounded-[8px] bg-foreground text-background flex gap-2 items-center">
         {data.name}
         {targetPosition && (
           <Handle
@@ -79,6 +83,9 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
             id={data.name}
             position={targetPosition}
             className={cn(hiddenNodeConnector)}
+            onKeyDown={(e) => {
+              e.preventDefault()
+            }}
           />
         )}
       </header>
@@ -87,7 +94,7 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
 
   return (
     <m.div
-      className="overflow-hidden rounded-[8px] bg-scale-400"
+      className="overflow-hidden rounded-[8px] border shadow-md"
       style={{ width: TABLE_NODE_WIDTH / 2 }}
       variants={{
         hidden: {
@@ -106,11 +113,11 @@ export function TableNode({ id, data, targetPosition, sourcePosition }: NodeProp
     >
       <header
         className={cn(
-          'text-[1.1rem] px-4 bg-brand-600 text-white flex gap-2 items-center',
+          'text-[1.1rem] px-3 bg-foreground dark:bg-muted text-background dark:text-foreground flex gap-2 items-center',
           itemHeight
         )}
       >
-        <Table2 strokeWidth={2} size={24} className="" />
+        <Table2 strokeWidth={1.3} size={21} className="text-muted-foreground" />
 
         {/* Animate the old title out and new title in */}
         <AnimatePresence mode="popLayout">
@@ -169,7 +176,9 @@ function TableColumn({
   const { appendMessage } = useWorkspace()
 
   return (
-    <Popover
+    <DropdownMenu
+      key={`${column.id}-${column.name}-dropdown-menu`}
+      modal={false}
       open={isPopoverOpen}
       onOpenChange={(open) => {
         setIsPopoverOpen(open)
@@ -178,12 +187,12 @@ function TableColumn({
         }
       }}
     >
-      <PopoverTrigger asChild className="cursor-pointer">
+      <DropdownMenuTrigger asChild className="cursor-pointer">
         <m.div
           className={cn(
             'text-[16px] leading-10 relative flex flex-row justify-items-start',
-            'bg-neutral-300 hover:bg-neutral-200',
-            'border-t border-neutral-200',
+            'bg-card hover:bg-accent data-[state=open]:bg-accent',
+            'border-t ',
             'border-t-[1px]',
             'overflow-hidden',
             itemHeight
@@ -217,7 +226,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Key size={16} strokeWidth={2} className={cn('flex-shrink-0', 'text-light')} />
+                  <Key
+                    size={16}
+                    strokeWidth={2}
+                    className={cn('flex-shrink-0', 'text-muted-foreground')}
+                  />
                 </m.div>
               )}
             </AnimatePresence>
@@ -232,7 +245,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <DiamondIcon size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <DiamondIcon
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                 </m.div>
               ) : (
                 <m.div
@@ -246,7 +263,7 @@ function TableColumn({
                     size={16}
                     strokeWidth={2}
                     fill="currentColor"
-                    className="flex-shrink-0 text-light"
+                    className="flex-shrink-0 text-muted-foreground"
                   />
                 </m.div>
               )}
@@ -262,7 +279,11 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Fingerprint size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <Fingerprint
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                 </m.div>
               )}
             </AnimatePresence>
@@ -277,7 +298,7 @@ function TableColumn({
                   animate="show"
                   exit="hidden"
                 >
-                  <Hash size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+                  <Hash size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
                 </m.div>
               )}
             </AnimatePresence>
@@ -302,7 +323,7 @@ function TableColumn({
             <AnimatePresence mode="popLayout">
               <m.span
                 key={column.format}
-                className="px-4 inline-flex justify-end font-mono text-lighter text-[0.8rem]"
+                className="px-4 inline-flex justify-end font-mono text-muted-foreground text-[0.8rem]"
                 variants={inOutTop}
                 initial="hidden"
                 animate="show"
@@ -331,8 +352,16 @@ function TableColumn({
             />
           )}
         </m.div>
-      </PopoverTrigger>
-      <PopoverContent className="p-2 flex flex-col" portal>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        onEscapeKeyDown={(e) => {
+          if (isRenaming) {
+            e.preventDefault()
+          }
+        }}
+      >
         {isRenaming ? (
           <form
             onSubmit={(e) => {
@@ -354,8 +383,15 @@ function TableColumn({
           >
             <input
               name="name"
-              className="flex-grow border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400"
+              className="flex-grow p-2 outline-none text-base bg-inherit placeholder:text-neutral-400"
               placeholder={`Rename ${column.name}`}
+              // when esc is pressed, setIsRenaming(false) is called
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setIsRenaming(false)
+                }
+              }}
               autoComplete="off"
               autoFocus
               disabled={!user}
@@ -363,91 +399,91 @@ function TableColumn({
           </form>
         ) : (
           <>
-            <Button
-              className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+              }}
+              className="gap-3"
               disabled={!user}
               onClick={() => setIsRenaming(true)}
             >
               <Pencil size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
               <span>Rename column</span>
-            </Button>
-            <PopoverClose asChild>
-              <Button
-                className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                disabled={!user}
-                onClick={() =>
-                  appendMessage({
-                    role: 'user',
-                    content: `Make the "${column.name}" column in the ${data.name} table ${column.isNullable ? 'not nullable' : 'nullable'}`,
-                  })
-                }
-              >
-                <DiamondIcon
-                  size={16}
-                  strokeWidth={2}
-                  fill={column.isNullable ? 'currentColor' : 'none'}
-                  className="flex-shrink-0 text-light"
-                />
-                <span>Make {column.isNullable ? 'not nullable' : 'nullable'}</span>
-              </Button>
-            </PopoverClose>
-            <PopoverClose asChild>
-              <Button
-                className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                disabled={!user}
-                onClick={() =>
-                  appendMessage({
-                    role: 'user',
-                    content: `Make the "${column.name}" column in the ${data.name} table ${column.isUnique ? 'not unique' : 'unique'}`,
-                  })
-                }
-              >
-                {column.isUnique ? (
-                  <CircleSlash size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
-                ) : (
-                  <Fingerprint size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
-                )}
+            </DropdownMenuItem>
 
-                <span>Make {column.isUnique ? 'not unique' : 'unique'}</span>
-              </Button>
-            </PopoverClose>
-            <PopoverClose asChild>
-              <Button
-                className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                disabled={!user}
-                onClick={() =>
-                  appendMessage({
-                    role: 'user',
-                    content: `Help me choose the best index for the "${column.name}" column in the ${data.name} table`,
-                  })
-                }
-              >
-                <Network size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+            <DropdownMenuItem
+              className="gap-3"
+              disabled={!user}
+              onClick={() =>
+                appendMessage({
+                  role: 'user',
+                  content: `Make the "${column.name}" column in the ${data.name} table ${column.isNullable ? 'not nullable' : 'nullable'}`,
+                })
+              }
+            >
+              <DiamondIcon
+                size={16}
+                strokeWidth={2}
+                fill={column.isNullable ? 'currentColor' : 'none'}
+                className="flex-shrink-0 text-light"
+              />
+              <span>Make {column.isNullable ? 'not nullable' : 'nullable'}</span>
+            </DropdownMenuItem>
 
-                <span>Create index</span>
-              </Button>
-            </PopoverClose>
-            <PopoverSeparator className="my-1" />
-            <PopoverClose asChild>
-              <Button
-                className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
-                disabled={!user}
-                onClick={() =>
-                  appendMessage({
-                    role: 'user',
-                    content: `Remove the "${column.name}" column in the ${data.name} table`,
-                  })
-                }
-              >
-                <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
+            <DropdownMenuItem
+              className="gap-3"
+              disabled={!user}
+              onClick={() =>
+                appendMessage({
+                  role: 'user',
+                  content: `Make the "${column.name}" column in the ${data.name} table ${column.isUnique ? 'not unique' : 'unique'}`,
+                })
+              }
+            >
+              {column.isUnique ? (
+                <CircleSlash size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+              ) : (
+                <Fingerprint size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+              )}
 
-                <span>Remove column</span>
-              </Button>
-            </PopoverClose>
+              <span>Make {column.isUnique ? 'not unique' : 'unique'}</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className="gap-3"
+              disabled={!user}
+              onClick={() =>
+                appendMessage({
+                  role: 'user',
+                  content: `Help me choose the best index for the "${column.name}" column in the ${data.name} table`,
+                })
+              }
+            >
+              <Network size={16} strokeWidth={2} className="flex-shrink-0 text-light" />
+
+              <span>Create index</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              className="bg-inherit text-destructive-600 justify-start hover:bg-neutral-200 flex gap-3"
+              disabled={!user}
+              onClick={() =>
+                appendMessage({
+                  role: 'user',
+                  content: `Remove the "${column.name}" column in the ${data.name} table`,
+                })
+              }
+            >
+              <Trash2 size={16} strokeWidth={2} className="flex-shrink-0" />
+
+              <span>Remove column</span>
+            </DropdownMenuItem>
           </>
         )}
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
