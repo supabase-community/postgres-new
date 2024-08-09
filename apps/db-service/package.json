@@ -11,7 +11,7 @@
   "dependencies": {
     "@electric-sql/pglite": "0.2.0-alpha.7",
     "@supabase/supabase-js": "^2.45.1",
-    "pg-gateway": "0.3.0-alpha.1",
+    "pg-gateway": "0.3.0-alpha.2",
     "tar": "^7.4.3"
   },
   "devDependencies": {
