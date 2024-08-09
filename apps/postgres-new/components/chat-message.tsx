@@ -39,7 +39,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
               x: 0,
             },
           }}
-          className="self-end px-5 py-2.5 text-base rounded-3xl bg-neutral-100 whitespace-pre-wrap"
+          className="self-end px-5 py-2.5 text-base rounded-3xl bg-border text-foreground whitespace-pre-wrap"
         >
           {message.content}
         </m.div>
@@ -50,7 +50,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
           remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
           rehypePlugins={[[rehypeKatex, { output: 'html' }]]}
           components={{ ...markdownComponents, img: () => null }}
-          className="prose [&_.katex-display>.katex]:text-left"
+          className="prose prose-xs text-base [&_.katex-display>.katex]:text-left"
         >
           {message.content}
         </ReactMarkdown>
@@ -111,8 +111,13 @@ const NextImageHandler = (props: any) => {
 }
 
 const markdownComponents = {
-  mono: (props: any) => <code className="text-sm">{props.children}</code>,
+  mono: (props: any) => <code className="text-sm not-prose">{props.children}</code>,
   code: (props: any) => <CodeBlock {...props} />,
+  pre: (props: any) => (
+    <pre className="not-prose">
+      <CodeBlock {...props} />
+    </pre>
+  ),
   img: (props: any) => NextImageHandler(props),
   Image: (props: any) => NextImageHandler(props),
 }

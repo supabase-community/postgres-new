@@ -68,6 +68,7 @@ export const tools = {
       Generates a chart using Chart.js for a given SQL query.
       - Label both axises
       - Plugins are not available
+      - Use a variety of neon colors by default (rather than the same color for all)
       
       Call \`executeSql\` first.
     `,

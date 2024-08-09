@@ -51,10 +51,6 @@ export async function POST(req: Request) {
 
       No images are allowed. Do not try to generate or link images, including base64 data URLs.
 
-      Err on the side of caution. Ask the user to confirm before any mutating operations.
-      
-      If you're just querying schema, data, or showing charts, go ahead and do it without asking.
-
       Feel free to suggest corrections for suspected typos.
     `,
     model: openai('gpt-4o-2024-05-13'),

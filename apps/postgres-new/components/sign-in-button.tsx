@@ -5,12 +5,12 @@ export default function SignInButton() {
   const { signIn } = useApp()
   return (
     <button
-      className="bg-black text-white text-lg px-4 py-2 rounded-sm flex gap-3 items-center"
+      className="bg-foreground text-background text-md px-4 py-2 rounded-sm flex gap-3 items-center"
       onClick={async () => {
         await signIn()
       }}
     >
-      <GitHubIcon className="text-white text-2xl" />
+      <GitHubIcon className="text-xl" />
       Sign in with GitHub
     </button>
   )
