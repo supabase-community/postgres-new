@@ -9,9 +9,9 @@
     "psql": "docker compose run --rm -i psql psql"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.2.0-alpha.7",
+    "@electric-sql/pglite": "0.2.0-alpha.8",
     "@supabase/supabase-js": "^2.45.1",
-    "pg-gateway": "0.3.0-alpha.2",
+    "pg-gateway": "0.3.0-alpha.3",
     "tar": "^7.4.3"
   },
   "devDependencies": {
