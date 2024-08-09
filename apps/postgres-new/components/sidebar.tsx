@@ -23,8 +23,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
-import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
 import { Database } from '~/lib/db'
 import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
@@ -38,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { DialogPortal, DialogTrigger } from '@radix-ui/react-dialog'
+import { DialogPortal } from '@radix-ui/react-dialog'
 import React from 'react'
 
 export default function Sidebar() {
@@ -233,48 +231,45 @@ type DatabaseMenuItemProps = {
 }
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
-  const {
-    dropdownTriggerProps,
-    dropdownMenuProps,
-    dropdownMenuContentProps,
-    dialogProps,
-    dropdownMenuItemProps,
-    setDropdownOpen,
-  } = useDropdownMenuWithDialogs()
-
   const [isRenaming, setIsRenaming] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [hasOpenDialog, setHasOpenDialog] = useState(false)
+  function handleDialogMenuItemOpenChange(open: boolean) {
+    setHasOpenDialog(open)
+    if (open === false) {
+      setIsDropdownOpen(false)
+    }
+  }
 
   return (
     <Link
-      data-active={isActive || dropdownMenuProps.open}
+      data-active={isActive || isDropdownOpen}
       className={cn(
         'group text-sm w-full relative justify-start bg-card hover:bg-muted/50 flex gap-2 px-3 h-10 items-center rounded-md overflow-hidden data-[active=true]:bg-accent transition'
       )}
       href={`/db/${database.id}`}
     >
       <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
-      <DropdownMenu modal={false} {...dropdownMenuProps}>
+      <DropdownMenu modal={false} open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger className="group/trigger outline-none" asChild>
-          <button {...dropdownTriggerProps}>
-            <MoreVertical
-              size={16}
-              className={cn(
-                isActive
-                  ? 'text-muted-foreground'
-                  : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
-                'group-data-[state=open]/trigger:text-foreground',
-                'transition'
-              )}
-            />
-          </button>
+          <MoreVertical
+            size={16}
+            className={cn(
+              isActive
+                ? 'text-muted-foreground'
+                : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
+              'group-data-[state=open]/trigger:text-foreground',
+              'transition'
+            )}
+          />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent side="right" align="start" {...dropdownMenuContentProps}>
+        <DropdownMenuContent side="right" align="start" hidden={hasOpenDialog}>
           {isRenaming ? (
             <RenameDatabaseForm
               database={database}
               onSuccess={() => {
-                setDropdownOpen(false)
+                setIsDropdownOpen(false)
                 setIsRenaming(false)
               }}
             />
@@ -288,9 +283,10 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 }}
               />
               <DownloadMenuItem database={database} />
-              <DeployDialog {...dialogProps}>
-                <DeployMenuItem {...dropdownMenuItemProps} database={database} />
-              </DeployDialog>
+              <DeployDialogMenuItem
+                database={database}
+                onDialogOpenChange={handleDialogMenuItemOpenChange}
+              />
               <DropdownMenuSeparator />
               <DeleteMenuItem database={database} isActive={isActive} />
             </div>
@@ -387,179 +383,131 @@ function DownloadMenuItem({ database }: { database: Database }) {
   )
 }
 
-const DeployDialog = React.forwardRef(
-  (
-    props: {
-      children: React.ReactNode
-      onOpenChange: (open: boolean) => void
-    },
-    ref: React.Ref<HTMLButtonElement>
-  ) => {
-    const { data: isOnDeployWaitlist } = useIsOnDeployWaitlistQuery()
-    const { mutateAsync: joinDeployWaitlist } = useDeployWaitlistCreateMutation()
+type DeployResult = {
+  username: string
+  password: string
+  serverName: string
+}
 
-    return (
-      <Dialog onOpenChange={props.onOpenChange}>
-        <DialogTrigger ref={ref} asChild>
-          {props.children}
-        </DialogTrigger>
-        <DialogPortal>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Deployments are in Private Alpha</DialogTitle>
-              <div className="py-2 border-b" />
-            </DialogHeader>
-            <h2 className="font-medium">What are deployments?</h2>
-            <p>
-              Deploy your database to a serverless PGlite instance so that it can be accessed
-              outside the browser using any Postgres client:
-            </p>
-            <CodeBlock
-              className="language-curl bg-neutral-800"
-              language="curl"
-              hideLineNumbers
-              theme="dark"
-            >
-              {`psql "postgres://postgres:<password>@<your-unique-server>/postgres"`}
-            </CodeBlock>
-            <div className="flex justify-center items-center mt-3">
-              <AnimatePresence initial={false}>
-                {!isOnDeployWaitlist ? (
-                  <button
-                    className="px-4 py-3 bg-black text-white rounded-md"
-                    onClick={async () => {
-                      await joinDeployWaitlist()
-                    }}
-                  >
-                    Join Private Alpha
-                  </button>
-                ) : (
-                  <m.div
-                    className="px-4 py-3 border-2 rounded-md text-center border-dashed"
-                    variants={{
-                      hidden: { scale: 0 },
-                      show: { scale: 1 },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                  >
-                    <h3 className="font-medium mb-2">🎉 You&apos;re on the waitlist!</h3>
-                    <p>We&apos;ll send you an email when you have access to deploy.</p>
-                  </m.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </DialogContent>
-        </DialogPortal>
-      </Dialog>
-    )
-  }
-)
+function DeployDialogMenuItem(props: {
+  database: Database
+  onDialogOpenChange: (isOpen: boolean) => void
+}) {
+  const [deployResult, setDeployResult] = useState<DeployResult | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-const DeployMenuItem = React.forwardRef<
-  HTMLDivElement,
-  { database: Database; onSelect: (event: Event) => void }
->((props, ref) => {
+  return (
+    <>
+      <DeployMenuItem
+        database={props.database}
+        onDeploySuccess={(data) => {
+          setDeployResult(data)
+          setIsDialogOpen(true)
+          props.onDialogOpenChange(true)
+        }}
+      />
+      {deployResult && (
+        <DeployDialog
+          open={isDialogOpen}
+          onOpenChange={props.onDialogOpenChange}
+          {...deployResult}
+        />
+      )}
+    </>
+  )
+}
+
+function DeployDialog(
+  props: {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+  } & DeployResult
+) {
+  const { username, password, serverName } = props
+  const psqlCommand = `psql "postgres://${username}:${encodeURIComponent(password)}@${serverName}/postgres"`
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogPortal>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Your database has been deployed</DialogTitle>
+            <div className="py-2 border-b" />
+          </DialogHeader>
+          <h2 className="font-medium">What are deployments?</h2>
+          <p>
+            Your database has been deployed to a serverless PGlite instance so that it can be
+            accessed outside the browser using any Postgres client:
+          </p>
+          <CodeBlock
+            className="language-curl bg-neutral-800"
+            language="curl"
+            hideLineNumbers
+            theme="dark"
+            value={psqlCommand}
+          >
+            {psqlCommand}
+          </CodeBlock>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  )
+}
+
+function DeployMenuItem(props: {
+  database: Database
+  onDeploySuccess: (data: DeployResult) => void
+}) {
   const { dbManager, user } = useApp()
-  const { database, ...menuItemProps } = props
+  const [isDeploying, setIsDeploying] = useState(false)
 
-  async function handleDeployClick() {
+  async function handleMenuItemSelect(e: Event) {
+    e.preventDefault()
+
+    setIsDeploying(true)
+
     if (!dbManager) {
       throw new Error('No dbManager')
     }
-    // const db = await dbManager.getDbInstance(props.database.id)
-    // const dump = await db.dumpDataDir()
-    // const response = await fetch(`/api/databases/${props.database.id}/upload`, {
-    //   method: 'POST',
-    //   body: dump,
-    // })
-    // type Result =
-    //   | { success: true; data: { serverName: string } }
-    //   | { success: false; error: string }
-    // const result: Result = await response.json()
-    // console.log(result)
-    // if (result.success) {
-    //   setPublishServerName(result.data.serverName)
-    // } else {
-    //   setPublishErrorMessage(result.error)
-    // }
-    // setIsDeployDialogOpen(true)
-    // setIsPopoverOpen(false)
+
+    const db = await dbManager.getDbInstance(props.database.id)
+    const dump = await db.dumpDataDir()
+    const response = await fetch(`/api/databases/${props.database.id}/upload`, {
+      method: 'POST',
+      body: dump,
+    })
+
+    setIsDeploying(false)
+
+    type Result = { success: true; data: DeployResult } | { success: false; error: string }
+
+    const result: Result = await response.json()
+
+    if (result.success) {
+      props.onDeploySuccess(result.data)
+    } else {
+      // TODO: use a toast for errors
+      console.error(result.error)
+    }
   }
 
   return (
     <DropdownMenuItem
       className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
       disabled={user === undefined}
-      ref={ref}
-      {...menuItemProps}
+      onSelect={handleMenuItemSelect}
     >
-      <Upload size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      {isDeploying ? (
+        <Loader
+          className="animate-spin flex-shrink-0 text-muted-foreground"
+          size={16}
+          strokeWidth={2}
+        />
+      ) : (
+        <Upload size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      )}
+
       <span>Deploy</span>
     </DropdownMenuItem>
   )
-})
-
-/**
- * A hook containing the state to control a dropdown menu containing dialogs
- *
- * @see https://github.com/radix-ui/primitives/issues/1836#issuecomment-1556688048
- */
-function useDropdownMenuWithDialogs() {
-  const [dropdownOpen, setDropdownOpen] = React.useState(false)
-  const [hasOpenDialog, setHasOpenDialog] = React.useState(false)
-  const dropdownTriggerRef = React.useRef<HTMLButtonElement | null>(null)
-  const focusRef = React.useRef<HTMLButtonElement | null>(null)
-
-  function handleDialogItemSelect() {
-    focusRef.current = dropdownTriggerRef.current
-  }
-
-  function handleDialogOpenChange(open: boolean) {
-    setHasOpenDialog(open)
-    if (open === false) {
-      setDropdownOpen(false)
-    }
-  }
-
-  const dropdownTriggerProps = {
-    ref: dropdownTriggerRef,
-  }
-
-  const dropdownMenuProps = {
-    open: dropdownOpen,
-    onOpenChange: setDropdownOpen,
-  }
-
-  const dialogProps = {
-    onOpenChange: handleDialogOpenChange,
-  }
-
-  const dropdownMenuContentProps = {
-    hidden: hasOpenDialog,
-    onCloseAutoFocus: (event: Event) => {
-      if (focusRef.current) {
-        focusRef.current.focus()
-        focusRef.current = null
-        event.preventDefault()
-      }
-    },
-  }
-
-  const dropdownMenuItemProps = {
-    onSelect: (event: Event) => {
-      event.preventDefault()
-      handleDialogItemSelect()
-    },
-  }
-
-  return {
-    dropdownOpen,
-    setDropdownOpen,
-    dropdownTriggerProps,
-    dropdownMenuProps,
-    dropdownMenuContentProps,
-    dialogProps,
-    dropdownMenuItemProps,
-  }
 }

@@ -9,9 +9,10 @@ import { randomBytes } from 'crypto'
 
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
-const supabase = createClient()
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
