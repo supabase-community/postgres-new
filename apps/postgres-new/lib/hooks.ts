@@ -21,6 +21,7 @@ import { embed } from './embed'
 import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { OnToolCall } from './tools'
+import { chunk } from 'lodash'
 
 export function useDebounce<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -337,7 +338,31 @@ export function useOnToolCall(databaseId: string) {
 
           try {
             const file = await loadFile(fileId)
-            await db.exec(sql, { blob: file })
+
+            // PGlite sometimes fails to import large files,
+            // so we'll chunk the CSV into smaller parts and import
+            // them separately
+            const contents = await file.text()
+            const lines = contents.trim().split('\n')
+
+            // Currently the model always thinks there's a header row
+            // TODO: find a prompt that will get the model to import CSVs without a header
+            const isExpectingHeader = true
+            const headerLine = isExpectingHeader ? lines[0] : undefined
+            const recordLines = isExpectingHeader ? lines.slice(1) : lines
+
+            const chunks = chunk(recordLines, 20)
+
+            await db.transaction(async (tx) => {
+              for (let i = 0; i < chunks.length; i++) {
+                const chunkLines = chunks[i]
+                const allLines = isExpectingHeader ? [headerLine, ...chunkLines] : chunkLines
+                const contents = allLines.join('\n')
+                const chunkFile = new File([contents], file.name, { type: file.type })
+
+                await tx.exec(sql, { blob: chunkFile })
+              }
+            })
             await refetchTables()
 
             return {
