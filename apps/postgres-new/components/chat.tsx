@@ -73,6 +73,28 @@ export default function Chat() {
 
   const sendCsv = useCallback(
     async (file: File) => {
+      if (file.type !== 'text/csv') {
+        // Add an artificial tool call requesting the CSV
+        // with an error indicating the file wasn't a CSV
+        appendMessage({
+          role: 'assistant',
+          content: '',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: generateId(),
+              toolName: 'requestCsv',
+              args: {},
+              result: {
+                success: false,
+                error: `The file has type '${file.type}'. Let the user know that only CSV imports are currently supported.`,
+              },
+            },
+          ],
+        })
+        return
+      }
+
       const fileId = generateId()
 
       await saveFile(fileId, file)
@@ -120,7 +142,7 @@ export default function Chat() {
 
       const [file] = files
 
-      if (file && file.type === 'text/csv') {
+      if (file) {
         await sendCsv(file)
       }
     },
@@ -402,7 +424,7 @@ export default function Chat() {
                 const changeEvent = event as unknown as ChangeEvent<HTMLInputElement>
                 const [file] = Array.from(changeEvent.target?.files ?? [])
 
-                if (file && file.type === 'text/csv') {
+                if (file) {
                   await sendCsv(file)
                 }
 

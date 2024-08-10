@@ -41,6 +41,9 @@ export async function POST(req: Request) {
       When querying data, limit to 5 by default.
 
       When performing FTS, always use 'simple' (languages aren't available).
+
+      When importing CSVs try to solve the problem yourself (eg. use a generic text column, then refine)
+      vs. asking the user to change the CSV.
       
       You also know math. All math equations and expressions must be written in KaTex and must be wrapped in double dollar \`$$\`:
         - Inline: $$\\sqrt{26}$$
