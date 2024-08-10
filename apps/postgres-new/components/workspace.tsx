@@ -7,7 +7,7 @@ import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
-import { ensureMessageId } from '~/lib/util'
+import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
@@ -48,6 +48,7 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
 
   const {
     messages,
+    setMessages,
     append,
     stop: stopReply,
   } = useChat({
@@ -84,11 +85,15 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
 
   const appendMessage = useCallback(
     async (message: Message | CreateMessage) => {
+      setMessages((messages) => {
+        const isModified = ensureToolResult(messages)
+        return isModified ? [...messages] : messages
+      })
       ensureMessageId(message)
       append(message)
       saveMessage({ message })
     },
-    [saveMessage, append]
+    [setMessages, saveMessage, append]
   )
 
   const isConversationStarted =
