@@ -73,7 +73,10 @@ export default function TablesGraph({
 
         // `fitView` needs to happen during next event tick
         setTimeout(() => fitView(isFirstLoad ? 0 : 500), 0)
-        setIsFirstLoad(false)
+
+        if (tables.length > 0) {
+          setIsFirstLoad(false)
+        }
       })
     }
   }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
