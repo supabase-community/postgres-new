@@ -26,13 +26,15 @@ export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
     return null
   }
 
-  if (!toolInvocation.result.success) {
+  const { result } = toolInvocation
+
+  if (!result.success) {
     return (
       <CodeAccordion
         title="Error executing SQL"
         language="sql"
         code={formattedSql}
-        error={toolInvocation.result.error}
+        error={result.error}
       />
     )
   }
