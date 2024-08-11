@@ -68,17 +68,50 @@ export default function Page() {
     <Workspace
       databaseId={nextDatabaseId}
       visibility="local"
-      onStart={async () => {
+      onMessage={async () => {
         // Make the DB no longer hidden
         await updateDatabase({ id: nextDatabaseId, name: null, isHidden: false })
-
-        // Navigate to this DB's path
-        router.push(`/db/${nextDatabaseId}`)
 
         // Pre-load the next DB
         const nextId = uniqueId()
         localStorage.setItem('next-db-id', JSON.stringify(nextId))
         preloadDb(nextId)
+      }}
+      onReply={async (message, append) => {
+        if (!dbManager) {
+          throw new Error('dbManager is not available')
+        }
+
+        const messages = await dbManager.getMessages(nextDatabaseId)
+        const isFirstReplyComplete =
+          !messages.some((message) => message.role === 'assistant' && !message.toolInvocations) &&
+          message.role === 'assistant' &&
+          !message.toolInvocations
+
+        // The model might run multiple tool calls before ending with a message, so
+        // we only want to redirect after all of these back-to-back calls finish
+        if (isFirstReplyComplete) {
+          router.push(`/db/${nextDatabaseId}`)
+
+          append({
+            role: 'user',
+            content: 'Name this conversation. No need to reply.',
+            data: {
+              automated: true,
+            },
+          })
+        }
+      }}
+      onCancelReply={(append) => {
+        router.push(`/db/${nextDatabaseId}`)
+
+        append({
+          role: 'user',
+          content: 'Name this conversation. No need to reply.',
+          data: {
+            automated: true,
+          },
+        })
       }}
     />
   )
