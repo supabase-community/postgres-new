@@ -302,7 +302,7 @@ export default function Chat() {
             {user ? (
               <m.h3
                 layout
-                className="text-2xl font-light"
+                className="text-2xl font-light text-center"
                 variants={{
                   hidden: { opacity: 0, y: 10 },
                   show: { opacity: 1, y: 0 },

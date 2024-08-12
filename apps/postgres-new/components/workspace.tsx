@@ -115,7 +115,7 @@ export default function Workspace({
         visibility,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+      <div className="w-full h-full hidden lg:flex flex-col lg:flex-row gap-8">
         <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
           <Chat />
         </IDE>
@@ -124,6 +124,9 @@ export default function Workspace({
             <Chat />
           </div>
         )}
+      </div>
+      <div className="w-full h-full flex lg:hidden justify-center items-center p-6 text-center">
+        Please connect from a laptop or desktop to use postgres.new.
       </div>
     </WorkspaceContext.Provider>
   )
