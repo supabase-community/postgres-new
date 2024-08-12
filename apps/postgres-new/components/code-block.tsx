@@ -6,10 +6,10 @@
  * TODO: Redesign this component
  */
 
-import { useTheme } from 'next-themes'
-import { Children, ReactNode, useState } from 'react'
-import { Light as SyntaxHighlighter, SyntaxHighlighterProps } from 'react-syntax-highlighter'
 import { Copy } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { Children, type ReactNode, useState } from 'react'
+import { Light as SyntaxHighlighter, type SyntaxHighlighterProps } from 'react-syntax-highlighter'
 
 import curl from 'highlightjs-curl'
 import bash from 'react-syntax-highlighter/dist/cjs/languages/hljs/bash'

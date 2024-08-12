@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogPortal } from '@radix-ui/react-dialog'
 import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
@@ -17,13 +18,14 @@ import {
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import React from 'react'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { Database } from '~/lib/db'
+import type { Database } from '~/lib/db'
 import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
@@ -36,12 +38,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { DialogPortal } from '@radix-ui/react-dialog'
-import React from 'react'
 
 export default function Sidebar() {
   const { user, signOut, focusRef } = useApp()
-  let { id: currentDatabaseId } = useParams<{ id: string }>()
+  const { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
   const [showSidebar, setShowSidebar] = useState(true)
