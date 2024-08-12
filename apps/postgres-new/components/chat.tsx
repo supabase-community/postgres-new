@@ -73,7 +73,16 @@ export default function Chat() {
 
   const sendCsv = useCallback(
     async (file: File) => {
-      if (file.type !== 'text/csv') {
+
+      // List of acceptable MIME types for CSV files
+      const validCsvMimeTypes = [
+        'text/csv', 
+        'application/vnd.ms-excel', 
+        'application/csv',
+        'text/plain' 
+      ];
+
+      if (!validCsvMimeTypes.includes(file.type)) {
         // Add an artificial tool call requesting the CSV
         // with an error indicating the file wasn't a CSV
         appendMessage({
