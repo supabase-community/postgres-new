@@ -188,6 +188,7 @@ const server = net.createServer((socket) => {
           vector,
         },
       })
+      await db.waitReady
       const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
       if (rows.length === 0) {
         await db.exec(`
@@ -203,6 +204,7 @@ const server = net.createServer((socket) => {
           vector,
         },
       })
+      await db.waitReady
     },
     async onStartup() {
       if (!db) {
@@ -237,7 +239,7 @@ const server = net.createServer((socket) => {
     },
   })
 
-  socket.on('end', async () => {
+  socket.on('close', async () => {
     console.log('Client disconnected')
     await db?.close()
   })
