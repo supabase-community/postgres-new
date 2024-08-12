@@ -24,6 +24,34 @@ export function ensureMessageId(message: Message | CreateMessage): asserts messa
 }
 
 /**
+ * Ensures that all tool invocations have a result before submitting,
+ * otherwise the LLM provider will return an error.
+ */
+export function ensureToolResult(messages: Message[]) {
+  let modified = false
+
+  for (const message of messages) {
+    if (!message.toolInvocations) {
+      continue
+    }
+
+    for (const toolInvocation of message.toolInvocations) {
+      if (!('result' in toolInvocation)) {
+        Object.assign(toolInvocation, {
+          result: {
+            success: false,
+            error: 'Failed to complete',
+          },
+        })
+        modified = true
+      }
+    }
+  }
+
+  return modified
+}
+
+/**
  * Checks if the message is a user message sent by the
  * application instead of the user.
  *

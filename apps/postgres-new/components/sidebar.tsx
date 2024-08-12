@@ -273,7 +273,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
             <AnimatePresence initial={false}>
               {!isOnDeployWaitlist ? (
                 <button
-                  className="px-4 py-3 bg-black text-white rounded-md"
+                  className="px-4 py-3 bg-foreground text-background rounded-md"
                   onClick={async () => {
                     await joinDeployWaitlist()
                   }}
@@ -399,7 +399,11 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     downloadFile(file)
                   }}
                 >
-                  <Download size={16} strokeWidth={2} className="flex-shrink-0" />
+                  <Download
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
 
                   <span>Download</span>
                 </DropdownMenuItem>
@@ -418,7 +422,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     strokeWidth={2}
                     className="flex-shrink-0 text-muted-foreground"
                   />
-                  <span>Publish</span>
+                  <span>Deploy</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
