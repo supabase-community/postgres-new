@@ -1,14 +1,13 @@
 'use client'
 
-import { CreateMessage, Message, useChat } from 'ai/react'
+import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
-import { ensureMessageId } from '~/lib/util'
-import { useApp } from './app-provider'
+import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
 
@@ -27,13 +26,31 @@ export type WorkspaceProps = {
   visibility: Visibility
 
   /**
-   * Callback called when the conversation has started.
+   * Callback called after the user sends a message.
    */
-  onStart?: () => void | Promise<void>
+  onMessage?: (
+    message: Message | CreateMessage,
+    append: UseChatHelpers['append']
+  ) => void | Promise<void>
+
+  /**
+   * Callback called after the LLM finishes a reply.
+   */
+  onReply?: (message: Message, append: UseChatHelpers['append']) => void | Promise<void>
+
+  /**
+   * Callback called when the user cancels the reply.
+   */
+  onCancelReply?: (append: UseChatHelpers['append']) => void | Promise<void>
 }
 
-export default function Workspace({ databaseId, visibility, onStart }: WorkspaceProps) {
-  const { dbManager } = useApp()
+export default function Workspace({
+  databaseId,
+  visibility,
+  onMessage,
+  onReply,
+  onCancelReply,
+}: WorkspaceProps) {
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -46,50 +63,41 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
 
   const initialMessages = useMemo(() => (tables ? getInitialMessages(tables) : undefined), [tables])
 
-  const {
-    messages,
-    append,
-    stop: stopReply,
-  } = useChat({
+  const { messages, setMessages, append, stop } = useChat({
     id: databaseId,
     api: '/api/chat',
     maxToolRoundtrips: 10,
+    keepLastMessageOnError: true,
     onToolCall: onToolCall as any, // our `OnToolCall` type is more specific than `ai` SDK's
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {
-      if (!dbManager) {
-        throw new Error('dbManager is not available')
-      }
-
+      // Order is important here
+      await onReply?.(message, append)
       await saveMessage({ message })
-
-      const database = await dbManager.getDatabase(databaseId)
-      const isStartOfConversation = database.isHidden && !message.toolInvocations
-
-      if (isStartOfConversation) {
-        await onStart?.()
-
-        // Intentionally using `append` vs `appendMessage` so that this message isn't persisted in the meta DB
-        await append({
-          role: 'user',
-          content: 'Name this conversation. No need to reply.',
-          data: {
-            automated: true,
-          },
-        })
-      }
     },
   })
 
   const appendMessage = useCallback(
     async (message: Message | CreateMessage) => {
+      setMessages((messages) => {
+        const isModified = ensureToolResult(messages)
+        return isModified ? [...messages] : messages
+      })
       ensureMessageId(message)
+
+      // Intentionally don't await so that framer animations aren't affected
       append(message)
       saveMessage({ message })
+      onMessage?.(message, append)
     },
-    [saveMessage, append]
+    [onMessage, setMessages, saveMessage, append]
   )
+
+  const stopReply = useCallback(async () => {
+    stop()
+    onCancelReply?.(append)
+  }, [onCancelReply, stop, append])
 
   const isConversationStarted =
     initialMessages !== undefined && messages.length > initialMessages.length
@@ -107,7 +115,7 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
         visibility,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+      <div className="w-full h-full hidden lg:flex flex-col lg:flex-row gap-8">
         <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
           <Chat />
         </IDE>
@@ -116,6 +124,9 @@ export default function Workspace({ databaseId, visibility, onStart }: Workspace
             <Chat />
           </div>
         )}
+      </div>
+      <div className="w-full h-full flex lg:hidden justify-center items-center p-6 text-center">
+        Please connect from a laptop or desktop to use postgres.new.
       </div>
     </WorkspaceContext.Provider>
   )
@@ -129,7 +140,7 @@ export type WorkspaceContextValues = {
   messages: Message[]
   visibility: Visibility
   appendMessage(message: Message | CreateMessage): Promise<void>
-  stopReply(): void
+  stopReply(): Promise<void>
 }
 
 export const WorkspaceContext = createContext<WorkspaceContextValues | undefined>(undefined)
