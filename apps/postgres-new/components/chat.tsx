@@ -48,7 +48,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef } = useApp()
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -323,8 +323,16 @@ export default function Chat() {
                 animate="show"
               >
                 <SignInButton />
-                <p className="font-lighter  text-center">
+                <p className="font-lighter text-center">
                   To prevent abuse we ask you to sign in before chatting with AI.
+                </p>
+                <p
+                  className="underline cursor-pointer text-primary/50"
+                  onClick={() => {
+                    setIsSignInDialogOpen(true)
+                  }}
+                >
+                  Why do I need to sign in?
                 </p>
               </m.div>
             )}
@@ -371,6 +379,14 @@ export default function Chat() {
               <SignInButton />
               <p className="font-lighter text-center text-sm">
                 To prevent abuse we ask you to sign in before chatting with AI.
+              </p>
+              <p
+                className="underline cursor-pointer text-sm text-primary/50"
+                onClick={() => {
+                  setIsSignInDialogOpen(true)
+                }}
+              >
+                Why do I need to sign in?
               </p>
             </m.div>
           )}
