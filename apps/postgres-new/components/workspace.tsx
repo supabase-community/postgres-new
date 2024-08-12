@@ -125,8 +125,33 @@ export default function Workspace({
           </div>
         )}
       </div>
-      <div className="w-full h-full flex lg:hidden justify-center items-center p-6 text-center">
-        Please connect from a laptop or desktop to use postgres.new.
+      <div className="w-full lg:hidden justify-center items-center p-6 ">
+        <div className="grid gap-6 mt-4">
+          <h2 className="text-lg font-bold">Mobile Support Coming Soon</h2>
+          <p>
+            <a className="underline" href="https://postgres.new">
+              postgres.new
+            </a>{' '}
+            is in early Alpha and in active development. We are working on mobile support for{' '}
+            <a className="underline" href="https://github.com/electric-sql/pglite">
+              PGlite
+            </a>{' '}
+            right now.
+          </p>
+          <p>
+            In the meantime, please check out the video below or visit from a laptop or desktop.
+          </p>
+          <div className="video-container">
+            <iframe
+              className="w-full min-h-[300px]"
+              src="https://www.youtube-nocookie.com/embed/ooWaPVvljlU"
+              title="I gave AI full control over my database (postgres.new)"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+          <p>We appreciate your patience and interest! Stay tuned for updates!</p>
+        </div>
       </div>
     </WorkspaceContext.Provider>
   )
