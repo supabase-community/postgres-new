@@ -200,6 +200,7 @@ export default function Sidebar() {
                 <p>Toggle theme</p>
               </TooltipContent>
             </Tooltip>
+            {user && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <m.div layout="position" layoutId="sign-out-button">
@@ -218,6 +219,7 @@ export default function Sidebar() {
                 <p>Sign out</p>
               </TooltipContent>
             </Tooltip>
+            )}
           </div>
         </div>
       )}
