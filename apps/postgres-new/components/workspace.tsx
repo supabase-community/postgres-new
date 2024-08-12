@@ -132,7 +132,11 @@ export default function Workspace({
             <a className="underline" href="https://postgres.new">
               postgres.new
             </a>{' '}
-            is in early Alpha and in active development. We are working on mobile support for{' '}
+            is in early Alpha and is{' '}
+            <a className="underline" href="https://supabase.com/blog/postgres-new">
+              actively being developed
+            </a>
+            . We are working on mobile support for{' '}
             <a className="underline" href="https://github.com/electric-sql/pglite">
               PGlite
             </a>{' '}
