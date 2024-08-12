@@ -14,7 +14,7 @@
     "@aws-sdk/client-s3": "^3.620.1",
     "@aws-sdk/lib-storage": "^3.620.1",
     "@dagrejs/dagre": "^1.1.2",
-    "@electric-sql/pglite": "0.2.0-alpha.9",
+    "@electric-sql/pglite": "0.2.0",
     "@gregnr/postgres-meta": "^0.82.0-dev.2",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-accordion": "^1.2.0",

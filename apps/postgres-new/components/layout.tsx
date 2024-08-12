@@ -8,7 +8,7 @@ import { PropsWithChildren } from 'react'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { useApp } from './app-provider'
-import Sidebar from './sidebar'
+import Sidebar from './sidebar/sidebar'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
