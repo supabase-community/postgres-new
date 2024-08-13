@@ -1,17 +1,12 @@
-import { useApp } from '../app-provider'
-import SignInButton from '../sign-in-button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
+import { useApp } from '~/components/app-provider'
+import SignInButton from '~/components/sign-in-button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 
 export function SignInDialog() {
   const { isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
 
   return (
-    <Dialog
-      open={isSignInDialogOpen}
-      onOpenChange={(open) => {
-        setIsSignInDialogOpen(open)
-      }}
-    >
+    <Dialog open={isSignInDialogOpen} onOpenChange={setIsSignInDialogOpen}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Sign in to create a database</DialogTitle>

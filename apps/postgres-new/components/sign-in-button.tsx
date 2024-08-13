@@ -1,8 +1,9 @@
 import GitHubIcon from '~/assets/github-icon'
-import { useApp } from './app-provider'
+import { useApp } from '~/components/app-provider'
 
 export default function SignInButton() {
   const { signIn } = useApp()
+
   return (
     <button
       className="bg-foreground text-background text-md px-4 py-2 rounded-sm flex gap-3 items-center"

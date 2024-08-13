@@ -6,20 +6,17 @@ import React from 'react'
 import { DatabaseList } from './database-list/database-list'
 import { CollapsedSidebarHeader, SidebarHeader } from './sidebar-header'
 import { CollapsedSidebparFooter, SidebarFooter } from './sidebar-footer/sidebar-footer'
+import { SignInDialog } from './sign-in-dialog'
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  if (isCollapsed) {
-    return (
-      <div className="flex flex-col pl-4 py-4 justify-between">
-        <CollapsedSidebarHeader onExpand={() => setIsCollapsed(false)} />
-        <CollapsedSidebparFooter />
-      </div>
-    )
-  }
-
-  return (
+  const sidebar = isCollapsed ? (
+    <div className="flex flex-col pl-4 py-4 justify-between">
+      <CollapsedSidebarHeader onExpand={() => setIsCollapsed(false)} />
+      <CollapsedSidebparFooter />
+    </div>
+  ) : (
     <AnimatePresence initial={false} mode="popLayout">
       <m.div
         className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card"
@@ -37,5 +34,12 @@ export default function Sidebar() {
         <SidebarFooter />
       </m.div>
     </AnimatePresence>
+  )
+
+  return (
+    <>
+      <SignInDialog />
+      {sidebar}
+    </>
   )
 }
