@@ -16,7 +16,7 @@ export function useDatabasesQuery(): { isLoading: boolean; databases: Database[]
       return {
         ...localDb,
         deployment: {
-          createdAt: new Date(matchingDeployedDb.created_at),
+          createdAt: new Date(matchingDeployedDb.deployed_at),
           id: matchingDeployedDb.id,
           url: `postgres://readonly_postgres:<your-password>@${localDb.id}.${process.env.NEXT_PUBLIC_WILDCARD_DOMAIN}/postgres`,
         },
@@ -34,9 +34,8 @@ export function useDatabasesQuery(): { isLoading: boolean; databases: Database[]
     .map((deployedDb) => ({
       id: deployedDb.database_id,
       name: deployedDb.name,
-      // TODO: persist local database's createdAt field?
       createdAt: new Date(deployedDb.created_at),
-      deployedAt: new Date(deployedDb.created_at),
+      deployedAt: new Date(deployedDb.deployed_at),
       isHidden: false,
     }))
 

@@ -27,15 +27,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     )
   }
 
-  if (!req.body) {
+  const data = await req.formData()
+
+  const dump = data.get('dump') as File | null
+  const name = data.get('name') as string | null
+  const createdAt = data.get('created_at') as string | null
+  console.log({ name, createdAt })
+  if (!dump || !name || !createdAt) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Missing request body',
+        error: 'Missing fields',
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     )
   }
 
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const key = `dbs/${databaseId}.tar.gz`
 
   const gzip = createGzip()
-  const body = Readable.from(streamToAsyncIterable(req.body))
+  const body = Readable.from(streamToAsyncIterable(dump.stream()))
 
   const upload = new Upload({
     client: s3Client,
@@ -58,13 +62,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const password = generatePostgresPassword()
 
-  await supabase.from('deployed_databases').insert({
-    auth_method: 'scram-sha-256',
-    auth_data: createScramSha256Data(password),
-    database_id: databaseId,
-    // TODO: send the database name and createdAt from the frontend
-    name: 'A Database',
-  })
+  const { data: existingDeployedDatabase } = await supabase
+    .from('deployed_databases')
+    .select('id')
+    .eq('database_id', databaseId)
+    .maybeSingle()
+
+  if (existingDeployedDatabase) {
+    await supabase.from('deployed_databases').update({
+      deployed_at: 'now()',
+    })
+  } else {
+    await supabase.from('deployed_databases').insert({
+      database_id: databaseId,
+      name,
+      created_at: createdAt,
+      auth_method: 'scram-sha-256',
+      auth_data: createScramSha256Data(password),
+    })
+  }
 
   return NextResponse.json({
     success: true,

@@ -10,6 +10,10 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
+import {
+  DeployedDatabaseCreateResult,
+  useDeployedDatabaseCreateMutation,
+} from '~/data/deployed-databases/deployed-database-create-mutation'
 import { LocalDatabase } from '~/lib/db'
 
 export type DatabaseItemDeployActionProps = {
@@ -17,14 +21,8 @@ export type DatabaseItemDeployActionProps = {
   onDialogOpenChange: (isOpen: boolean) => void
 }
 
-type DeployResult = {
-  username: string
-  password: string
-  serverName: string
-}
-
 export function DatabaseItemDeployAction(props: DatabaseItemDeployActionProps) {
-  const [deployResult, setDeployResult] = useState<DeployResult | null>(null)
+  const [deployResult, setDeployResult] = useState<DeployedDatabaseCreateResult | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   return (
@@ -50,41 +48,24 @@ export function DatabaseItemDeployAction(props: DatabaseItemDeployActionProps) {
 
 type DatabaseItemDeployActionMenuItemProps = {
   database: LocalDatabase
-  onDeploySuccess: (data: DeployResult) => void
+  onDeploySuccess: (data: DeployedDatabaseCreateResult) => void
 }
 
 function DatabaseItemDeployActionMenuItem(props: DatabaseItemDeployActionMenuItemProps) {
-  const { dbManager, user } = useApp()
-  const [isDeploying, setIsDeploying] = useState(false)
+  const { user } = useApp()
+  const { mutateAsync: deployDatabase, isPending: isDeploying } =
+    useDeployedDatabaseCreateMutation()
 
   async function handleMenuItemSelect(e: Event) {
     e.preventDefault()
 
-    setIsDeploying(true)
-
-    if (!dbManager) {
-      throw new Error('No dbManager')
-    }
-
-    const db = await dbManager.getDbInstance(props.database.id)
-    const dump = await db.dumpDataDir()
-    const response = await fetch(`/api/databases/${props.database.id}/upload`, {
-      method: 'POST',
-      body: dump,
+    const deploymentResult = await deployDatabase({
+      databaseId: props.database.id,
+      createdAt: props.database.createdAt,
+      name: props.database.name,
     })
 
-    setIsDeploying(false)
-
-    type Result = { success: true; data: DeployResult } | { success: false; error: string }
-
-    const result: Result = await response.json()
-
-    if (result.success) {
-      props.onDeploySuccess(result.data)
-    } else {
-      // TODO: use a toast for errors
-      console.error(result.error)
-    }
+    props.onDeploySuccess(deploymentResult)
   }
 
   return (
@@ -111,7 +92,7 @@ function DatabaseItemDeployActionMenuItem(props: DatabaseItemDeployActionMenuIte
 type DatabaseItemDeployActionDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-} & DeployResult
+} & DeployedDatabaseCreateResult
 
 function DatabaseItemDeployActionDialog(props: DatabaseItemDeployActionDialogProps) {
   const { username, password, serverName } = props

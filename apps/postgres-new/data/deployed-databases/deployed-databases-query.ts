@@ -4,7 +4,7 @@ import { Database } from '~/utils/supabase/db-types'
 
 type DeployedDatabase = Pick<
   Database['public']['Tables']['deployed_databases']['Row'],
-  'id' | 'database_id' | 'created_at' | 'name'
+  'id' | 'database_id' | 'created_at' | 'name' | 'deployed_at'
 >
 
 export const useDeployedDatabasesQuery = (
@@ -24,7 +24,7 @@ export const useDeployedDatabasesQuery = (
 
       const { data: deployedDatabases, error: deployedDatabasesError } = await supabase
         .from('deployed_databases')
-        .select('id, database_id, name, created_at')
+        .select('id, database_id, name, created_at, deployed_at')
 
       return deployedDatabases ?? []
     },

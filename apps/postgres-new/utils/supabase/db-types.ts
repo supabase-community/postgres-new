@@ -66,6 +66,7 @@ export type Database = {
           auth_method: string
           created_at: string
           database_id: string
+          deployed_at: string
           id: number
           name: string
           user_id: string
@@ -75,6 +76,7 @@ export type Database = {
           auth_method: string
           created_at?: string
           database_id: string
+          deployed_at?: string
           id?: never
           name: string
           user_id?: string
@@ -84,6 +86,7 @@ export type Database = {
           auth_method?: string
           created_at?: string
           database_id?: string
+          deployed_at?: string
           id?: never
           name?: string
           user_id?: string
