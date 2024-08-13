@@ -5,7 +5,7 @@ import { createGzip } from 'zlib'
 import { Readable } from 'stream'
 import { createClient } from '~/utils/supabase/server'
 import { createScramSha256Data } from 'pg-gateway'
-import { randomBytes } from 'crypto'
+import { generateDatabasePassword } from '~/utils/generate-database-password'
 
 const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
@@ -88,11 +88,14 @@ export async function POST(
   let password: string | undefined
 
   if (existingDeployedDatabase) {
-    await supabase.from('deployed_databases').update({
-      deployed_at: 'now()',
-    })
+    await supabase
+      .from('deployed_databases')
+      .update({
+        deployed_at: 'now()',
+      })
+      .eq('database_id', databaseId)
   } else {
-    password = generatePostgresPassword()
+    password = generateDatabasePassword()
     await supabase.from('deployed_databases').insert({
       database_id: databaseId,
       name,
@@ -125,17 +128,4 @@ async function* streamToAsyncIterable(stream: ReadableStream) {
   } finally {
     reader.releaseLock()
   }
-}
-
-function generatePostgresPassword(length: number = 32): string {
-  const validChars =
-    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&()*+,-./:;<=>?@[]^_`{|}~'
-  const bytes = randomBytes(length)
-  let password = ''
-
-  for (let i = 0; i < length; i++) {
-    password += validChars[bytes[i] % validChars.length]
-  }
-
-  return password
 }
