@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { cn } from '~/lib/utils'
 import { DatabaseItemActions } from './database-item-actions/database-item-actions'
 import { CloudIcon } from 'lucide-react'
-import { DatabaseItemDeployedDialog } from './deployed-dialog'
+import { DeployedDatabaseDialog } from './deployed-database-dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { Button } from '~/components/ui/button'
 
@@ -23,7 +23,7 @@ export function DatabaseItem(props: DatabaseItemProps) {
       )}
     >
       {props.database.deployment ? (
-        <DatabaseItemDeployedDialog databaseUrl={props.database.deployment.url}>
+        <DeployedDatabaseDialog database={props.database}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -34,7 +34,7 @@ export function DatabaseItem(props: DatabaseItemProps) {
               <span>Database deployed</span>
             </TooltipContent>
           </Tooltip>
-        </DatabaseItemDeployedDialog>
+        </DeployedDatabaseDialog>
       ) : (
         <div className="w-10 h-10 flex-shrink-0" />
       )}

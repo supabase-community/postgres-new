@@ -118,7 +118,7 @@ function DatabaseItemDeployActionDialog(props: DatabaseItemDeployActionDialogPro
             >
               PGlite
             </a>{' '}
-            instance so that it can be accessed outside the browser using any Postgres client:
+            instance so that it can be accessed outside the browser using any Postgres client.
           </p>
           <DeployedDatabaseFields {...props} />
           {props.password && (

@@ -5,7 +5,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { DeployedDatabaseCreateResult } from '~/data/deployed-databases/deployed-database-create-mutation'
 
-type DeployedDatabaseFieldsProps = DeployedDatabaseCreateResult
+export type DeployedDatabaseFieldsProps = DeployedDatabaseCreateResult
 
 export function DeployedDatabaseFields(props: DeployedDatabaseFieldsProps) {
   const port = '5432'
@@ -49,14 +49,14 @@ function CopyableInput(props: { value: string; disableCopy?: boolean }) {
 
   return (
     <div className="flex flex-1 relative group">
-      <Input readOnly value={props.value} className="flex-grow" />
+      <Input readOnly value={props.value} className="flex-grow text-muted-foreground" />
       {!props.disableCopy && (
         <Button
           variant="outline"
-          className="text-muted-foreground absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6"
           onClick={() => handleCopy(props.value)}
         >
-          <CopyIcon className="h-3 w-3 mr-1" />
+          <CopyIcon className="h-3 w-3 mr-1 text-muted-foreground" />
           {isCopying ? 'Copied' : 'Copy'}
         </Button>
       )}
