@@ -11,7 +11,7 @@ export type SidebarHeaderProps = {
 }
 
 export function SidebarHeader(props: SidebarHeaderProps) {
-  const { focusRef } = useApp()
+  const { focusRef, user, setIsSignInDialogOpen } = useApp()
   const router = useRouter()
 
   return (
@@ -37,8 +37,12 @@ export function SidebarHeader(props: SidebarHeaderProps) {
       <m.div layout="position" layoutId="new-database-button">
         <Button
           onClick={() => {
-            router.push('/')
-            focusRef.current?.focus()
+            if (!user) {
+              setIsSignInDialogOpen(true)
+            } else {
+              router.push('/')
+              focusRef.current?.focus()
+            }
           }}
           className="gap-2"
         >
@@ -55,7 +59,7 @@ export type CollapsedSidebarHeaderProps = {
 }
 
 export function CollapsedSidebarHeader(props: CollapsedSidebarHeaderProps) {
-  const { focusRef } = useApp()
+  const { focusRef, user, setIsSignInDialogOpen } = useApp()
   const router = useRouter()
 
   return (
@@ -84,8 +88,12 @@ export function CollapsedSidebarHeader(props: CollapsedSidebarHeaderProps) {
             <Button
               size={'icon'}
               onClick={() => {
-                router.push('/')
-                focusRef.current?.focus()
+                if (!user) {
+                  setIsSignInDialogOpen(true)
+                } else {
+                  router.push('/')
+                  focusRef.current?.focus()
+                }
               }}
             >
               <PackagePlus size={14} />

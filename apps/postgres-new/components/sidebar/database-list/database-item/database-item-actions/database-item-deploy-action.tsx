@@ -125,7 +125,7 @@ function DatabaseItemDeployActionDialog(props: DatabaseItemDeployActionDialogPro
             <DialogTitle>Your database has been deployed</DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
-          <h2 className="font-medium">What are deployments?</h2>
+          <h2 className="font-bold">What are deployments?</h2>
           <p>
             Your database has been deployed to a serverless PGlite instance so that it can be
             accessed outside the browser using any Postgres client:
