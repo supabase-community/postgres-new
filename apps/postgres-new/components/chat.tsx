@@ -25,6 +25,7 @@ import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
+import { ExpandingTextArea } from './ExpandableTextArea'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -457,12 +458,36 @@ export default function Chat() {
           >
             <Paperclip size={16} strokeWidth={1.3} />
           </Button>
-          <textarea
+
+          <ExpandingTextArea
+            ref={inputRef}
+            autoFocus
+            autoComplete="off"
+            disabled={!user}
+            className="bg-muted/50 border-none"
+            placeholder="Message AI or write SQL"
+            spellCheck={false}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (!(e.target instanceof HTMLTextAreaElement)) {
+                return
+              }
+
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (!isLoading && isSubmitEnabled) {
+                  handleFormSubmit(e)
+                }
+              }
+            }}
+          />
+          {/* <textarea
             ref={inputRef}
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none"
+            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent outline-none"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
@@ -487,7 +512,7 @@ export default function Chat() {
                 }
               }
             }}
-          />
+          /> */}
           {isLoading ? (
             <Button
               className="rounded-full w-8 h-8 p-1.5 my-1 text-neutral-50 bg-neutral-800"
