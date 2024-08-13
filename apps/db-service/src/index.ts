@@ -16,9 +16,7 @@ const dumpDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
 const dbDir = `${dataMount}/dbs`
 
-await mkdir(dumpDir, { recursive: true })
 await mkdir(dbDir, { recursive: true })
-await mkdir(tlsDir, { recursive: true })
 
 const tls: TlsOptions = {
   key: await readFile(`${tlsDir}/key.pem`),
