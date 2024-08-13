@@ -30,6 +30,7 @@ import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
+import SignInButton from './sign-in-button'
 import ThemeDropdown from './theme-dropdown'
 import {
   DropdownMenu,
@@ -40,7 +41,7 @@ import {
 } from './ui/dropdown-menu'
 
 export default function Sidebar() {
-  const { user, signOut, focusRef } = useApp()
+  const { user, signOut, focusRef, isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -48,6 +49,37 @@ export default function Sidebar() {
 
   return (
     <>
+      <Dialog
+        open={isSignInDialogOpen}
+        onOpenChange={(open) => {
+          setIsSignInDialogOpen(open)
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Sign in to create a database</DialogTitle>
+            <div className="py-2 border-b" />
+          </DialogHeader>
+          <h2 className="font-bold">Why do I need to sign in?</h2>
+          <p>
+            Even though your Postgres databases run{' '}
+            <a
+              className="underline"
+              href="https://pglite.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              directly in the browser
+            </a>
+            , we still need to connect to an API that runs the large language model (required for
+            all database interactions).
+          </p>
+          <p>We ask you to sign in to prevent API abuse.</p>
+          <div className="flex justify-center items-center my-3">
+            <SignInButton />
+          </div>
+        </DialogContent>
+      </Dialog>
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
@@ -83,8 +115,12 @@ export default function Sidebar() {
               <m.div layout="position" layoutId="new-database-button">
                 <Button
                   onClick={() => {
-                    router.push('/')
-                    focusRef.current?.focus()
+                    if (!user) {
+                      setIsSignInDialogOpen(true)
+                    } else {
+                      router.push('/')
+                      focusRef.current?.focus()
+                    }
                   }}
                   className="gap-2"
                 >
@@ -176,8 +212,12 @@ export default function Sidebar() {
                   <Button
                     size={'icon'}
                     onClick={() => {
-                      router.push('/')
-                      focusRef.current?.focus()
+                      if (!user) {
+                        setIsSignInDialogOpen(true)
+                      } else {
+                        router.push('/')
+                        focusRef.current?.focus()
+                      }
                     }}
                   >
                     <PackagePlus size={14} />
@@ -200,24 +240,26 @@ export default function Sidebar() {
                 <p>Toggle theme</p>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="sign-out-button">
-                  <Button
-                    size={'icon'}
-                    variant="secondary"
-                    onClick={async () => {
-                      await signOut()
-                    }}
-                  >
-                    <LogOut size={16} strokeWidth={2} />
-                  </Button>
-                </m.div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Sign out</p>
-              </TooltipContent>
-            </Tooltip>
+            {user && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <m.div layout="position" layoutId="sign-out-button">
+                    <Button
+                      size={'icon'}
+                      variant="secondary"
+                      onClick={async () => {
+                        await signOut()
+                      }}
+                    >
+                      <LogOut size={16} strokeWidth={2} />
+                    </Button>
+                  </m.div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Sign out</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       )}
@@ -256,7 +298,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
             <DialogTitle>Deployments are in Private Alpha</DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
-          <h2 className="font-medium">What are deployments?</h2>
+          <h2 className="font-bold">What are deployments?</h2>
           <p>
             Deploy your database to a serverless PGlite instance so that it can be accessed outside
             the browser using any Postgres client:

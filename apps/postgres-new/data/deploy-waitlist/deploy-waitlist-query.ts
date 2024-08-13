@@ -22,8 +22,6 @@ export const useIsOnDeployWaitlistQuery = (
         .eq('user_id', user.id)
         .maybeSingle()
 
-      console.log({ waitlistRecord })
-
       if (waitlistError) {
         throw waitlistError
       }
