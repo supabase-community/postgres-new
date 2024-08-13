@@ -34,14 +34,7 @@ export function DatabaseItemActions(props: DatabaseItemActionsProps) {
   return (
     <DropdownMenu modal={false} open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger className="group/trigger outline-none" asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-          }}
-        >
+        <Button variant="ghost" size="icon">
           <MoreVertical
             size={16}
             className={cn(
