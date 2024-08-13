@@ -1,12 +1,20 @@
-import { useApp } from '~/components/app-provider'
 import SignInButton from '~/components/sign-in-button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '~/components/ui/dialog'
 
-export function SignInDialog() {
-  const { isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
+export type SignInDialogProps = {
+  children: React.ReactNode
+}
 
+export function SignInDialog(props: SignInDialogProps) {
   return (
-    <Dialog open={isSignInDialogOpen} onOpenChange={setIsSignInDialogOpen}>
+    <Dialog>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Sign in to create a database</DialogTitle>

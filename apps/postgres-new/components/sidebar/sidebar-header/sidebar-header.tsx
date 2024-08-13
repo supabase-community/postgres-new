@@ -1,17 +1,17 @@
 import { m } from 'framer-motion'
 import { ArrowLeftToLine, ArrowRightToLine, PackagePlus } from 'lucide-react'
-import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import { useApp } from '../app-provider'
+import { useApp } from '~/components/app-provider'
 import { useRouter } from 'next/navigation'
+import { SignInDialog } from './sign-in-dialog'
 
 export type SidebarHeaderProps = {
   onCollapse: () => void
 }
 
 export function SidebarHeader(props: SidebarHeaderProps) {
-  const { focusRef, user, setIsSignInDialogOpen } = useApp()
+  const { focusRef, user } = useApp()
   const router = useRouter()
 
   return (
@@ -35,20 +35,21 @@ export function SidebarHeader(props: SidebarHeaderProps) {
         </TooltipContent>
       </Tooltip>
       <m.div layout="position" layoutId="new-database-button">
-        <Button
-          onClick={() => {
-            if (!user) {
-              setIsSignInDialogOpen(true)
-            } else {
-              router.push('/')
-              focusRef.current?.focus()
-            }
-          }}
-          className="gap-2"
-        >
-          <PackagePlus size={14} />
-          New database
-        </Button>
+        <SignInDialog>
+          <Button
+            onClick={(e) => {
+              if (user) {
+                e.preventDefault()
+                router.push('/')
+                focusRef.current?.focus()
+              }
+            }}
+            className="gap-2"
+          >
+            <PackagePlus size={14} />
+            New database
+          </Button>
+        </SignInDialog>
       </m.div>
     </div>
   )
@@ -59,7 +60,7 @@ export type CollapsedSidebarHeaderProps = {
 }
 
 export function CollapsedSidebarHeader(props: CollapsedSidebarHeaderProps) {
-  const { focusRef, user, setIsSignInDialogOpen } = useApp()
+  const { focusRef, user } = useApp()
   const router = useRouter()
 
   return (
@@ -85,19 +86,20 @@ export function CollapsedSidebarHeader(props: CollapsedSidebarHeaderProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <m.div layout="position" layoutId="new-database-button">
-            <Button
-              size={'icon'}
-              onClick={() => {
-                if (!user) {
-                  setIsSignInDialogOpen(true)
-                } else {
-                  router.push('/')
-                  focusRef.current?.focus()
-                }
-              }}
-            >
-              <PackagePlus size={14} />
-            </Button>
+            <SignInDialog>
+              <Button
+                size={'icon'}
+                onClick={(e) => {
+                  if (user) {
+                    e.preventDefault()
+                    router.push('/')
+                    focusRef.current?.focus()
+                  }
+                }}
+              >
+                <PackagePlus size={14} />
+              </Button>
+            </SignInDialog>
           </m.div>
         </TooltipTrigger>
         <TooltipContent side="right">
