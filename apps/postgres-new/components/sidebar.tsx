@@ -39,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import Workspace from '~/components/workspace'
 
 export default function Sidebar() {
   const { user, signOut, focusRef, isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
@@ -48,7 +49,7 @@ export default function Sidebar() {
   const [showSidebar, setShowSidebar] = useState(true)
 
   return (
-    <>
+    <Workspace databaseId="someDatabaseId" visibility="local">
       <Dialog
         open={isSignInDialogOpen}
         onOpenChange={(open) => {
@@ -263,7 +264,7 @@ export default function Sidebar() {
           </div>
         </div>
       )}
-    </>
+    </Workspace>
   )
 }
 
