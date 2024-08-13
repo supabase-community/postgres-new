@@ -12,6 +12,7 @@ import { LocalDatabase } from '~/lib/db'
 import { DatabaseItemDownloadAction } from './database-item-download-action'
 import { DatabaseItemDeployAction } from './database-item-deploy-action'
 import { DatabaseItemDeleteAction } from './database-item-delete-action'
+import { Button } from '~/components/ui/button'
 
 export type DatabaseItemActionsProps = {
   database: LocalDatabase
@@ -33,16 +34,25 @@ export function DatabaseItemActions(props: DatabaseItemActionsProps) {
   return (
     <DropdownMenu modal={false} open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger className="group/trigger outline-none" asChild>
-        <MoreVertical
-          size={16}
-          className={cn(
-            props.isActive
-              ? 'text-muted-foreground'
-              : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
-            'group-data-[state=open]/trigger:text-foreground',
-            'transition'
-          )}
-        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
+          <MoreVertical
+            size={16}
+            className={cn(
+              props.isActive
+                ? 'text-muted-foreground'
+                : 'text-transparent group-hover:text-muted-foreground focus-visible:text-muted-foreground group-focus/trigger:text-muted-foreground',
+              'group-data-[state=open]/trigger:text-foreground',
+              'transition'
+            )}
+          />
+        </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent side="right" align="start" hidden={hasOpenDialog}>
