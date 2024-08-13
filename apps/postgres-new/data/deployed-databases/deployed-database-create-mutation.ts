@@ -2,6 +2,7 @@ import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react
 import { createClient } from '~/utils/supabase/client'
 import { getDeployedDatabasesQueryKey } from './deployed-databases-query'
 import { useApp } from '~/components/app-provider'
+import type { DatabaseUploadResponse } from '~/app/api/databases/[id]/upload/route'
 
 export type DeployedDatabaseCreateVariables = {
   databaseId: string
@@ -9,11 +10,10 @@ export type DeployedDatabaseCreateVariables = {
   createdAt: Date
 }
 
-export type DeployedDatabaseCreateResult = {
-  username: string
-  password: string
-  serverName: string
-}
+export type DeployedDatabaseCreateResult = Extract<
+  DatabaseUploadResponse,
+  { success: true }
+>['data']
 
 export const useDeployedDatabaseCreateMutation = ({
   onSuccess,
@@ -45,9 +45,7 @@ export const useDeployedDatabaseCreateMutation = ({
         body: formData,
       })
 
-      const result = (await response.json()) as
-        | { success: true; data: DeployedDatabaseCreateResult }
-        | { success: false; error: string }
+      const result = (await response.json()) as DatabaseUploadResponse
 
       if (!result.success) {
         throw new Error(result.error)

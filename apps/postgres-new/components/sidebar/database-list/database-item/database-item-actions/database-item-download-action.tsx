@@ -25,8 +25,7 @@ export function DatabaseItemDownloadAction(props: DatabaseItemDownloadActionProp
 
   return (
     <DropdownMenuItem className="gap-3" onSelect={handleMenuItemSelect}>
-      <Download size={16} strokeWidth={2} className="flex-shrink-0" />
-
+      <Download size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
       <span>Download</span>
     </DropdownMenuItem>
   )

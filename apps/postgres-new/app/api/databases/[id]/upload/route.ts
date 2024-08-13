@@ -10,7 +10,26 @@ import { randomBytes } from 'crypto'
 const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export type DatabaseUploadResponse =
+  | {
+      success: true
+      data: {
+        username: string
+        password?: string
+        host: string
+        port: number
+        databaseName: string
+      }
+    }
+  | {
+      success: false
+      error: string
+    }
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse<DatabaseUploadResponse>> {
   const supabase = createClient()
 
   const {
@@ -60,19 +79,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   await upload.done()
 
-  const password = generatePostgresPassword()
-
   const { data: existingDeployedDatabase } = await supabase
     .from('deployed_databases')
     .select('id')
     .eq('database_id', databaseId)
     .maybeSingle()
 
+  let password: string | undefined
+
   if (existingDeployedDatabase) {
     await supabase.from('deployed_databases').update({
       deployed_at: 'now()',
     })
   } else {
+    password = generatePostgresPassword()
     await supabase.from('deployed_databases').insert({
       database_id: databaseId,
       name,
@@ -87,7 +107,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     data: {
       username: 'readonly_postgres',
       password,
-      serverName: `${databaseId}.${wildcardDomain}`,
+      host: `${databaseId}.${wildcardDomain}`,
+      port: 5432,
+      databaseName: 'postgres',
     },
   })
 }

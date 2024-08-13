@@ -1,7 +1,9 @@
 import { Loader, Upload } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useApp } from '~/components/app-provider'
 import { CodeBlock } from '~/components/code-block'
+import { DeployedDatabaseFields } from '~/components/deployed-database-fields'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
+import { Database } from '~/data/databases/database-type'
 import {
   DeployedDatabaseCreateResult,
   useDeployedDatabaseCreateMutation,
@@ -17,7 +20,7 @@ import {
 import { LocalDatabase } from '~/lib/db'
 
 export type DatabaseItemDeployActionProps = {
-  database: LocalDatabase
+  database: Database
   onDialogOpenChange: (isOpen: boolean) => void
 }
 
@@ -39,6 +42,7 @@ export function DatabaseItemDeployAction(props: DatabaseItemDeployActionProps) {
         <DatabaseItemDeployActionDialog
           open={isDialogOpen}
           onOpenChange={props.onDialogOpenChange}
+          database={props.database}
           {...deployResult}
         />
       )}
@@ -47,7 +51,7 @@ export function DatabaseItemDeployAction(props: DatabaseItemDeployActionProps) {
 }
 
 type DatabaseItemDeployActionMenuItemProps = {
-  database: LocalDatabase
+  database: Database
   onDeploySuccess: (data: DeployedDatabaseCreateResult) => void
 }
 
@@ -92,35 +96,38 @@ function DatabaseItemDeployActionMenuItem(props: DatabaseItemDeployActionMenuIte
 type DatabaseItemDeployActionDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  database: Database
 } & DeployedDatabaseCreateResult
 
 function DatabaseItemDeployActionDialog(props: DatabaseItemDeployActionDialogProps) {
-  const { username, password, serverName } = props
-  const psqlCommand = `psql "postgres://${username}:${encodeURIComponent(password)}@${serverName}/postgres"`
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogPortal>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Your database has been deployed</DialogTitle>
+            <DialogTitle>Database {props.database.name} deployed</DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
-          <h2 className="font-bold">What are deployments?</h2>
-          <p>
-            Your database has been deployed to a serverless PGlite instance so that it can be
-            accessed outside the browser using any Postgres client:
+          <p className="text-sm text-muted-foreground">
+            Your database has been deployed to a serverless{' '}
+            <a
+              className="underline font-bold"
+              href="https://pglite.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              PGlite
+            </a>{' '}
+            instance so that it can be accessed outside the browser using any Postgres client:
           </p>
-          <CodeBlock
-            className="language-curl bg-neutral-800"
-            language="curl"
-            hideLineNumbers
-            theme="dark"
-            value={psqlCommand}
-          >
-            {psqlCommand}
-          </CodeBlock>
-          <p>Please write down your password, it will not be shown again.</p>
+          <DeployedDatabaseFields {...props} />
+          {props.password && (
+            <p className="text-sm text-muted-foreground">
+              Please{' '}
+              <span className="font-bold text-destructive-foreground">save your password</span>, it
+              will not be shown again!
+            </p>
+          )}
         </DialogContent>
       </DialogPortal>
     </Dialog>
