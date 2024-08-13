@@ -10,7 +10,9 @@ type DeployedDatabaseFieldsProps = DeployedDatabaseCreateResult
 export function DeployedDatabaseFields(props: DeployedDatabaseFieldsProps) {
   const port = '5432'
   const password = props.password ?? '[The password for your database]'
-  const connectionStringPassword = props.password ?? '[YOUR-PASSWORD]'
+  const connectionStringPassword = props.password
+    ? encodeURIComponent(props.password)
+    : '[YOUR-PASSWORD]'
   const connectionString = `postgresql://${props.username}:${connectionStringPassword}@${props.host}:${port}/${props.databaseName}`
 
   return (
