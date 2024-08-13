@@ -15,7 +15,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp } from '~/components/app-provider'
-import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
+import { useLocalDatabaseUpdateMutation } from '~/data/local-databases/local-database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { embed } from './embed'
 import { loadFile, saveFile } from './files'
@@ -192,7 +192,7 @@ export function useOnToolCall(databaseId: string) {
     databaseId,
     schemas: ['public', 'meta'],
   })
-  const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
+  const { mutateAsync: updateDatabase } = useLocalDatabaseUpdateMutation()
 
   const { value: vectorDataTypeId } = useAsyncMemo(async () => {
     if (!dbManager) {

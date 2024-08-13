@@ -4,7 +4,7 @@ import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useApp } from '~/components/app-provider'
 import { useRouter } from 'next/navigation'
-import { SignInDialog } from './sign-in-dialog'
+import { SignInDialog } from '~/components/sign-in-dialog'
 
 export type SidebarHeaderProps = {
   onCollapse: () => void

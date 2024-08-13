@@ -4,7 +4,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import { useState } from 'react'
 import React from 'react'
 import { DatabaseList } from './database-list/database-list'
-import { CollapsedSidebarHeader, SidebarHeader } from './sidebar-header/sidebar-header'
+import { CollapsedSidebarHeader, SidebarHeader } from './sidebar-header'
 import { CollapsedSidebparFooter, SidebarFooter } from './sidebar-footer/sidebar-footer'
 
 export default function Sidebar() {

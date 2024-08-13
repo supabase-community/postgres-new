@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
-import { useDatabaseCreateMutation } from '~/data/databases/database-create-mutation'
-import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
+import { useLocalDatabaseCreateMutation } from '~/data/local-databases/local-database-create-mutation'
+import { useLocalDatabaseUpdateMutation } from '~/data/local-databases/local-database-update-mutation'
 
 // Use a DNS safe alphabet
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16)
@@ -19,8 +19,8 @@ export default function Page() {
   const { dbManager } = useApp()
   const router = useRouter()
 
-  const { mutateAsync: createDatabase } = useDatabaseCreateMutation()
-  const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
+  const { mutateAsync: createDatabase } = useLocalDatabaseCreateMutation()
+  const { mutateAsync: updateDatabase } = useLocalDatabaseUpdateMutation()
 
   /**
    * Preloads next empty database so that it is ready immediately.

@@ -2,22 +2,22 @@ import { UseQueryOptions, useQuery } from '@tanstack/react-query'
 import { useApp } from '~/components/app-provider'
 import { Database } from '~/lib/db'
 
-export const useDatabaseQuery = (
-  id: string,
-  options: Omit<UseQueryOptions<Database, Error>, 'queryKey' | 'queryFn'> = {}
+export const useLocalDatabasesQuery = (
+  options: Omit<UseQueryOptions<Database[], Error>, 'queryKey' | 'queryFn'> = {}
 ) => {
   const { dbManager } = useApp()
-  return useQuery<Database, Error>({
+
+  return useQuery<Database[], Error>({
     ...options,
-    queryKey: getDatabaseQueryKey(id),
+    queryKey: getLocalDatabasesQueryKey(),
     queryFn: async () => {
       if (!dbManager) {
         throw new Error('dbManager is not available')
       }
-      return await dbManager.getDatabase(id)
+      return await dbManager.getDatabases()
     },
     staleTime: Infinity,
   })
 }
 
-export const getDatabaseQueryKey = (id: string) => ['database', id]
+export const getLocalDatabasesQueryKey = () => ['databases']

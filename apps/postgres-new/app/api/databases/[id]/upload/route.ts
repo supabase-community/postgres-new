@@ -7,7 +7,7 @@ import { createClient } from '~/utils/supabase/server'
 import { createScramSha256Data } from 'pg-gateway'
 import { randomBytes } from 'crypto'
 
-const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
+const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -62,6 +62,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     auth_method: 'scram-sha-256',
     auth_data: createScramSha256Data(password),
     database_id: databaseId,
+    // TODO: send the database name and createdAt from the frontend
+    name: 'A Database',
   })
 
   return NextResponse.json({

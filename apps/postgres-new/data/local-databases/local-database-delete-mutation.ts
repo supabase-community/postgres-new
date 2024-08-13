@@ -1,21 +1,21 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '~/components/app-provider'
-import { getDatabaseQueryKey } from './database-query'
-import { getDatabasesQueryKey } from './databases-query'
+import { getLocalDatabaseQueryKey } from './local-database-query'
+import { getLocalDatabasesQueryKey } from './local-databases-query'
 
-export type DatabaseDeleteVariables = {
+export type LocalDatabaseDeleteVariables = {
   id: string
 }
 
-export const useDatabaseDeleteMutation = ({
+export const useLocalDatabaseDeleteMutation = ({
   onSuccess,
   onError,
   ...options
-}: Omit<UseMutationOptions<void, Error, DatabaseDeleteVariables>, 'mutationFn'> = {}) => {
+}: Omit<UseMutationOptions<void, Error, LocalDatabaseDeleteVariables>, 'mutationFn'> = {}) => {
   const { dbManager } = useApp()
   const queryClient = useQueryClient()
 
-  return useMutation<void, Error, DatabaseDeleteVariables>({
+  return useMutation<void, Error, LocalDatabaseDeleteVariables>({
     mutationFn: async ({ id }) => {
       if (!dbManager) {
         throw new Error('dbManager is not available')
@@ -23,9 +23,9 @@ export const useDatabaseDeleteMutation = ({
       return await dbManager.deleteDatabase(id)
     },
     async onSuccess(data, variables, context) {
-      await Promise.all([queryClient.invalidateQueries({ queryKey: getDatabasesQueryKey() })])
+      await Promise.all([queryClient.invalidateQueries({ queryKey: getLocalDatabasesQueryKey() })])
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getDatabaseQueryKey(variables.id) }),
+        queryClient.invalidateQueries({ queryKey: getLocalDatabaseQueryKey(variables.id) }),
       ])
       return onSuccess?.(data, variables, context)
     },
