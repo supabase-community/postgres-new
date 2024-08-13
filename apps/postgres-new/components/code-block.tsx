@@ -74,7 +74,7 @@ export const CodeBlock = ({
     navigator.clipboard.writeText(value ?? '')
     setTimeout(() => {
       setCopied(false)
-    }, 1000)
+    }, 2000)
   }
 
   // Extract string when `children` has a single string node
@@ -183,10 +183,10 @@ export const CodeBlock = ({
                 variant="outline"
                 className="relative"
               >
-                <div className="text-foreground-muted">
+                <div className="text-foreground-muted mr-2">
                   <Copy size={14} />
                 </div>{' '}
-                <span className="truncate">Copy</span>
+                <span className="truncate">{copied ? 'Copied' : 'Copy'}</span>
               </Button>
             </div>
           ) : null}
