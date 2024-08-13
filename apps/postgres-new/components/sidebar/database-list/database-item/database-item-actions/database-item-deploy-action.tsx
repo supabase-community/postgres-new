@@ -10,10 +10,10 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Database } from '~/lib/db'
+import { LocalDatabase } from '~/lib/db'
 
 export type DatabaseItemDeployActionProps = {
-  database: Database
+  database: LocalDatabase
   onDialogOpenChange: (isOpen: boolean) => void
 }
 
@@ -49,7 +49,7 @@ export function DatabaseItemDeployAction(props: DatabaseItemDeployActionProps) {
 }
 
 type DatabaseItemDeployActionMenuItemProps = {
-  database: Database
+  database: LocalDatabase
   onDeploySuccess: (data: DeployResult) => void
 }
 

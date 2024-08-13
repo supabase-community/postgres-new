@@ -2,9 +2,9 @@ import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { useLocalDatabaseDeleteMutation } from '~/data/local-databases/local-database-delete-mutation'
-import { Database } from '~/lib/db'
+import { LocalDatabase } from '~/lib/db'
 
-export type DatabaseItemDeleteActionProps = { database: Database; isActive: boolean }
+export type DatabaseItemDeleteActionProps = { database: LocalDatabase; isActive: boolean }
 
 export function DatabaseItemDeleteAction(props: DatabaseItemDeleteActionProps) {
   const router = useRouter()

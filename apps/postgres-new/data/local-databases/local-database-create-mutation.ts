@@ -1,6 +1,6 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
 import { useApp } from '~/components/app-provider'
-import { Database } from '~/lib/db'
+import { LocalDatabase } from '~/lib/db'
 import { getLocalDatabasesQueryKey } from './local-databases-query'
 
 export type LocalDatabaseCreateVariables = {
@@ -12,11 +12,14 @@ export const useLocalDatabaseCreateMutation = ({
   onSuccess,
   onError,
   ...options
-}: Omit<UseMutationOptions<Database, Error, LocalDatabaseCreateVariables>, 'mutationFn'> = {}) => {
+}: Omit<
+  UseMutationOptions<LocalDatabase, Error, LocalDatabaseCreateVariables>,
+  'mutationFn'
+> = {}) => {
   const { dbManager } = useApp()
   const queryClient = useQueryClient()
 
-  return useMutation<Database, Error, LocalDatabaseCreateVariables>({
+  return useMutation<LocalDatabase, Error, LocalDatabaseCreateVariables>({
     mutationFn: async ({ id, isHidden }) => {
       if (!dbManager) {
         throw new Error('dbManager is not available')

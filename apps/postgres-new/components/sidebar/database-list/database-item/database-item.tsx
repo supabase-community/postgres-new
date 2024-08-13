@@ -1,7 +1,10 @@
-import type { Database } from '~/lib/db'
+import type { Database } from '~/data/databases/database-type'
 import Link from 'next/link'
 import { cn } from '~/lib/utils'
 import { DatabaseItemActions } from './database-item-actions/database-item-actions'
+import { CloudIcon } from 'lucide-react'
+import { DatabaseItemDeployedDialog } from './deployed-dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type DatabaseItemProps = {
   database: Database
@@ -19,6 +22,20 @@ export function DatabaseItem(props: DatabaseItemProps) {
       )}
       href={`/db/${props.database.id}`}
     >
+      {props.database.deployment ? (
+        <DatabaseItemDeployedDialog databaseUrl={props.database.deployment.url}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <CloudIcon className="w-4 h-4" />
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <span>Database deployed</span>
+            </TooltipContent>
+          </Tooltip>
+        </DatabaseItemDeployedDialog>
+      ) : (
+        <div className="w-4 h-4" />
+      )}
       <span className="text-nowrap grow truncate">{databaseName}</span>
       <DatabaseItemActions database={props.database} isActive={props.isActive} />
     </Link>

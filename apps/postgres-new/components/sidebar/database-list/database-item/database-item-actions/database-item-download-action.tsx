@@ -1,10 +1,10 @@
 import { Download } from 'lucide-react'
 import { useApp } from '~/components/app-provider'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Database } from '~/lib/db'
+import { LocalDatabase } from '~/lib/db'
 import { downloadFile, titleToKebabCase } from '~/lib/util'
 
-export type DatabaseItemDownloadActionProps = { database: Database }
+export type DatabaseItemDownloadActionProps = { database: LocalDatabase }
 
 export function DatabaseItemDownloadAction(props: DatabaseItemDownloadActionProps) {
   const { dbManager } = useApp()

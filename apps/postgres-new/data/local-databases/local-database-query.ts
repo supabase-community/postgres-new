@@ -1,13 +1,13 @@
 import { UseQueryOptions, useQuery } from '@tanstack/react-query'
 import { useApp } from '~/components/app-provider'
-import { Database } from '~/lib/db'
+import { LocalDatabase } from '~/lib/db'
 
 export const useLocalDatabaseQuery = (
   id: string,
-  options: Omit<UseQueryOptions<Database, Error>, 'queryKey' | 'queryFn'> = {}
+  options: Omit<UseQueryOptions<LocalDatabase, Error>, 'queryKey' | 'queryFn'> = {}
 ) => {
   const { dbManager } = useApp()
-  return useQuery<Database, Error>({
+  return useQuery<LocalDatabase, Error>({
     ...options,
     queryKey: getLocalDatabaseQueryKey(id),
     queryFn: async () => {

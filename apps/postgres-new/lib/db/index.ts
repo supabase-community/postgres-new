@@ -4,7 +4,7 @@ import { Message } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
 
-export type Database = {
+export type LocalDatabase = {
   id: string
   name: string | null
   createdAt: Date
@@ -104,7 +104,7 @@ export class DbManager {
   async getDatabases() {
     const metaDb = await this.getMetaDb()
 
-    const { rows: databases } = await metaDb.query<Database>(
+    const { rows: databases } = await metaDb.query<LocalDatabase>(
       codeBlock`
       select id, name, created_at as "createdAt", is_hidden as "isHidden"
       from databases
@@ -120,7 +120,7 @@ export class DbManager {
 
     const {
       rows: [database],
-    } = await metaDb.query<Database>(
+    } = await metaDb.query<LocalDatabase>(
       codeBlock`
       select id, name, created_at as "createdAt", is_hidden as "isHidden"
       from databases
@@ -132,12 +132,12 @@ export class DbManager {
     return database
   }
 
-  async createDatabase(id: string, { isHidden }: Pick<Database, 'isHidden'>) {
+  async createDatabase(id: string, { isHidden }: Pick<LocalDatabase, 'isHidden'>) {
     const metaDb = await this.getMetaDb()
 
     const {
       rows: [database],
-    } = await metaDb.query<Database>(
+    } = await metaDb.query<LocalDatabase>(
       codeBlock`
         insert into databases (id, is_hidden)
         values ($1, $2)
@@ -150,12 +150,12 @@ export class DbManager {
     return database
   }
 
-  async updateDatabase(id: string, { name, isHidden }: Pick<Database, 'name' | 'isHidden'>) {
+  async updateDatabase(id: string, { name, isHidden }: Pick<LocalDatabase, 'name' | 'isHidden'>) {
     const metaDb = await this.getMetaDb()
 
     const {
       rows: [database],
-    } = await metaDb.query<Database>(
+    } = await metaDb.query<LocalDatabase>(
       codeBlock`
       update databases
       set name = $2, is_hidden = $3
@@ -171,7 +171,7 @@ export class DbManager {
   async deleteDatabase(id: string) {
     const metaDb = await this.getMetaDb()
 
-    await metaDb.query<Database>(
+    await metaDb.query<LocalDatabase>(
       codeBlock`
       delete from databases
       where id = $1
