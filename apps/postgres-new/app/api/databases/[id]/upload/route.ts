@@ -51,7 +51,7 @@ export async function POST(
   const dump = data.get('dump') as File | null
   const name = data.get('name') as string | null
   const createdAt = data.get('created_at') as string | null
-  console.log({ name, createdAt })
+
   if (!dump || !name || !createdAt) {
     return NextResponse.json(
       {
