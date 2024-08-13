@@ -1,9 +1,9 @@
 import dagre from '@dagrejs/dagre'
 import { PostgresTable } from '@gregnr/postgres-meta/base'
 import { uniqBy } from 'lodash'
-import { Loader } from 'lucide-react'
+import { Info, Loader } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -14,9 +14,12 @@ import ReactFlow, {
   useReactFlow,
   useStore,
 } from 'reactflow'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useDebounce } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
+import { useApp } from '../app-provider'
+import { useWorkspace } from '../workspace'
 import SchemaGraphLegend from './legend'
 import { TABLE_NODE_ROW_HEIGHT, TABLE_NODE_WIDTH, TableEdge, TableNode } from './table-node'
 
@@ -27,11 +30,14 @@ export default function TablesGraph({
   databaseId: string
   schemas: string[]
 }) {
+  const { pgVersion } = useApp()
   const { resolvedTheme } = useTheme()
+  const { visibility } = useWorkspace()
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const { data: allTables, error, isError, isLoading } = useTablesQuery({ databaseId, schemas })
 
-  const tables = allTables?.filter((table) => table.schema === 'public')
+  const tables = useMemo(() => allTables?.filter((table) => table.schema === 'public'), [allTables])
 
   const isEmpty = tables && tables.length === 0
 
@@ -49,12 +55,15 @@ export default function TablesGraph({
     []
   )
 
-  const fitView = useCallback(() => {
-    reactFlowInstance.fitView({
-      padding: 0.4,
-      duration: 500,
-    })
-  }, [reactFlowInstance])
+  const fitView = useCallback(
+    (duration = 500) => {
+      reactFlowInstance.fitView({
+        padding: 0.4,
+        duration,
+      })
+    },
+    [reactFlowInstance]
+  )
 
   useEffect(() => {
     if (tables) {
@@ -62,70 +71,116 @@ export default function TablesGraph({
         reactFlowInstance.setNodes(nodes)
         reactFlowInstance.setEdges(edges)
 
-        // it needs to happen during next event tick
-        setTimeout(() => fitView(), 100)
+        // `fitView` needs to happen during next event tick
+        setTimeout(() => fitView(isFirstLoad ? 0 : 500), 0)
+
+        if (tables.length > 0) {
+          setIsFirstLoad(false)
+        }
       })
     }
-  }, [reactFlowInstance, tables, resolvedTheme, fitView])
+  }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
 
   return (
-    <ReactFlow
-      className="bg-neutral-800 rounded-md border-[0.5px] border-neutral-800 overflow-hidden"
-      defaultNodes={[]}
-      defaultEdges={[]}
-      defaultEdgeOptions={{
-        type: 'smoothstep',
-        deletable: false,
-        style: {
-          stroke: 'hsl(var(--border-stronger))',
-          strokeWidth: 2,
-          strokeDasharray: 10,
-          strokeDashoffset: -10,
-          // Manually create animation so that it doesn't interfere with our custom edge component
-          animation: 'dashdraw 0.5s linear infinite',
-        },
-      }}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      minZoom={0.4}
-      maxZoom={1}
-      proOptions={{ hideAttribution: true }}
-      panOnScroll
-      panOnScrollSpeed={1}
-    >
-      <ResizeHandler onResize={() => fitView()} />
-      <Background
-        gap={32}
-        className={cn(
-          'bg-neutral-800 transition-colors',
-          isLoading || isError || isEmpty ? 'text-neutral-700' : 'text-neutral-500'
-        )}
-        variant={BackgroundVariant.Dots}
-        size={2}
-        color="currentColor"
-      />
+    <div className="flex flex-col w-full h-full bg-muted/50 rounded-md border overflow-hidden">
+      <ReactFlow
+        className=""
+        defaultNodes={[]}
+        defaultEdges={[]}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          deletable: false,
+          style: {
+            stroke: 'hsl(var(--muted-foreground))',
+            strokeWidth: 1,
+            strokeDasharray: 6,
+            strokeDashoffset: -12,
+            // Manually create animation so that it doesn't interfere with our custom edge component
+            animation: 'dashdraw 1s linear infinite',
+          },
+        }}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        minZoom={0.4}
+        maxZoom={1}
+        proOptions={{ hideAttribution: true }}
+        panOnScroll
+        panOnScrollSpeed={1}
+      >
+        <ResizeHandler onResize={() => fitView()} />
+        <Background
+          gap={32}
+          className={cn(
+            'bg-muted/5 transition-colors',
+            isLoading || isError || isEmpty ? 'text-secondary-foreground' : 'text-foreground'
+          )}
+          variant={BackgroundVariant.Dots}
+          size={1}
+          color="hsl(var(--muted-foreground)/.5)"
+        />
 
-      <div className="absolute w-full h-full flex justify-center items-center text-center p-4 font-medium">
-        {isLoading && (
-          <div className="flex gap-4 items-center text-lighter">
-            <Loader className="animate-spin" size={28} />
-            <p className="text-xl">Loading schema...</p>
-          </div>
-        )}
+        <div className="absolute w-full h-full flex justify-center items-center text-center p-4 font-medium">
+          {isLoading && (
+            <div className="flex gap-4 items-center text-primary/25">
+              <Loader className="animate-spin" size={28} />
+              <p className="text-xl">Loading schema...</p>
+            </div>
+          )}
 
-        {isError && (
-          <div className="flex gap-2 text-lighter">
-            <p>Error loading schema from the database:</p>
-            <p>{`${error?.message ?? 'Unknown error'}`}</p>
-          </div>
-        )}
+          {isError && (
+            <div className="flex gap-2 text-primary/25">
+              <p>Error loading schema from the database:</p>
+              <p>{`${error?.message ?? 'Unknown error'}`}</p>
+            </div>
+          )}
 
-        {isEmpty && <h2 className="text-4xl text-lighter font-light">Ask AI to create a table</h2>}
+          {isEmpty && (
+            <h2 className="text-2xl text-primary/25 font-light w-[500px]">
+              Ask AI to create a table
+            </h2>
+          )}
+        </div>
+
+        <Controls
+          className="[&.react-flow\_\_controls]:shadow-none [&_button]:bg-border [&_button:hover]:bg-background [&_button]:border-none [&_button]:text-blue [&_button]:rounded-md [&_svg]:fill-current"
+          showZoom={false}
+          showInteractive={false}
+          position="top-right"
+          fitViewOptions={{
+            duration: 200,
+          }}
+        />
+
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col"></div>
+      </ReactFlow>
+      <div className="p-2.5 flex gap-2 justify-center bg-muted text-xs text-muted-foreground/75 border-t">
+        {pgVersion && (
+          <>
+            <span>PG {pgVersion}</span> |
+          </>
+        )}
+        {visibility === 'local' && (
+          <Tooltip>
+            <TooltipTrigger className="group flex gap-1 items-center cursor-default">
+              <span className="group-data-[state=delayed-open]:text-foreground transition">
+                Local-only database
+              </span>
+              <Info
+                size={12}
+                className="group-data-[state=delayed-open]:text-foreground transition"
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-[28rem] text-center">
+                This Postgres database lives directly in your browser&apos;s IndexedDB storage and
+                not in the cloud, so it is only accessible to you.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
-
-      <Controls showZoom={false} showInteractive={false} position="top-right" />
       <SchemaGraphLegend />
-    </ReactFlow>
+    </div>
   )
 }
 

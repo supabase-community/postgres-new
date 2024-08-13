@@ -9,6 +9,7 @@ import {
   FormEventHandler,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -47,7 +48,8 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser } = useApp()
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen } = useApp()
+  const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
     databaseId,
@@ -71,6 +73,28 @@ export default function Chat() {
 
   const sendCsv = useCallback(
     async (file: File) => {
+      if (file.type !== 'text/csv') {
+        // Add an artificial tool call requesting the CSV
+        // with an error indicating the file wasn't a CSV
+        appendMessage({
+          role: 'assistant',
+          content: '',
+          toolInvocations: [
+            {
+              state: 'result',
+              toolCallId: generateId(),
+              toolName: 'requestCsv',
+              args: {},
+              result: {
+                success: false,
+                error: `The file has type '${file.type}'. Let the user know that only CSV imports are currently supported.`,
+              },
+            },
+          ],
+        })
+        return
+      }
+
       const fileId = generateId()
 
       await saveFile(fileId, file)
@@ -118,14 +142,14 @@ export default function Chat() {
 
       const [file] = files
 
-      if (file && file.type === 'text/csv') {
+      if (file) {
         await sendCsv(file)
       }
     },
     cursorElement: (
       <m.div
         layoutId={nextMessageId}
-        className="px-5 py-2.5 text-base rounded-full bg-neutral-100 flex gap-2 items-center shadow-xl z-50"
+        className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
       >
         <Paperclip size={14} /> Add file to chat
       </m.div>
@@ -173,6 +197,15 @@ export default function Chat() {
 
   const isSubmitEnabled =
     !isLoadingMessages && !isLoadingSchema && Boolean(input.trim()) && user !== undefined
+
+  // Create imperative handle that can be used to focus the input anywhere in the app
+  useImperativeHandle(focusRef, () => ({
+    focus() {
+      if (inputRef.current) {
+        inputRef.current.focus()
+      }
+    },
+  }))
 
   return (
     <div ref={dropZoneRef} className="h-full flex flex-col items-stretch relative">
@@ -269,7 +302,7 @@ export default function Chat() {
             {user ? (
               <m.h3
                 layout
-                className="text-2xl font-light"
+                className="text-2xl font-light text-center"
                 variants={{
                   hidden: { opacity: 0, y: 10 },
                   show: { opacity: 1, y: 0 },
@@ -290,8 +323,16 @@ export default function Chat() {
                 animate="show"
               >
                 <SignInButton />
-                <p className="font-lighter  text-center">
+                <p className="font-lighter text-center">
                   To prevent abuse we ask you to sign in before chatting with AI.
+                </p>
+                <p
+                  className="underline cursor-pointer text-primary/50"
+                  onClick={() => {
+                    setIsSignInDialogOpen(true)
+                  }}
+                >
+                  Why do I need to sign in?
                 </p>
               </m.div>
             )}
@@ -339,11 +380,23 @@ export default function Chat() {
               <p className="font-lighter text-center text-sm">
                 To prevent abuse we ask you to sign in before chatting with AI.
               </p>
+              <p
+                className="underline cursor-pointer text-sm text-primary/50"
+                onClick={() => {
+                  setIsSignInDialogOpen(true)
+                }}
+              >
+                Why do I need to sign in?
+              </p>
             </m.div>
           )}
         </AnimatePresence>
         <form
-          className="flex items-end py-2 px-3 rounded-[28px] bg-neutral-100 w-full max-w-4xl"
+          className={cn(
+            'flex py-2 px-3 rounded-[28px] bg-muted/50 border w-full max-w-4xl items-center gap-3',
+            inputFocusState && 'border-muted-foreground',
+            'transition'
+          )}
           onSubmit={handleFormSubmit}
         >
           {/*
@@ -366,8 +419,10 @@ export default function Chat() {
             </m.div>
           )}
           <Button
-            className="w-8 h-8 p-1.5 my-1 bg-inherit transition-colors"
             type="button"
+            variant={'ghost'}
+            className="w-8 h-8 text-muted-foreground hover:text-foreground focus:text-foreground"
+            size="icon"
             onClick={(e) => {
               e.preventDefault()
 
@@ -385,7 +440,7 @@ export default function Chat() {
                 const changeEvent = event as unknown as ChangeEvent<HTMLInputElement>
                 const [file] = Array.from(changeEvent.target?.files ?? [])
 
-                if (file && file.type === 'text/csv') {
+                if (file) {
                   await sendCsv(file)
                 }
 
@@ -400,17 +455,23 @@ export default function Chat() {
             }}
             disabled={isLoading || !user}
           >
-            <Paperclip size={20} />
+            <Paperclip size={16} strokeWidth={1.3} />
           </Button>
           <textarea
             ref={inputRef}
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 text-base bg-inherit placeholder:text-neutral-400 resize-none"
+            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
+            onFocus={(e) => {
+              setInputFocusState(true)
+            }}
+            onBlur={(e) => {
+              setInputFocusState(false)
+            }}
             autoFocus
             disabled={!user}
             rows={Math.min(input.split('\n').length, 10)}

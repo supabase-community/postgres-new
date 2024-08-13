@@ -3,10 +3,10 @@
 import { customAlphabet } from 'nanoid'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
+import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
 import { useDatabaseCreateMutation } from '~/data/databases/database-create-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
-import { dbExists, getDb } from '~/lib/db'
 
 // Use a DNS safe alphabet
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16)
@@ -16,6 +16,7 @@ function uniqueId() {
 }
 
 export default function Page() {
+  const { dbManager } = useApp()
   const router = useRouter()
 
   const { mutateAsync: createDatabase } = useDatabaseCreateMutation()
@@ -26,13 +27,17 @@ export default function Page() {
    */
   const preloadDb = useCallback(
     async (id: string) => {
-      const exists = await dbExists(id)
-      if (!exists) {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
+      const database = await dbManager.getDatabase(id)
+      if (!database) {
         await createDatabase({ id, isHidden: true })
-        await getDb(id)
+        await dbManager.getDbInstance(id)
       }
     },
-    [createDatabase]
+    [dbManager, createDatabase]
   )
 
   // Track the next database ID in local storage
@@ -62,17 +67,51 @@ export default function Page() {
   return (
     <Workspace
       databaseId={nextDatabaseId}
-      onStart={async () => {
+      visibility="local"
+      onMessage={async () => {
         // Make the DB no longer hidden
         await updateDatabase({ id: nextDatabaseId, name: null, isHidden: false })
-
-        // Navigate to this DB's path
-        router.push(`/db/${nextDatabaseId}`)
 
         // Pre-load the next DB
         const nextId = uniqueId()
         localStorage.setItem('next-db-id', JSON.stringify(nextId))
         preloadDb(nextId)
+      }}
+      onReply={async (message, append) => {
+        if (!dbManager) {
+          throw new Error('dbManager is not available')
+        }
+
+        const messages = await dbManager.getMessages(nextDatabaseId)
+        const isFirstReplyComplete =
+          !messages.some((message) => message.role === 'assistant' && !message.toolInvocations) &&
+          message.role === 'assistant' &&
+          !message.toolInvocations
+
+        // The model might run multiple tool calls before ending with a message, so
+        // we only want to redirect after all of these back-to-back calls finish
+        if (isFirstReplyComplete) {
+          router.push(`/db/${nextDatabaseId}`)
+
+          append({
+            role: 'user',
+            content: 'Name this conversation. No need to reply.',
+            data: {
+              automated: true,
+            },
+          })
+        }
+      }}
+      onCancelReply={(append) => {
+        router.push(`/db/${nextDatabaseId}`)
+
+        append({
+          role: 'user',
+          content: 'Name this conversation. No need to reply.',
+          data: {
+            automated: true,
+          },
+        })
       }}
     />
   )

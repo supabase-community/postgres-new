@@ -39,6 +39,11 @@ export async function POST(req: Request) {
       - Check for existing records/conflicts in the table
 
       When querying data, limit to 5 by default.
+
+      When performing FTS, always use 'simple' (languages aren't available).
+
+      When importing CSVs try to solve the problem yourself (eg. use a generic text column, then refine)
+      vs. asking the user to change the CSV.
       
       You also know math. All math equations and expressions must be written in KaTex and must be wrapped in double dollar \`$$\`:
         - Inline: $$\\sqrt{26}$$
@@ -48,10 +53,6 @@ export async function POST(req: Request) {
             $$
 
       No images are allowed. Do not try to generate or link images, including base64 data URLs.
-
-      Err on the side of caution. Ask the user to confirm before any mutating operations.
-      
-      If you're just querying schema, data, or showing charts, go ahead and do it without asking.
 
       Feel free to suggest corrections for suspected typos.
     `,

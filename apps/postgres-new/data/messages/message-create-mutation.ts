@@ -1,6 +1,6 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
 import { Message } from 'ai'
-import { getMetaDb } from '~/lib/db'
+import { useApp } from '~/components/app-provider'
 import { getMessagesQueryKey } from './messages-query'
 
 export type MessageCreateVariables = {
@@ -15,29 +15,15 @@ export const useMessageCreateMutation = (
     ...options
   }: Omit<UseMutationOptions<void, Error, MessageCreateVariables>, 'mutationFn'> = {}
 ) => {
+  const { dbManager } = useApp()
   const queryClient = useQueryClient()
 
   return useMutation<void, Error, MessageCreateVariables>({
     mutationFn: async ({ message }) => {
-      const metaDb = await getMetaDb()
-
-      if (message.toolInvocations) {
-        await metaDb.query(
-          'insert into messages (id, database_id, role, content, tool_invocations) values ($1, $2, $3, $4, $5)',
-          [
-            message.id,
-            databaseId,
-            message.role,
-            message.content,
-            JSON.stringify(message.toolInvocations),
-          ]
-        )
-      } else {
-        await metaDb.query(
-          'insert into messages (id, database_id, role, content) values ($1, $2, $3, $4)',
-          [message.id, databaseId, message.role, message.content]
-        )
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
       }
+      return await dbManager.createMessage(databaseId, message)
     },
     async onSuccess(data, variables, context) {
       await Promise.all([

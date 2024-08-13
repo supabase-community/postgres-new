@@ -20,7 +20,7 @@ RUN apt-get update && \
     apt-get install -y \
     libfuse-dev
 
-RUN echo "ee" && git clone https://github.com/supabase/s3fs-fuse.git --branch debug && \
+RUN git clone https://github.com/supabase/s3fs-fuse.git --branch s3/support-endpoint-with-uris && \
     cd s3fs-fuse && \
     ./autogen.sh && \
     ./configure && \

@@ -23,13 +23,22 @@ export default function CsvRequest({ toolInvocation }: CsvRequestProps) {
     const { result } = toolInvocation
 
     if (!result.success) {
-      return null
+      return (
+        <m.div
+          layout="position"
+          layoutId={toolInvocation.toolCallId}
+          className="self-end px-5 py-2.5 text-base rounded-full bg-destructive flex gap-2 items-center text-lighter italic"
+        >
+          No CSV file selected
+        </m.div>
+      )
     }
 
     return (
       <m.div
+        layout="position"
         layoutId={toolInvocation.toolCallId}
-        className="self-end px-5 py-2.5 text-base rounded-full bg-blue-300 flex gap-2 items-center text-lighter italic"
+        className="self-end px-5 py-2.5 text-base rounded-full bg-border flex gap-2 items-center text-lighter italic"
         style={{
           // same value as tailwind, used to keep constant radius during framer animation
           // see: https://www.framer.com/motion/layout-animations/##scale-correction
@@ -52,7 +61,7 @@ export default function CsvRequest({ toolInvocation }: CsvRequestProps) {
   }
 
   return (
-    <m.div layoutId={toolInvocation.toolCallId}>
+    <m.div layout="position" layoutId={toolInvocation.toolCallId}>
       <input
         type="file"
         onChange={async (e) => {
