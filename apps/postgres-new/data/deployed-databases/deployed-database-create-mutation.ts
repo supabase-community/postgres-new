@@ -1,5 +1,4 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '~/utils/supabase/client'
 import { getDeployedDatabasesQueryKey } from './deployed-databases-query'
 import { useApp } from '~/components/app-provider'
 import type { DatabaseUploadResponse } from '~/app/api/databases/[id]/upload/route'

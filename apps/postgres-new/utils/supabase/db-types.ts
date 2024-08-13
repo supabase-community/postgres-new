@@ -74,7 +74,7 @@ export type Database = {
         Insert: {
           auth_data?: Json | null
           auth_method: string
-          created_at?: string
+          created_at: string
           database_id: string
           deployed_at?: string
           id?: never

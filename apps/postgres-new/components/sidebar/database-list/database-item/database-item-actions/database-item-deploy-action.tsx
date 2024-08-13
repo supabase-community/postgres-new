@@ -1,8 +1,6 @@
 import { Loader, Upload } from 'lucide-react'
-import Link from 'next/link'
 import { useState } from 'react'
 import { useApp } from '~/components/app-provider'
-import { CodeBlock } from '~/components/code-block'
 import { DeployedDatabaseFields } from '~/components/deployed-database-fields'
 import {
   Dialog,
@@ -17,7 +15,6 @@ import {
   DeployedDatabaseCreateResult,
   useDeployedDatabaseCreateMutation,
 } from '~/data/deployed-databases/deployed-database-create-mutation'
-import { LocalDatabase } from '~/lib/db'
 
 export type DatabaseItemDeployActionProps = {
   database: Database
@@ -122,11 +119,13 @@ function DatabaseItemDeployActionDialog(props: DatabaseItemDeployActionDialogPro
           </p>
           <DeployedDatabaseFields {...props} />
           {props.password && (
-            <p className="text-sm text-muted-foreground">
-              Please{' '}
-              <span className="font-bold text-destructive-foreground">save your password</span>, it
-              will not be shown again!
-            </p>
+            <div className="flex justify-center pt-2">
+              <p className="text-sm text-muted-foreground">
+                Please{' '}
+                <span className="font-bold text-destructive-foreground">save your password</span>,
+                it will not be shown again!
+              </p>
+            </div>
           )}
         </DialogContent>
       </DialogPortal>
