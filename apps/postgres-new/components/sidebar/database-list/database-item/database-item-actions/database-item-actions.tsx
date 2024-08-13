@@ -8,14 +8,14 @@ import {
 import { cn } from '~/lib/utils'
 import { DatabaseItemRenameAction, RenameDatabaseForm } from './database-item-rename-action'
 import { useState } from 'react'
-import { LocalDatabase } from '~/lib/db'
 import { DatabaseItemDownloadAction } from './database-item-download-action'
 import { DatabaseItemDeployAction } from './database-item-deploy-action'
 import { DatabaseItemDeleteAction } from './database-item-delete-action'
 import { Button } from '~/components/ui/button'
+import { Database } from '~/data/databases/database-type'
 
 export type DatabaseItemActionsProps = {
-  database: LocalDatabase
+  database: Database
   isActive: boolean
 }
 

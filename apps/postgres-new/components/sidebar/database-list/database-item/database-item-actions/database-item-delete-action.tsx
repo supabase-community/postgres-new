@@ -1,17 +1,17 @@
-import { Trash2 } from 'lucide-react'
+import { Loader, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { useLocalDatabaseDeleteMutation } from '~/data/local-databases/local-database-delete-mutation'
-import { LocalDatabase } from '~/lib/db'
+import { useDatabasesDeleteMutation } from '~/data/databases/database-delete-mutation'
+import { Database } from '~/data/databases/database-type'
 
-export type DatabaseItemDeleteActionProps = { database: LocalDatabase; isActive: boolean }
+export type DatabaseItemDeleteActionProps = { database: Database; isActive: boolean }
 
 export function DatabaseItemDeleteAction(props: DatabaseItemDeleteActionProps) {
   const router = useRouter()
-  const { mutateAsync: deleteDatabase } = useLocalDatabaseDeleteMutation()
+  const { deleteDatabase, isLoading: isDeleting } = useDatabasesDeleteMutation()
 
-  async function handleMenuItemSelect(e: Event) {
-    await deleteDatabase({ id: props.database.id })
+  async function handleDelete() {
+    await deleteDatabase(props.database)
 
     if (props.isActive) {
       router.push('/')
@@ -19,8 +19,17 @@ export function DatabaseItemDeleteAction(props: DatabaseItemDeleteActionProps) {
   }
 
   return (
-    <DropdownMenuItem className="gap-3" onSelect={handleMenuItemSelect}>
-      <Trash2 size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+    <DropdownMenuItem className="gap-3" onSelect={handleDelete}>
+      {isDeleting ? (
+        <Loader
+          className="animate-spin flex-shrink-0 text-muted-foreground"
+          size={16}
+          strokeWidth={2}
+        />
+      ) : (
+        <Trash2 size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      )}
+
       <span>Delete</span>
     </DropdownMenuItem>
   )

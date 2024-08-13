@@ -1,10 +1,10 @@
 import { Pencil } from 'lucide-react'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
+import { Database } from '~/data/databases/database-type'
 import { useLocalDatabaseUpdateMutation } from '~/data/local-databases/local-database-update-mutation'
-import { LocalDatabase } from '~/lib/db'
 
 export function DatabaseItemRenameAction(props: {
-  database: LocalDatabase
+  database: Database
   onSelect: (e: Event) => void
 }) {
   return (
@@ -15,7 +15,7 @@ export function DatabaseItemRenameAction(props: {
   )
 }
 
-export function RenameDatabaseForm(props: { database: LocalDatabase; onSuccess: () => void }) {
+export function RenameDatabaseForm(props: { database: Database; onSuccess: () => void }) {
   const { mutateAsync: updateDatabase } = useLocalDatabaseUpdateMutation()
 
   return (
