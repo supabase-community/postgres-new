@@ -112,17 +112,7 @@ const server = net.createServer((socket) => {
     },
     tls,
     async onTlsUpgrade({ tlsInfo }) {
-      if (!tlsInfo) {
-        connection.sendError({
-          severity: 'FATAL',
-          code: '08000',
-          message: `ssl connection required`,
-        })
-        connection.socket.end()
-        return
-      }
-
-      if (!tlsInfo.sniServerName) {
+      if (!tlsInfo?.sniServerName) {
         connection.sendError({
           severity: 'FATAL',
           code: '08000',
@@ -141,8 +131,10 @@ const server = net.createServer((socket) => {
         connection.socket.end()
         return
       }
-
-      const databaseId = getIdFromServerName(tlsInfo.sniServerName)
+    },
+    async onAuthenticated({ tlsInfo }) {
+      // at this point we know sniServerName is set
+      const databaseId = getIdFromServerName(tlsInfo!.sniServerName!)
 
       console.log(`Serving database '${databaseId}'`)
 
@@ -205,22 +197,6 @@ const server = net.createServer((socket) => {
         },
       })
       await db.waitReady
-    },
-    async onStartup() {
-      if (!db) {
-        console.log('PGlite instance undefined. Was onTlsUpgrade never called?')
-        connection.sendError({
-          severity: 'FATAL',
-          code: 'XX000',
-          message: `error loading database`,
-        })
-        connection.socket.end()
-        return true
-      }
-
-      // Wait for PGlite to be ready before further processing
-      await db.waitReady
-      return false
     },
     async onMessage(data, { isAuthenticated }) {
       // Only forward messages to PGlite after authentication
