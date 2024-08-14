@@ -1,6 +1,6 @@
 import { Pencil } from 'lucide-react'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import { useLocalDatabaseUpdateMutation } from '~/data/local-databases/local-database-update-mutation'
 
 export function DatabaseItemRenameAction(props: {

@@ -14,7 +14,7 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { useDatabasesDeleteMutation } from '~/data/databases/database-delete-mutation'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 
 type ConfirmDatabaseDeleteAlertProps = {
   children: React.ReactNode

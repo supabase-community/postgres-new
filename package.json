@@ -1,10 +1,9 @@
 {
+  "name": "@postgres-new/root",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --workspace postgres-new"
+    "dev": "npm run dev -w @postgres-new/web",
+    "supabase": "npm exec supabase -w @postgres-new/supabase"
   },
-  "workspaces": ["apps/*"],
-  "devDependencies": {
-    "supabase": "^1.187.8"
-  }
+  "workspaces": ["apps/*", "packages/*"]
 }

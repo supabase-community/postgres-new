@@ -1,0 +1,14 @@
+{
+  "name": "@postgres-new/supabase",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/database.types.d.ts"
+  },
+  "scripts": {
+    "generate:types": "mkdir -p dist && supabase gen types --lang=typescript --local > dist/database.types.d.ts"
+  },
+  "devDependencies": {
+    "supabase": "^1.187.8"
+  }
+}

@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '~/components/ui/dialog'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import { useDeployedDatabaseResetPasswordMutation } from '~/data/deployed-databases/deployed-database-reset-password-mutation'
 
 type DeployedDatabaseDialogProps = {

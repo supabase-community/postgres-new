@@ -2,7 +2,7 @@ import { Loader, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '~/components/app-provider'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import {
   DeployedDatabaseCreateResult,
   useDeployedDatabaseCreateMutation,

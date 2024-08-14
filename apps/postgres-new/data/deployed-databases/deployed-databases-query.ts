@@ -1,6 +1,6 @@
 import { UseQueryOptions, useQuery } from '@tanstack/react-query'
 import { createClient } from '~/utils/supabase/client'
-import { Database } from '~/utils/supabase/db-types'
+import type { Database } from '@postgres-new/supabase'
 
 type DeployedDatabase = Pick<
   Database['public']['Tables']['deployed_databases']['Row'],

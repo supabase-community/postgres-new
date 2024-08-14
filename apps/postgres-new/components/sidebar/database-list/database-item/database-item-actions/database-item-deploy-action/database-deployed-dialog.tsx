@@ -6,7 +6,7 @@ import {
   DialogPortal,
   DialogTitle,
 } from '~/components/ui/dialog'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import { DeployedDatabaseCreateResult } from '~/data/deployed-databases/deployed-database-create-mutation'
 
 export type DatabaseDeployedDialogProps = {

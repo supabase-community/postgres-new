@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { useToast } from '~/components/ui/use-toast'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import {
   DeployedDatabaseCreateResult,
   useDeployedDatabaseCreateMutation,

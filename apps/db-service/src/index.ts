@@ -8,6 +8,7 @@ import { createGunzip } from 'node:zlib'
 import { extract } from 'tar'
 import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@postgres-new/supabase'
 
 const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
@@ -39,14 +40,14 @@ const PostgresErrorCodes = {
   ConnectionException: '08000',
 } as const
 
-function sendFatalError(connection: PostgresConnection, code: string, message: string): never {
+function sendFatalError(connection: PostgresConnection, code: string, message: string): Error {
   connection.sendError({
     severity: 'FATAL',
     code,
     message,
   })
   connection.socket.end()
-  throw new Error(message)
+  return new Error(message)
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -58,7 +59,7 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 const server = net.createServer((socket) => {
   let db: PGliteInterface
@@ -69,7 +70,7 @@ const server = net.createServer((socket) => {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
         if (!tlsInfo?.sniServerName) {
-          sendFatalError(
+          throw sendFatalError(
             connection,
             PostgresErrorCodes.ConnectionException,
             'sniServerName required in TLS info'
@@ -84,7 +85,7 @@ const server = net.createServer((socket) => {
           .single()
 
         if (error) {
-          sendFatalError(
+          throw sendFatalError(
             connection,
             PostgresErrorCodes.ConnectionException,
             `Error getting auth data for database ${databaseId}: ${error}`
@@ -92,7 +93,7 @@ const server = net.createServer((socket) => {
         }
 
         if (data === null) {
-          sendFatalError(
+          throw sendFatalError(
             connection,
             PostgresErrorCodes.ConnectionException,
             `Database ${databaseId} not found`
@@ -100,7 +101,7 @@ const server = net.createServer((socket) => {
         }
 
         if (data.auth_method !== 'scram-sha-256') {
-          sendFatalError(
+          throw sendFatalError(
             connection,
             PostgresErrorCodes.ConnectionException,
             `Unsupported auth method for database ${databaseId}: ${data.auth_method}`

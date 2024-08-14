@@ -1,6 +1,6 @@
 import { useDeployedDatabasesQuery } from '../deployed-databases/deployed-databases-query'
 import { useLocalDatabasesQuery } from '../local-databases/local-databases-query'
-import { Database } from './database-type'
+import type { Database } from './database-type'
 
 export function useDatabasesQuery(): { isLoading: boolean; databases: Database[] } {
   const { data: localDatabases = [], isLoading: isLoadingLocalDatabases } = useLocalDatabasesQuery()

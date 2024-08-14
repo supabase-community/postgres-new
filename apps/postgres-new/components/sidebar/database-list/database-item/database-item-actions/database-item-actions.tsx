@@ -12,7 +12,7 @@ import { DatabaseItemDownloadAction } from './database-item-download-action'
 import { DatabaseItemDeployAction } from './database-item-deploy-action/database-item-deploy-action'
 import { DatabaseItemDeleteAction } from './database-item-delete-action/database-item-delete-action'
 import { Button } from '~/components/ui/button'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 
 export type DatabaseItemActionsProps = {
   database: Database

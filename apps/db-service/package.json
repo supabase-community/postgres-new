@@ -1,5 +1,5 @@
 {
-  "name": "db-service",
+  "name": "@postgres-new/proxy",
   "type": "module",
   "scripts": {
     "start": "node dist/index.js",
@@ -15,6 +15,7 @@
     "tar": "^7.4.3"
   },
   "devDependencies": {
+    "@postgres-new/supabase": "*",
     "@types/node": "^20.14.11",
     "@types/tar": "^6.1.13",
     "tsx": "^4.16.2",

@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Database } from '~/data/databases/database-type'
+import type { Database } from '~/data/databases/database-type'
 import { ConfirmDatabaseDeleteAlert } from './confirm-database-delete-alert'
 
 export type DatabaseItemDeleteActionProps = {
