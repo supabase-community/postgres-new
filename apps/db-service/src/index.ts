@@ -87,7 +87,7 @@ const server = net.createServer((socket) => {
           throw sendFatalError(
             connection,
             PostgresErrorCodes.ConnectionException,
-            `Error getting auth data for database ${databaseId}: ${error}`
+            `Error getting auth data for database ${databaseId}`
           )
         }
 
