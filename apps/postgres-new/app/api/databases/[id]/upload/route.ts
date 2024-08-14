@@ -62,6 +62,17 @@ export async function POST(
     )
   }
 
+  const dumpSizeInMB = dump.size / (1024 * 1024)
+  if (dumpSizeInMB > 100) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "You can't deploy a database that is bigger than 100MB",
+      },
+      { status: 413 }
+    )
+  }
+
   const databaseId = params.id
   const key = `dbs/${databaseId}.tar.gz`
 
