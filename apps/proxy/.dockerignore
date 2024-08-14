@@ -1,0 +1,10 @@
+node_modules
+.git
+.vscode
+.github
+dist
+.next
+
+apps
+!apps/proxy
+!packages/supabase/dist

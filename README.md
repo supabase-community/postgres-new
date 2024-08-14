@@ -22,8 +22,8 @@ How is this possible? [PGlite](https://pglite.dev/), a WASM version of Postgres 
 
 This is a monorepo split into the following projects:
 
-- [Frontend (Next.js)](./apps/postgres-new/): This contains the primary web app built with Next.js
-- [Backend (pg-gateway)](./apps/db-service/): This serves S3-backed PGlite databases over the PG wire protocol using [pg-gateway](https://github.com/supabase-community/pg-gateway)
+- [Frontend (Next.js)](./apps/web/): This contains the primary web app built with Next.js
+- [Backend (pg-gateway)](./apps/proxy/): This serves S3-backed PGlite databases over the PG wire protocol using [pg-gateway](https://github.com/supabase-community/pg-gateway)
 
 ## Video
 
