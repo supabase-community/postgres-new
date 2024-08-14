@@ -1,6 +1,5 @@
 import { AlertDialogPortal } from '@radix-ui/react-alert-dialog'
 import { Loader } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { MouseEvent, useState } from 'react'
 import {
   AlertDialog,
@@ -13,33 +12,38 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { useDatabasesDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { Database } from '~/data/databases/database-type'
+import {
+  DeployedDatabaseCreateResult,
+  useDeployedDatabaseCreateMutation,
+} from '~/data/deployed-databases/deployed-database-create-mutation'
 
-type ConfirmDatabaseDeleteAlertProps = {
+type ConfirmDatabaseRedeployAlertProps = {
   children: React.ReactNode
   database: Database
-  isActive: boolean
+  onSuccess: (data: DeployedDatabaseCreateResult) => void
   onOpenChange: (open: boolean) => void
 }
 
-export function ConfirmDatabaseDeleteAlert(props: ConfirmDatabaseDeleteAlertProps) {
-  const router = useRouter()
+export function ConfirmDatabaseRedeployAlert(props: ConfirmDatabaseRedeployAlertProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const { deleteDatabase, isLoading: isDeleting } = useDatabasesDeleteMutation()
+  const { mutateAsync: deployDatabase, isPending: isDeploying } =
+    useDeployedDatabaseCreateMutation()
 
   function handleOpenChange(open: boolean) {
     setIsOpen(open)
     props.onOpenChange(open)
   }
 
-  async function handleDelete(e: MouseEvent) {
+  async function handleDeploy(e: MouseEvent) {
     e.preventDefault()
-    await deleteDatabase(props.database)
+    const data = await deployDatabase({
+      createdAt: props.database.createdAt,
+      databaseId: props.database.id,
+      name: props.database.name,
+    })
     setIsOpen(false)
-    if (props.isActive) {
-      router.push('/')
-    }
+    props.onSuccess(data)
   }
 
   return (
@@ -48,26 +52,25 @@ export function ConfirmDatabaseDeleteAlert(props: ConfirmDatabaseDeleteAlertProp
       <AlertDialogPortal>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete database?</AlertDialogTitle>
+            <AlertDialogTitle>Redeploy database?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{props.database.name}".
-              {props.database.deployment && ' All connected applications will lose access.'}
+              This will replace the existing "{props.database.name}" with its current version.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={isDeleting} onClick={handleDelete}>
-              {isDeleting ? (
+            <AlertDialogAction disabled={isDeploying} onClick={handleDeploy}>
+              {isDeploying ? (
                 <span className="flex items-center">
                   <Loader
                     className="animate-spin flex-shrink-0 text-muted-foreground mr-2"
                     size={16}
                     strokeWidth={2}
                   />{' '}
-                  Deleting
+                  Redeploying
                 </span>
               ) : (
-                'Delete'
+                'Redeploy'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

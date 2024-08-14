@@ -26,7 +26,6 @@ export function DatabaseItemActions(props: DatabaseItemActionsProps) {
 
   function handleDialogOpenChange(open: boolean) {
     setHasOpenDialog(open)
-    console.log({ open })
     if (open === false) {
       setIsDropdownOpen(false)
     }
