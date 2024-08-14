@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
-import { convertToCoreTools, maxRowLimit, tools } from '~/lib/tools'
+import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -14,6 +14,9 @@ type Message = {
 
 export async function POST(req: Request) {
   const { messages }: { messages: Message[] } = await req.json()
+
+  // Trim the message context sent to the LLM to mitigate token abuse
+  const trimmedMessageContext = messages.slice(-maxMessageContext)
 
   const result = await streamText({
     system: codeBlock`
@@ -59,7 +62,7 @@ export async function POST(req: Request) {
       Feel free to suggest corrections for suspected typos.
     `,
     model: openai('gpt-4o-2024-08-06'),
-    messages: convertToCoreMessages(messages),
+    messages: convertToCoreMessages(trimmedMessageContext),
     tools: convertToCoreTools(tools),
   })
 
