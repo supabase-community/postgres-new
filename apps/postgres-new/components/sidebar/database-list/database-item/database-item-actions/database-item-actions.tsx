@@ -9,8 +9,8 @@ import { cn } from '~/lib/utils'
 import { DatabaseItemRenameAction, RenameDatabaseForm } from './database-item-rename-action'
 import { useState } from 'react'
 import { DatabaseItemDownloadAction } from './database-item-download-action'
-import { DatabaseItemDeployAction } from './database-item-deploy-action'
-import { DatabaseItemDeleteAction } from './database-item-delete-action'
+import { DatabaseItemDeployAction } from './database-item-deploy-action/database-item-deploy-action'
+import { DatabaseItemDeleteAction } from './database-item-delete-action/database-item-delete-action'
 import { Button } from '~/components/ui/button'
 import { Database } from '~/data/databases/database-type'
 
@@ -26,6 +26,7 @@ export function DatabaseItemActions(props: DatabaseItemActionsProps) {
 
   function handleDialogOpenChange(open: boolean) {
     setHasOpenDialog(open)
+    console.log({ open })
     if (open === false) {
       setIsDropdownOpen(false)
     }
@@ -72,7 +73,11 @@ export function DatabaseItemActions(props: DatabaseItemActionsProps) {
               onDialogOpenChange={handleDialogOpenChange}
             />
             <DropdownMenuSeparator />
-            <DatabaseItemDeleteAction database={props.database} isActive={props.isActive} />
+            <DatabaseItemDeleteAction
+              onDialogOpenChange={handleDialogOpenChange}
+              database={props.database}
+              isActive={props.isActive}
+            />
           </div>
         )}
       </DropdownMenuContent>
