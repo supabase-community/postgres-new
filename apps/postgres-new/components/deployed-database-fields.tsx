@@ -13,7 +13,7 @@ export function DeployedDatabaseFields(props: DeployedDatabaseFieldsProps) {
   const connectionStringPassword = props.password
     ? encodeURIComponent(props.password)
     : '[YOUR-PASSWORD]'
-  const connectionString = `postgresql://${props.username}:${connectionStringPassword}@${props.host}:${port}/${props.databaseName}`
+  const connectionString = `postgresql://${props.username}:${connectionStringPassword}@${props.host}/${props.databaseName}`
 
   return (
     <div className="space-y-4">
