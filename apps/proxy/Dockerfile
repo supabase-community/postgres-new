@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
-ARG NODE_VERSION=20.4.0
+ARG NODE_VERSION=20.16.0
 FROM node:${NODE_VERSION}-bookworm as base
 
 LABEL fly_launch_runtime="NodeJS"

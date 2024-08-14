@@ -2,6 +2,7 @@ import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { mkdir, readFile, access, rm } from 'node:fs/promises'
 import net from 'node:net'
+import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
@@ -15,6 +16,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 const dataMount = process.env.DATA_MOUNT ?? './data'
 const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
+const packageJson = JSON.parse(
+  await readFile(path.join(import.meta.dirname, '..', 'package.json'), 'utf8')
+) as {
+  dependencies: {
+    '@electric-sql/pglite': string
+  }
+}
+const pgliteVersion = `(PGlite ${packageJson.dependencies['@electric-sql/pglite']})`
 
 const dumpDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
@@ -69,9 +78,11 @@ const server = net.createServer((socket) => {
       const {
         rows: [{ version }],
       } = await db.query<{ version: string }>(
-        `select split_part(current_setting('server_version'), '.', 1) as version;`
+        `select current_setting('server_version') as version;`
       )
-      return version
+      const serverVersion = `${version} ${pgliteVersion}`
+      console.log(serverVersion)
+      return serverVersion
     },
     auth: {
       method: 'scram-sha-256',
