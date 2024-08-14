@@ -9,6 +9,7 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { useApp } from './app-provider'
 import Sidebar from './sidebar'
+import Workspace from '~/components/workspace'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -29,11 +30,12 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           )}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
-            {/* TODO: make sidebar available on mobile */}
-            {!isSmallBreakpoint && <Sidebar />}
-            <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
-              {children}
-            </m.div>
+            <Workspace databaseId="someDatabaseId" visibility="local">
+              {!isSmallBreakpoint && <Sidebar />}
+              <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
+                {children}
+              </m.div>
+            </Workspace>
           </main>
         </div>
       </TooltipProvider>

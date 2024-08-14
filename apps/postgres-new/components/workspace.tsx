@@ -42,6 +42,11 @@ export type WorkspaceProps = {
    * Callback called when the user cancels the reply.
    */
   onCancelReply?: (append: UseChatHelpers['append']) => void | Promise<void>
+
+  /**
+   * Children elements to be rendered inside the Workspace.
+   */
+  children?: React.ReactNode
 }
 
 export default function Workspace({
@@ -50,6 +55,7 @@ export default function Workspace({
   onMessage,
   onReply,
   onCancelReply,
+  children,
 }: WorkspaceProps) {
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
@@ -157,6 +163,7 @@ export default function Workspace({
           <p>We appreciate your patience and interest! Stay tuned for updates!</p>
         </div>
       </div>
+      {children}
     </WorkspaceContext.Provider>
   )
 }
