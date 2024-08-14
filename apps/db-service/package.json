@@ -6,7 +6,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -b",
     "generate:certs": "scripts/generate-certs.sh",
-    "psql": "docker compose run --rm -i psql psql"
+    "psql": "docker compose run --rm -i psql psql",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.2.0",
