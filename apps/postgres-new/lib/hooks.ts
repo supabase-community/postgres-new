@@ -20,7 +20,7 @@ import { useTablesQuery } from '~/data/tables/tables-query'
 import { embed } from './embed'
 import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
-import { OnToolCall } from './tools'
+import { maxRowLimit, OnToolCall } from './tools'
 
 export function useDebounce<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -265,7 +265,17 @@ export function useOnToolCall(databaseId: string) {
 
             const results = await db.exec(sql)
 
-            // Truncate vector columns due to their large size
+            const oversizedResult = results.find((result) => result.rows.length > maxRowLimit)
+
+            // We have a max row count in place to mitigate LLM token abuse
+            if (oversizedResult) {
+              return {
+                success: false,
+                error: `Query produced ${oversizedResult.rows.length} rows but the max allowed limit is ${maxRowLimit}. Rerun the query with a limit of ${maxRowLimit}.`,
+              }
+            }
+
+            // Truncate vector columns due to their large size (display purposes only)
             const filteredResults = results.map((result) => {
               const vectorFields = result.fields.filter(
                 (field) => field.dataTypeID === vectorDataTypeId

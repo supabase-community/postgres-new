@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
-import { convertToCoreTools, tools } from '~/lib/tools'
+import { convertToCoreTools, maxRowLimit, tools } from '~/lib/tools'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -33,17 +33,19 @@ export async function POST(req: Request) {
       - For primary keys, always use "id bigint primary key generated always as identity" (not serial)
       - Prefer 'text' over 'varchar'
       - Keep explanations brief but helpful
+      - Don't repeat yourself after creating the table
 
       When creating sample data:
       - Make the data realistic, including joined data
       - Check for existing records/conflicts in the table
 
-      When querying data, limit to 5 by default.
+      When querying data, limit to 5 by default. The maximum number of rows you're allowed to fetch is ${maxRowLimit} (to protect AI from token abuse).
+      If the user needs to fetch more than ${maxRowLimit} rows at once, they can export the query as a CSV.
 
       When performing FTS, always use 'simple' (languages aren't available).
 
       When importing CSVs try to solve the problem yourself (eg. use a generic text column, then refine)
-      vs. asking the user to change the CSV.
+      vs. asking the user to change the CSV. No need to select rows after importing.
       
       You also know math. All math equations and expressions must be written in KaTex and must be wrapped in double dollar \`$$\`:
         - Inline: $$\\sqrt{26}$$
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
 
       Feel free to suggest corrections for suspected typos.
     `,
-    model: openai('gpt-4o-2024-05-13'),
+    model: openai('gpt-4o-2024-08-06'),
     messages: convertToCoreMessages(messages),
     tools: convertToCoreTools(tools),
   })
