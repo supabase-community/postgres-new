@@ -17,6 +17,11 @@ function result<T extends z.ZodTypeAny>(schema: T) {
 }
 
 /**
+ * The maximum SQL result row limit to prevent overloading LLM.
+ */
+export const maxRowLimit = 100
+
+/**
  * The maximum number of messages from the chat history to send to the LLM.
  */
 export const maxMessageContext = 30

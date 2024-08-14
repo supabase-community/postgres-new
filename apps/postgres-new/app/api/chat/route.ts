@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
-import { convertToCoreTools, maxMessageContext, tools } from '~/lib/tools'
+import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -42,7 +42,8 @@ export async function POST(req: Request) {
       - Make the data realistic, including joined data
       - Check for existing records/conflicts in the table
 
-      When querying data, limit to 5 by default.
+      When querying data, limit to 5 by default. The maximum number of rows you're allowed to fetch is ${maxRowLimit} (to protect AI from token abuse).
+      If the user needs to fetch more than ${maxRowLimit} rows at once, they can export the query as a CSV.
 
       When performing FTS, always use 'simple' (languages aren't available).
 
