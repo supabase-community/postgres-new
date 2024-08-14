@@ -1,6 +1,6 @@
 import { AlertDialogPortal } from '@radix-ui/react-alert-dialog'
 import { Loader } from 'lucide-react'
-import { MouseEvent, useState } from 'react'
+import { MouseEvent, useEffect, useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
+import { useToast } from '~/components/ui/use-toast'
 import { Database } from '~/data/databases/database-type'
 import {
   DeployedDatabaseCreateResult,
@@ -29,6 +30,7 @@ export function ConfirmDatabaseRedeployAlert(props: ConfirmDatabaseRedeployAlert
   const [isOpen, setIsOpen] = useState(false)
   const { mutateAsync: deployDatabase, isPending: isDeploying } =
     useDeployedDatabaseCreateMutation()
+  const { toast } = useToast()
 
   function handleOpenChange(open: boolean) {
     setIsOpen(open)
@@ -37,13 +39,21 @@ export function ConfirmDatabaseRedeployAlert(props: ConfirmDatabaseRedeployAlert
 
   async function handleDeploy(e: MouseEvent) {
     e.preventDefault()
-    const data = await deployDatabase({
-      createdAt: props.database.createdAt,
-      databaseId: props.database.id,
-      name: props.database.name,
-    })
-    setIsOpen(false)
-    props.onSuccess(data)
+    try {
+      const data = await deployDatabase({
+        createdAt: props.database.createdAt,
+        databaseId: props.database.id,
+        name: props.database.name,
+      })
+      props.onSuccess(data)
+    } catch (error) {
+      toast({
+        title: 'Database deployment failed',
+        description: (error as Error).message,
+      })
+    } finally {
+      setIsOpen(false)
+    }
   }
 
   return (

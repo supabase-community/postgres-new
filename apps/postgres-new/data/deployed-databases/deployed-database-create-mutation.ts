@@ -32,7 +32,12 @@ export const useDeployedDatabaseCreateMutation = ({
       }
 
       const db = await dbManager.getDbInstance(variables.databaseId)
+
       const dump = await db.dumpDataDir()
+      const dumpSizeInMB = dump.size / (1024 * 1024)
+      if (dumpSizeInMB > 100) {
+        throw new Error("You can't deploy a database that is bigger than 100MB")
+      }
 
       const formData = new FormData()
       formData.append('dump', dump, 'dump.tar')

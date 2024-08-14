@@ -9,6 +9,7 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { useApp } from './app-provider'
 import Sidebar from './sidebar/sidebar'
+import { Toaster } from '~/components/ui/toaster'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -36,6 +37,7 @@ export default function Layout({ children }: LayoutProps) {
             </m.div>
           </main>
         </div>
+        <Toaster />
       </TooltipProvider>
     </LazyMotion>
   )
