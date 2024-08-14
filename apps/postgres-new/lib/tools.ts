@@ -17,6 +17,11 @@ function result<T extends z.ZodTypeAny>(schema: T) {
 }
 
 /**
+ * The maximum SQL result row limit to prevent overloading LLM.
+ */
+export const maxRowLimit = 100
+
+/**
  * Central location for all LLM tools including their
  * description, arg schema, and result schema.
  *
