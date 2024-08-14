@@ -1,9 +1,9 @@
 services:
-  db-service:
-    image: db-service
+  proxy:
+    image: proxy
     build:
       context: ../..
-      dockerfile: apps/db-service/Dockerfile
+      dockerfile: apps/proxy/Dockerfile
     env_file:
       - .env
     ports:
@@ -58,7 +58,7 @@ services:
       context: ./tools/dns
     environment:
       WILDCARD_DOMAIN: db.example.com
-      SERVICE_NAME: db-service
+      SERVICE_NAME: proxy
     networks:
       default:
         ipv4_address: 172.20.0.10

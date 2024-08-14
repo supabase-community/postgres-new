@@ -1,4 +1,5 @@
-app = 'postgres-new-dev'
+app = 'postgres-new-proxy'
+
 primary_region = 'yyz'
 
 [[services]]
@@ -20,7 +21,3 @@ soft_limit = 20
 memory = '1gb'
 cpu_kind = 'shared'
 cpus = 1
-
-[mounts]
-source = "postgres_new_data"
-destination = "/mnt/data"

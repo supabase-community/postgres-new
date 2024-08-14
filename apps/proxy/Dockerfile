@@ -61,12 +61,12 @@ RUN apt-get update && \
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 # We copy the root node_modules
 COPY --from=build-app /app/node_modules /app/node_modules
-# We copy the db-service folder
-COPY --from=build-app /app/apps/db-service /app/db-service
+# We copy the proxy folder
+COPY --from=build-app /app/apps/proxy /app/proxy
 
 EXPOSE 5432
 
-ENTRYPOINT [ "./db-service/entrypoint.sh" ]
+ENTRYPOINT [ "./proxy/entrypoint.sh" ]
 
 # Start the server by default, this can be overwritten at runtime
-CMD [ "node", "db-service/dist/index.js" ]
+CMD [ "node", "proxy/dist/index.js" ]

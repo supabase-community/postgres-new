@@ -1,4 +1,4 @@
-# postgres-new
+# @postgres-new/web
 
 In-browser Postgres sandbox with AI assistance. Built on Next.js.
 
@@ -25,7 +25,7 @@ Authentication and users are managed by a [Supabase](https://supabase.com/) data
 
 ## Development
 
-From this directory (`./apps/postgres-new`):
+From this directory (`./apps/web`):
 
 1. Install dependencies:
    ```shell

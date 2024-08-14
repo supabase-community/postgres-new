@@ -6,5 +6,5 @@ dist
 .next
 
 apps
-!apps/db-service
+!apps/proxy
 !packages/supabase/dist

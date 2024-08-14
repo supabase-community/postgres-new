@@ -1,5 +1,5 @@
 .:53 {
-    # Resolve all wildcard domain requests to the db-service
+    # Resolve all wildcard domain requests to the proxy
     template IN ANY {$WILDCARD_DOMAIN} {
         answer "{{ .Name }} 60 IN CNAME {$SERVICE_NAME}"
     }
