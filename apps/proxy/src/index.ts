@@ -65,6 +65,14 @@ const server = net.createServer((socket) => {
   let db: PGliteInterface
 
   const connection = new PostgresConnection(socket, {
+    serverVersion: async () => {
+      const {
+        rows: [{ version }],
+      } = await db.query<{ version: string }>(
+        `select split_part(current_setting('server_version'), '.', 1) as version;`
+      )
+      return version
+    },
     auth: {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
