@@ -37,18 +37,17 @@ RUN apt-get update -qq && \
     pkg-config \
     build-essential 
 
-# Install node modules
-COPY --link package.json .
-RUN npm install --production=false
-
-# Copy application code
+# Copy everything
 COPY --link . .
 
+# Install dependencies
+RUN npm install -w @postgres-new/proxy --production=false
+
 # Build app
-RUN npm run build
+RUN npm run -w @postgres-new/proxy build 
 
 # Remove development dependencies
-RUN npm prune --production
+RUN npm prune -w @postgres-new/proxy --production
 
 # Final stage for app image
 FROM base
@@ -60,11 +59,14 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
-COPY --from=build-app /app /app
+# We copy the root node_modules
+COPY --from=build-app /app/node_modules /app/node_modules
+# We copy the db-service folder
+COPY --from=build-app /app/apps/db-service /app/db-service
 
 EXPOSE 5432
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT [ "./db-service/entrypoint.sh" ]
 
 # Start the server by default, this can be overwritten at runtime
-CMD [ "node", "dist/index.js" ]
+CMD [ "node", "db-service/dist/index.js" ]

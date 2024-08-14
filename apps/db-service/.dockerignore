@@ -1,5 +1,10 @@
-fly.toml
-Dockerfile
-.dockerignore
 node_modules
 .git
+.vscode
+.github
+dist
+.next
+
+apps
+!apps/db-service
+!packages/supabase/dist

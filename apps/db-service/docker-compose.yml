@@ -2,7 +2,8 @@ services:
   db-service:
     image: db-service
     build:
-      context: .
+      context: ../..
+      dockerfile: apps/db-service/Dockerfile
     env_file:
       - .env
     ports:
