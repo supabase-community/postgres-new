@@ -21,7 +21,7 @@ trap 'cleanup' EXIT
 mkdir -p $S3FS_MOUNT
 
 # Mount the S3 bucket
-s3fs $AWS_S3_BUCKET $S3FS_MOUNT -o use_path_request_style -o url=$AWS_ENDPOINT_URL_S3 -o endpoint=$AWS_REGION
+s3fs $AWS_S3_BUCKET $S3FS_MOUNT -o use_path_request_style -o url=$AWS_ENDPOINT_URL_S3 -o endpoint=$AWS_REGION -o use_cache=/tmp
 
 # Check if the mount was successful
 if mountpoint -q $S3FS_MOUNT; then

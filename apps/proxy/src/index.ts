@@ -143,10 +143,11 @@ const server = net.createServer((socket) => {
       // at this point we know sniServerName is set
       const databaseId = getIdFromServerName(tlsInfo!.sniServerName!)
 
-      console.log(`Serving database '${databaseId}'`)
+      log(`Serving database '${databaseId}'`)
 
       const dbPath = `${dbDir}/${databaseId}`
 
+      log('opening database...')
       db = new PGlite({
         dataDir: dbPath,
         extensions: {
@@ -154,6 +155,7 @@ const server = net.createServer((socket) => {
         },
       })
       await db.waitReady
+      log('database open and ready')
       const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
       if (rows.length === 0) {
         await db.exec(`
@@ -162,6 +164,7 @@ const server = net.createServer((socket) => {
         `)
       }
       await db.close()
+      log('reopening database...')
       db = new PGlite({
         dataDir: dbPath,
         username: 'readonly_postgres',
@@ -170,6 +173,7 @@ const server = net.createServer((socket) => {
         },
       })
       await db.waitReady
+      log('database reopened and ready')
     },
     async onMessage(data, { isAuthenticated }) {
       // Only forward messages to PGlite after authentication
@@ -189,11 +193,16 @@ const server = net.createServer((socket) => {
   })
 
   socket.on('close', async () => {
-    console.log('Client disconnected')
+    log('Client disconnected')
     await db?.close()
   })
 })
 
 server.listen(5432, async () => {
-  console.log('Server listening on port 5432')
+  log('Server listening on port 5432')
 })
+
+function log(message: string) {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] ${message}`)
+}
