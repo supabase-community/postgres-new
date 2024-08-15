@@ -1,14 +1,14 @@
 'use client'
 
 import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import { createContext, useCallback, useContext } from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId, ensureToolResult } from '~/lib/util'
-import Chat, { getInitialMessages } from './chat'
+import Chat from './chat'
 import IDE from './ide'
 
 // TODO: support public/private DBs that live in the cloud
@@ -61,16 +61,13 @@ export default function Workspace({
   })
   const { data: existingMessages, isLoading: isLoadingMessages } = useMessagesQuery(databaseId)
 
-  const initialMessages = useMemo(() => (tables ? getInitialMessages(tables) : undefined), [tables])
-
   const { messages, setMessages, append, stop } = useChat({
     id: databaseId,
     api: '/api/chat',
     maxToolRoundtrips: 10,
     keepLastMessageOnError: true,
     onToolCall: onToolCall as any, // our `OnToolCall` type is more specific than `ai` SDK's
-    initialMessages:
-      existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
+    initialMessages: existingMessages && existingMessages.length > 0 ? existingMessages : [],
     async onFinish(message) {
       // Order is important here
       await onReply?.(message, append)
@@ -99,8 +96,7 @@ export default function Workspace({
     onCancelReply?.(append)
   }, [onCancelReply, stop, append])
 
-  const isConversationStarted =
-    initialMessages !== undefined && messages.length > initialMessages.length
+  const isConversationStarted = messages.length > 0
 
   return (
     <WorkspaceContext.Provider
