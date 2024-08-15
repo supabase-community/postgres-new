@@ -12,6 +12,9 @@ services:
       - /dev/fuse
     cap_add:
       - SYS_ADMIN
+    depends_on:
+      tls-init:
+        condition: service_completed_successfully
 
   tls-init:
     image: tls-init
