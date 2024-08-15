@@ -2,7 +2,7 @@ import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '~/utils/supabase/server'
 
-const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
+const s3Client = new S3Client({ forcePathStyle: true })
 
 export type DatabaseDeleteResponse =
   | {
@@ -57,7 +57,7 @@ export async function DELETE(
   try {
     await s3Client.send(
       new DeleteObjectCommand({
-        Bucket: process.env.S3_BUCKET,
+        Bucket: process.env.AWS_S3_BUCKET,
         Key: key,
       })
     )

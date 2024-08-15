@@ -8,7 +8,7 @@ import { createScramSha256Data } from 'pg-gateway'
 import { generateDatabasePassword } from '~/utils/generate-database-password'
 
 const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
-const s3Client = new S3Client({ endpoint: process.env.S3_ENDPOINT, forcePathStyle: true })
+const s3Client = new S3Client({ forcePathStyle: true })
 
 export type DatabaseUploadResponse =
   | {
@@ -82,7 +82,7 @@ export async function POST(
   const upload = new Upload({
     client: s3Client,
     params: {
-      Bucket: process.env.S3_BUCKET,
+      Bucket: process.env.AWS_S3_BUCKET,
       Key: key,
       Body: body.pipe(gzip),
     },
