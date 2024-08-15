@@ -61,6 +61,8 @@ RUN apt-get update && \
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 # We copy the root node_modules
 COPY --from=build-app /app/node_modules /app/node_modules
+# We copy the package-lock.json for PGlite version detection
+COPY --from=build-app /app/package-lock.json /app/package-lock.json
 # We copy the proxy folder
 COPY --from=build-app /app/apps/proxy /app/proxy
 

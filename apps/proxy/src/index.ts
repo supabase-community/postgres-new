@@ -10,20 +10,25 @@ import { extract } from 'tar'
 import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
+import { findUp } from 'find-up'
 
 const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 const dataMount = process.env.DATA_MOUNT ?? './data'
 const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
-const packageJson = JSON.parse(
-  await readFile(path.join(import.meta.dirname, '..', 'package.json'), 'utf8')
-) as {
-  dependencies: {
-    '@electric-sql/pglite': string
+const packageLockJsonPath = await findUp('package-lock.json')
+if (!packageLockJsonPath) {
+  throw new Error('package-lock.json not found')
+}
+const packageLockJson = JSON.parse(await readFile(packageLockJsonPath, 'utf8')) as {
+  packages: {
+    'node_modules/@electric-sql/pglite': {
+      version: string
+    }
   }
 }
-const pgliteVersion = `(PGlite ${packageJson.dependencies['@electric-sql/pglite']})`
+const pgliteVersion = `(PGlite ${packageLockJson.packages['node_modules/@electric-sql/pglite'].version})`
 
 const dumpDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
