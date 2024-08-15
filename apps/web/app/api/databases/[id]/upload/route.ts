@@ -1,11 +1,10 @@
-import { S3Client } from '@aws-sdk/client-s3'
+import { S3Client, CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { NextRequest, NextResponse } from 'next/server'
-import { createGzip } from 'zlib'
-import { Readable } from 'stream'
 import { createClient } from '~/utils/supabase/server'
 import { createScramSha256Data } from 'pg-gateway'
 import { generateDatabasePassword } from '~/utils/generate-database-password'
+import { entries } from 'streaming-tar'
 
 const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ forcePathStyle: true })
@@ -62,6 +61,7 @@ export async function POST(
     )
   }
 
+  // TODO: we should check the size of the uncompressed tarball
   const dumpSizeInMB = dump.size / (1024 * 1024)
   if (dumpSizeInMB > 100) {
     return NextResponse.json(
@@ -74,21 +74,51 @@ export async function POST(
   }
 
   const databaseId = params.id
-  const key = `dbs/${databaseId}.tar.gz`
+  const directoryPrefix = `dbs/${databaseId}`
+  const tarEntryStream =
+    dump.type === 'application/x-gzip'
+      ? dump.stream().pipeThrough(new DecompressionStream('gzip'))
+      : dump.stream()
+  const uploads: Promise<CompleteMultipartUploadCommandOutput>[] = []
 
-  const gzip = createGzip()
-  const body = Readable.from(streamToAsyncIterable(dump.stream()))
+  for await (const entry of entries(tarEntryStream)) {
+    let upload: Upload
 
-  const upload = new Upload({
-    client: s3Client,
-    params: {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: key,
-      Body: body.pipe(gzip),
-    },
-  })
+    switch (entry.type) {
+      case 'file': {
+        const buffer = new Uint8Array(await entry.arrayBuffer())
+        upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: `${directoryPrefix}${entry.name}`,
+            Body: buffer,
+          },
+        })
+        break
+      }
+      case 'directory': {
+        // Directories end in '/' and have an empty body
+        upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: `${directoryPrefix}${entry.name}/`,
+            Body: new Uint8Array(),
+          },
+        })
+        await entry.skip()
+        break
+      }
+      default: {
+        continue
+      }
+    }
 
-  await upload.done()
+    uploads.push(upload.done())
+  }
+
+  await Promise.all(uploads)
 
   const { data: existingDeployedDatabase } = await supabase
     .from('deployed_databases')
@@ -126,17 +156,4 @@ export async function POST(
       databaseName: 'postgres',
     },
   })
-}
-
-async function* streamToAsyncIterable(stream: ReadableStream) {
-  const reader = stream.getReader()
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) return
-      yield value
-    }
-  } finally {
-    reader.releaseLock()
-  }
 }

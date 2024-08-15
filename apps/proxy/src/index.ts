@@ -1,11 +1,7 @@
 import { PGlite, PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import { mkdir, readFile, access, rm } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import net from 'node:net'
-import { createReadStream } from 'node:fs'
-import { pipeline } from 'node:stream/promises'
-import { createGunzip } from 'node:zlib'
-import { extract } from 'tar'
 import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
@@ -13,7 +9,6 @@ import { findUp } from 'find-up'
 
 const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
-const dataMount = process.env.DATA_MOUNT ?? './data'
 const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
 const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
 const packageLockJsonPath = await findUp('package-lock.json')
@@ -29,11 +24,9 @@ const packageLockJson = JSON.parse(await readFile(packageLockJsonPath, 'utf8')) 
 }
 const pgliteVersion = `(PGlite ${packageLockJson.packages['node_modules/@electric-sql/pglite'].version})`
 
-const dumpDir = `${s3fsMount}/dbs`
+const dbDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
-const dbDir = `${dataMount}/dbs`
 
-await mkdir(dumpDir, { recursive: true })
 await mkdir(dbDir, { recursive: true })
 await mkdir(tlsDir, { recursive: true })
 
@@ -61,15 +54,6 @@ function sendFatalError(connection: PostgresConnection, code: string, message: s
   })
   connection.socket.end()
   return new Error(message)
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
 }
 
 const supabase = createClient<Database>(supabaseUrl, supabaseKey)
@@ -162,40 +146,6 @@ const server = net.createServer((socket) => {
       console.log(`Serving database '${databaseId}'`)
 
       const dbPath = `${dbDir}/${databaseId}`
-
-      if (!(await fileExists(dbPath))) {
-        console.log(`Database '${databaseId}' is not cached, downloading...`)
-
-        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`
-
-        if (!(await fileExists(dumpPath))) {
-          connection.sendError({
-            severity: 'FATAL',
-            code: 'XX000',
-            message: `database ${databaseId} not found`,
-          })
-          connection.socket.end()
-          return
-        }
-
-        // Create a directory for the database
-        await mkdir(dbPath, { recursive: true })
-
-        try {
-          // Extract the .tar.gz file
-          await pipeline(createReadStream(dumpPath), createGunzip(), extract({ cwd: dbPath }))
-        } catch (error) {
-          console.error(error)
-          await rm(dbPath, { recursive: true, force: true }) // Clean up the partially created directory
-          connection.sendError({
-            severity: 'FATAL',
-            code: 'XX000',
-            message: `Error extracting database: ${(error as Error).message}`,
-          })
-          connection.socket.end()
-          return
-        }
-      }
 
       db = new PGlite({
         dataDir: dbPath,
