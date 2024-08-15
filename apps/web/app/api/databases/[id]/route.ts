@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '~/utils/supabase/server'
 
@@ -53,17 +53,40 @@ export async function DELETE(
 
   await supabase.from('deployed_databases').delete().eq('database_id', databaseId)
 
-  const key = `dbs/${databaseId}.tar.gz`
-  try {
-    await s3Client.send(
-      new DeleteObjectCommand({
+  async function recursiveDelete(token?: string) {
+    // get the files
+    const listCommand = new ListObjectsV2Command({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Prefix: `dbs/${databaseId}`,
+      ContinuationToken: token,
+    })
+    let list = await s3Client.send(listCommand)
+    if (list.KeyCount) {
+      // if items to delete
+      // delete the files
+      const deleteCommand = new DeleteObjectsCommand({
         Bucket: process.env.AWS_S3_BUCKET,
-        Key: key,
+        Delete: {
+          Objects: list.Contents!.map((item) => ({ Key: item.Key })),
+          Quiet: false,
+        },
       })
-    )
-  } catch (error) {
-    console.error(`Error deleting S3 object ${key}:`, error)
+      let deleted = await s3Client.send(deleteCommand)
+
+      // log any errors deleting files
+      if (deleted.Errors) {
+        deleted.Errors.map((error) =>
+          console.log(`${error.Key} could not be deleted - ${error.Code}`)
+        )
+      }
+    }
+    // repeat if more files to delete
+    if (list.NextContinuationToken) {
+      await recursiveDelete(list.NextContinuationToken)
+    }
   }
+  // start the recursive function
+  await recursiveDelete()
 
   return NextResponse.json({
     success: true,
