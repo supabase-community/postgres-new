@@ -26,27 +26,6 @@ import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
 
-export function getInitialMessages(tables: TablesData): Message[] {
-  return [
-    // An artificial tool call containing the DB schema
-    // as if it was already called by the LLM
-    {
-      id: generateId(),
-      role: 'assistant',
-      content: '',
-      toolInvocations: [
-        {
-          state: 'result',
-          toolCallId: generateId(),
-          toolName: 'getDatabaseSchema',
-          args: {},
-          result: tables,
-        },
-      ],
-    },
-  ]
-}
-
 export default function Chat() {
   const { user, isLoadingUser, focusRef, setIsSignInDialogOpen } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
