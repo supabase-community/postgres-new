@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI } from '@ai-sdk/openai'
 import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
 import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
@@ -11,6 +11,15 @@ type Message = {
   content: string
   toolInvocations?: (ToolInvocation & { result: any })[]
 }
+
+const chatModel = process.env.OPENAI_MODEL || 'gpt-4o-2024-08-06'
+
+// Configure OpenAI client with custom base URL
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+  compatibility: 'strict',
+})
 
 export async function POST(req: Request) {
   const { messages }: { messages: Message[] } = await req.json()
@@ -49,7 +58,7 @@ export async function POST(req: Request) {
 
       When importing CSVs try to solve the problem yourself (eg. use a generic text column, then refine)
       vs. asking the user to change the CSV. No need to select rows after importing.
-      
+
       You also know math. All math equations and expressions must be written in KaTex and must be wrapped in double dollar \`$$\`:
         - Inline: $$\\sqrt{26}$$
         - Multiline:
@@ -61,7 +70,7 @@ export async function POST(req: Request) {
 
       Feel free to suggest corrections for suspected typos.
     `,
-    model: openai('gpt-4o-2024-08-06'),
+    model: openai(chatModel),
     messages: convertToCoreMessages(trimmedMessageContext),
     tools: convertToCoreTools(tools),
   })
