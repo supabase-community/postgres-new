@@ -16,14 +16,15 @@ services:
   tls-init:
     image: tls-init
     build:
-      context: .
+      context: ../..
+      dockerfile: apps/proxy/Dockerfile
     env_file:
       - .env
     devices:
       - /dev/fuse
     cap_add:
       - SYS_ADMIN
-    command: ./scripts/generate-certs.sh
+    command: ./proxy/scripts/generate-certs.sh
 
   dns:
     build:
