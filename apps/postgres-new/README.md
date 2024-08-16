@@ -46,7 +46,16 @@ From this directory (`./apps/postgres-new`):
    ```shell
    echo 'OPENAI_API_KEY="<openai-api-key>"' >> .env.local
    ```
-5. Start Next.js development server:
+5. Start local Redis containers (used for rate limiting). Serves an API on port 8080:
+   ```shell
+   docker compose up -d
+   ```
+6. Store local KV (Redis) vars. Use these exact values:
+   ```shell
+   echo 'KV_REST_API_URL="http://localhost:8080"' >> .env.local
+   echo 'KV_REST_API_TOKEN="local_token"' >> .env.local
+   ```
+7. Start Next.js development server:
    ```shell
    npm run dev
    ```
