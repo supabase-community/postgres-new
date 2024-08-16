@@ -12,7 +12,7 @@ type Message = {
   toolInvocations?: (ToolInvocation & { result: any })[]
 }
 
-const chatModel = process.env.OPENAI_MODEL || 'gpt-4o-2024-08-06'
+const chatModel = process.env.OPENAI_MODEL ?? 'gpt-4o-2024-08-06'
 
 // Configure OpenAI client with custom base URL
 const openai = createOpenAI({
