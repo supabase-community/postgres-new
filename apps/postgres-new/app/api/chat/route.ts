@@ -17,7 +17,7 @@ const chatModel = process.env.OPENAI_MODEL || 'gpt-4o-2024-08-06'
 // Configure OpenAI client with custom base URL
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  baseURL: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+  baseURL: process.env.OPENAI_API_BASE ?? 'https://api.openai.com/v1',
   compatibility: 'strict',
 })
 
