@@ -28,6 +28,7 @@ export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
+  const [isRateLimited, setIsRateLimited] = useState(false)
 
   const focusRef = useRef<FocusHandle>(null)
 
@@ -113,6 +114,8 @@ export default function AppProvider({ children }: AppProps) {
         signOut,
         isSignInDialogOpen,
         setIsSignInDialogOpen,
+        isRateLimited,
+        setIsRateLimited,
         focusRef,
         isPreview,
         dbManager,
@@ -136,6 +139,8 @@ export type AppContextValues = {
   signOut: () => Promise<void>
   isSignInDialogOpen: boolean
   setIsSignInDialogOpen: (open: boolean) => void
+  isRateLimited: boolean
+  setIsRateLimited: (limited: boolean) => void
   focusRef: RefObject<FocusHandle>
   isPreview: boolean
   dbManager?: DbManager

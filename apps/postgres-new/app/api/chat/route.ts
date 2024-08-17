@@ -1,10 +1,25 @@
 import { openai } from '@ai-sdk/openai'
+import { Ratelimit } from '@upstash/ratelimit'
+import { kv } from '@vercel/kv'
 import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
 import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
+import { createClient } from '~/utils/supabase/server'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
+
+const inputTokenRateLimit = new Ratelimit({
+  redis: kv,
+  limiter: Ratelimit.fixedWindow(1000000, '30m'),
+  prefix: 'ratelimit:tokens:input',
+})
+
+const outputTokenRateLimit = new Ratelimit({
+  redis: kv,
+  limiter: Ratelimit.fixedWindow(10000, '30m'),
+  prefix: 'ratelimit:tokens:output',
+})
 
 type Message = {
   role: 'user' | 'assistant'
@@ -13,6 +28,24 @@ type Message = {
 }
 
 export async function POST(req: Request) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.auth.getUser()
+
+  // We have middleware, so this should never happen (used for type narrowing)
+  if (error) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const { user } = data
+
+  const { remaining: inputRemaining } = await inputTokenRateLimit.getRemaining(user.id)
+  const { remaining: outputRemaining } = await outputTokenRateLimit.getRemaining(user.id)
+
+  if (inputRemaining <= 0 || outputRemaining <= 0) {
+    return new Response('Rate limited', { status: 429 })
+  }
+
   const { messages }: { messages: Message[] } = await req.json()
 
   // Trim the message context sent to the LLM to mitigate token abuse
@@ -64,6 +97,14 @@ export async function POST(req: Request) {
     model: openai('gpt-4o-2024-08-06'),
     messages: convertToCoreMessages(trimmedMessageContext),
     tools: convertToCoreTools(tools),
+    async onFinish({ usage }) {
+      await inputTokenRateLimit.limit(user.id, {
+        rate: usage.promptTokens,
+      })
+      await outputTokenRateLimit.limit(user.id, {
+        rate: usage.completionTokens,
+      })
+    },
   })
 
   return result.toAIStreamResponse()

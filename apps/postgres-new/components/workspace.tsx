@@ -8,6 +8,7 @@ import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId, ensureToolResult } from '~/lib/util'
+import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
 
@@ -51,6 +52,7 @@ export default function Workspace({
   onReply,
   onCancelReply,
 }: WorkspaceProps) {
+  const { setIsRateLimited } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -75,6 +77,9 @@ export default function Workspace({
       // Order is important here
       await onReply?.(message, append)
       await saveMessage({ message })
+    },
+    async onResponse(response) {
+      setIsRateLimited(response.status === 429)
     },
   })
 
