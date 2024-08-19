@@ -12,7 +12,6 @@ export const env = z
     CACHE_SCHEDULE_INTERVAL: z.string().transform((val) => parseInt(val, 10)),
     CACHE_TIMESTAMP_FILE: z.string(),
     CACHE_TTL: z.string().transform((val) => parseInt(val, 10)),
-    DATA_MOUNT: z.string(),
     S3FS_MOUNT: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     SUPABASE_URL: z.string(),
