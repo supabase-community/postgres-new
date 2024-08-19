@@ -19,7 +19,7 @@ RUN apk add --no-cache \
   fuse-dev \
   curl-dev
 
-RUN git clone https://github.com/supabase/s3fs-fuse.git --branch s3/support-endpoint-with-uris && \
+RUN git clone https://github.com/supabase/s3fs-fuse.git --depth 1 --branch s3/support-endpoint-with-uris && \
   cd s3fs-fuse && \
   ./autogen.sh && \
   ./configure && \
