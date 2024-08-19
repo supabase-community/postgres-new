@@ -1,3 +1,4 @@
 app = 'postgres-new-certbot'
 
-primary_region = 'yyz'
+[[vm]]
+size = "shared-cpu-1x"
