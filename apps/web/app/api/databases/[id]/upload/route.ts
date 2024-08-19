@@ -6,6 +6,7 @@ import { Readable } from 'stream'
 import { createClient } from '~/utils/supabase/server'
 import { createScramSha256Data } from 'pg-gateway'
 import { generateDatabasePassword } from '~/utils/generate-database-password'
+import { getUncompressedSizeInMB } from '~/utils/get-uncompressed-size-in-mb'
 
 const wildcardDomain = process.env.NEXT_PUBLIC_WILDCARD_DOMAIN ?? 'db.example.com'
 const s3Client = new S3Client({ forcePathStyle: true })
@@ -62,8 +63,7 @@ export async function POST(
     )
   }
 
-  const dumpSizeInMB = dump.size / (1024 * 1024)
-  if (dumpSizeInMB > 100) {
+  if ((await getUncompressedSizeInMB(dump)) > 100) {
     return NextResponse.json(
       {
         success: false,

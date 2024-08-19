@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Paperclip, Square } from 'lucide-react'
+import { ArrowDown, ArrowUp, Flame, Paperclip, Square } from 'lucide-react'
 import {
   ChangeEvent,
   FormEventHandler,
@@ -49,7 +49,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef } = useApp()
+  const { user, isLoadingUser, focusRef, isRateLimited } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -262,6 +262,32 @@ export default function Chat() {
                   isLast={i === messages.length - 1}
                 />
               ))}
+              <AnimatePresence initial={false}>
+                {isRateLimited && !isLoading && (
+                  <m.div
+                    layout="position"
+                    className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
+                    variants={{
+                      hidden: { scale: 0 },
+                      show: { scale: 1, transition: { delay: 0.5 } },
+                    }}
+                    initial="hidden"
+                    animate="show"
+                    exit="hidden"
+                  >
+                    <Flame size={64} strokeWidth={1} />
+                    <div className="flex flex-col items-center text-start gap-4">
+                      <h3 className="font-bold">Hang tight!</h3>
+                      <p>
+                        We&apos;re seeing a lot of AI traffic from your end and need to temporarily
+                        pause your chats to make sure our servers don&apos;t melt.
+                      </p>
+
+                      <p>Have a quick coffee break and try again in a few minutes!</p>
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
               <AnimatePresence>
                 {isLoading && (
                   <m.div

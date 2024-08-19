@@ -1,6 +1,10 @@
 app = 'postgres-new-proxy'
 
-primary_region = 'yyz'
+primary_region = 'iad'
+
+[build]
+dockerfile = "Dockerfile"
+ignorefile = ".dockerignore"
 
 [env]
 CACHE_DISK_USAGE_THRESHOLD = "90"
