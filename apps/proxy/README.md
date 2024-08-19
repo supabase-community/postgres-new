@@ -84,8 +84,32 @@ To stop all Docker containers, run:
 docker compose down
 ```
 
-## Deployment
+## Deploying to fly.io
 
-The proxy is deployed on Fly.io.
+1. Create a new app if it doesn't exist
 
-A Tigris bucket is used to store the DB tarballs and the TLS certificates.
+   ```shell
+   fly apps create postgres-new-proxy
+   ```
+
+2. Set the appropriate environment variables and secrets for the app "postgres-new-proxy" (see `.env.example`) in fly.io UI.
+
+3. Allocate a dedicated IPv4 address for the app, it's required to resolve wildcard DNS queries correctly.
+
+   ```shell
+   fly ips allocate-v4
+   ```
+
+4. On Cloudflare, add a new CNAME DNS record pointing to the Fly.io app domain:
+
+   | Type | Name | Value |
+   | --- | --- | --- |
+   | CNAME | *.db | postgres-new-proxy.fly.dev |
+
+5. Deploy the app
+   
+   Due to a bug in `fly` ignoring `.dockerignore` files when setting up a build context, we need to copy the file to the root of the repo and remove it after the deploy.
+
+   ```shell
+   cp .dockerignore ../.. && fly deploy ../.. --config apps/proxy/fly.toml && rm ../../.dockerignore
+   ```

@@ -32,23 +32,23 @@ The certificates will be generated in `/mnt/s3/tls`.
 
 1. Create a new app if it doesn't exist
 
-```shell
-fly apps create postgres-new-certbot
-```
+  ```shell
+  fly apps create postgres-new-certbot
+  ```
 
 2. Build and deploy the Docker image to fly.io image registry
 
-```shell
-fly deploy --build-only --push --image-label latest
-```
+  ```shell
+  fly deploy --build-only --push --image-label latest
+  ```
 
 3. Set the appropriate environment variables and secrets for the app "postgres-new-certbot" (see `.env.example`) in fly.io UI.
 
 4. Deploy the machine with a schedule
 
-```shell
-fly machine run registry.fly.io/postgres-new-certbot:latest "./certbot.sh" --region iad --schedule weekly
-```
+  ```shell
+  fly machine run registry.fly.io/postgres-new-certbot:latest "./certbot.sh" --region iad --schedule weekly
+  ```
 
 The machine will now be started weekly in order to renew the certificates.
 

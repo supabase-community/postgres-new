@@ -2,7 +2,7 @@
 
 # Adjust NODE_VERSION as desired
 ARG NODE_VERSION=20.16.0
-FROM node:${NODE_VERSION}-bookworm as base
+FROM node:${NODE_VERSION}-bookworm AS base
 
 LABEL fly_launch_runtime="NodeJS"
 
@@ -13,7 +13,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Build S3FS
-FROM base as build-s3fs
+FROM base AS build-s3fs
 
 # Install dependencies
 RUN apt-get update && \
@@ -28,7 +28,7 @@ RUN git clone https://github.com/supabase/s3fs-fuse.git --branch s3/support-endp
     make install
 
 # Build app
-FROM base as build-app
+FROM base AS build-app
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \

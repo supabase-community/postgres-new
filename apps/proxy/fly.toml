@@ -2,6 +2,10 @@ app = 'postgres-new-proxy'
 
 primary_region = 'iad'
 
+[build]
+dockerfile = "Dockerfile"
+ignorefile = ".dockerignore"
+
 [[services]]
 internal_port = 5432
 protocol = "tcp"
