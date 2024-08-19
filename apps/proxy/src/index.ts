@@ -10,12 +10,15 @@ import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
 import { findUp } from 'find-up'
+import { env } from './env.js'
+import { deleteCache } from './delete-cache.js'
+import path from 'node:path'
 
-const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
-const dataMount = process.env.DATA_MOUNT ?? './data'
-const s3fsMount = process.env.S3FS_MOUNT ?? './s3'
-const wildcardDomain = process.env.WILDCARD_DOMAIN ?? 'db.example.com'
+const supabaseUrl = env.SUPABASE_URL
+const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
+const s3fsMount = env.S3FS_MOUNT
+const wildcardDomain = env.WILDCARD_DOMAIN
+
 const packageLockJsonPath = await findUp('package-lock.json')
 if (!packageLockJsonPath) {
   throw new Error('package-lock.json not found')
@@ -31,10 +34,9 @@ const pgliteVersion = `(PGlite ${packageLockJson.packages['node_modules/@electri
 
 const dumpDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
-const dbDir = `${dataMount}/dbs`
 
 await mkdir(dumpDir, { recursive: true })
-await mkdir(dbDir, { recursive: true })
+await mkdir(env.CACHE_PATH, { recursive: true })
 await mkdir(tlsDir, { recursive: true })
 
 const tls: TlsOptions = {
@@ -76,6 +78,10 @@ const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 const server = net.createServer((socket) => {
   let db: PGliteInterface
+
+  deleteCache().catch((err) => {
+    console.error(`Error deleting cache: ${err}`)
+  })
 
   const connection = new PostgresConnection(socket, {
     serverVersion: async () => {
@@ -161,12 +167,12 @@ const server = net.createServer((socket) => {
 
       console.log(`Serving database '${databaseId}'`)
 
-      const dbPath = `${dbDir}/${databaseId}`
+      const dbPath = path.join(env.CACHE_PATH, databaseId)
 
       if (!(await fileExists(dbPath))) {
         console.log(`Database '${databaseId}' is not cached, downloading...`)
 
-        const dumpPath = `${dumpDir}/${databaseId}.tar.gz`
+        const dumpPath = path.join(dumpDir, `${databaseId}.tar.gz`)
 
         if (!(await fileExists(dumpPath))) {
           connection.sendError({
