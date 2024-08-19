@@ -45,7 +45,12 @@ async function updateTimestampFile() {
   await fs.writeFile(env.CACHE_TIMESTAMP_FILE, now)
 }
 
+/**
+ * Get the disk usage of the root directory
+ */
 async function getDiskUsage() {
+  // awk 'NR==2 {print $5}' prints the 5th column of the df command which contains the percentage of the total disk space used
+  // sed 's/%//' removes the % from the output
   const command = `df / | awk 'NR==2 {print $5}' | sed 's/%//'`
   const { stdout } = await execAsync(command)
   return parseInt(stdout.trim(), 10)
