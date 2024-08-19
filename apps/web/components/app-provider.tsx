@@ -27,6 +27,7 @@ const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
 export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
+  const [isRateLimited, setIsRateLimited] = useState(false)
 
   const focusRef = useRef<FocusHandle>(null)
 
@@ -110,6 +111,8 @@ export default function AppProvider({ children }: AppProps) {
         isLoadingUser,
         signIn,
         signOut,
+        isRateLimited,
+        setIsRateLimited,
         focusRef,
         isPreview,
         dbManager,
@@ -131,6 +134,8 @@ export type AppContextValues = {
   isLoadingUser: boolean
   signIn: () => Promise<User | undefined>
   signOut: () => Promise<void>
+  isRateLimited: boolean
+  setIsRateLimited: (limited: boolean) => void
   focusRef: RefObject<FocusHandle>
   isPreview: boolean
   dbManager?: DbManager
