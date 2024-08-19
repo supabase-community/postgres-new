@@ -108,7 +108,7 @@ docker compose down
 
 5. Deploy the app
    
-   Due to a bug in `fly` ignoring `.dockerignore` files when setting up a build context, we need to copy the file to the root of the repo and remove it after the deploy.
+   Due to a [bug](https://github.com/superfly/flyctl/issues/3870) in `fly` ignoring `.dockerignore` files when setting up a build context, we need to copy the file to the root of the repo and remove it after the deploy.
 
    ```shell
    cp .dockerignore ../.. && fly deploy ../.. --config apps/proxy/fly.toml && rm ../../.dockerignore
