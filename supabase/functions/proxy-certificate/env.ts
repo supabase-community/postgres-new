@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts'
 
 export const env = z
   .object({
@@ -12,8 +12,8 @@ export const env = z
     CLOUDFLARE_API_TOKEN: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     // Fix for local development
-    SUPABASE_URL: z.string(), /*.transform((url) =>
+    SUPABASE_URL: z.string() /*.transform((url) =>
       url === "http://kong:8000" ? "http://172.17.0.1:54321" : url
-    ),*/
+    ),*/,
   })
-  .parse(Deno.env.toObject());
+  .parse(Deno.env.toObject())

@@ -1,136 +1,131 @@
-import { X509Certificate } from "node:crypto";
-import { NoSuchKey, S3 } from "npm:@aws-sdk/client-s3";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-import * as ACME from "https://deno.land/x/acme@v0.4.1/acme.ts";
-import { env } from "./env.ts";
+import { X509Certificate } from 'node:crypto'
+import { NoSuchKey, S3 } from 'npm:@aws-sdk/client-s3'
+import { createClient } from 'jsr:@supabase/supabase-js@2'
+import * as ACME from 'https://deno.land/x/acme@v0.4.1/acme.ts'
+import type { Database } from 'npm:@postgres-new/supabase'
+import { env } from './env.ts'
+
+const supabaseClient = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
 const s3Client = new S3({
   forcePathStyle: true,
-});
+})
 
 Deno.serve(async (req) => {
   // Check if the request is authorized
-  if (!await isAuthorized(req)) {
-    return Response.json({
-      status: "error",
-      message: "Unauthorized",
-    }, { status: 401 });
+  if (!(await isAuthorized(req))) {
+    return Response.json(
+      {
+        status: 'error',
+        message: 'Unauthorized',
+      },
+      { status: 401 }
+    )
   }
 
   // Check if we need to renew the certificate
-  const certificate = await getObject("tls/cert.pem");
+  const certificate = await getObject('tls/cert.pem')
   if (certificate) {
-    const { validTo } = new X509Certificate(certificate);
+    const { validTo } = new X509Certificate(certificate)
     // if the validity is more than 30 days, no need to renew
-    const day = 24 * 60 * 60 * 1000;
+    const day = 24 * 60 * 60 * 1000
     if (new Date(validTo) > new Date(Date.now() + 30 * day)) {
-      return new Response(null, { status: 304 });
+      return new Response(null, { status: 304 })
     }
   }
 
   // Load account keys if they exist
   const [publicKey, privateKey] = await Promise.all([
-    getObject("tls/account/publicKey.pem"),
-    getObject("tls/account/privateKey.pem"),
-  ]);
-  let accountKeys: { privateKeyPEM: string; publicKeyPEM: string } | undefined;
+    getObject('tls/account/publicKey.pem'),
+    getObject('tls/account/privateKey.pem'),
+  ])
+  let accountKeys: { privateKeyPEM: string; publicKeyPEM: string } | undefined
   if (publicKey && privateKey) {
     accountKeys = {
       privateKeyPEM: privateKey,
       publicKeyPEM: publicKey,
-    };
+    }
   }
 
-  const { domainCertificates, pemAccountKeys } = await ACME
-    .getCertificatesWithCloudflare(
-      env.CLOUDFLARE_API_TOKEN,
-      [
-        {
-          domainName: env.ACME_DOMAIN,
-          subdomains: ["*"],
-        },
-      ],
+  const { domainCertificates, pemAccountKeys } = await ACME.getCertificatesWithCloudflare(
+    env.CLOUDFLARE_API_TOKEN,
+    [
       {
-        acmeDirectoryUrl:
-          "https://acme-staging-v02.api.letsencrypt.org/directory",
-        yourEmail: env.ACME_EMAIL,
-        pemAccountKeys: accountKeys,
+        domainName: env.ACME_DOMAIN,
+        subdomains: ['*'],
       },
-    );
+    ],
+    {
+      acmeDirectoryUrl: 'https://acme-staging-v02.api.letsencrypt.org/directory',
+      yourEmail: env.ACME_EMAIL,
+      pemAccountKeys: accountKeys,
+    }
+  )
 
   const persistOperations = [
     s3Client.putObject({
       Bucket: env.AWS_S3_BUCKET,
-      Key: "tls/key.pem",
+      Key: 'tls/key.pem',
       Body: domainCertificates[0].pemPrivateKey,
     }),
     s3Client.putObject({
       Bucket: env.AWS_S3_BUCKET,
-      Key: "tls/cert.pem",
+      Key: 'tls/cert.pem',
       Body: domainCertificates[0].pemCertificate,
     }),
-  ];
+  ]
 
   if (!accountKeys) {
     persistOperations.push(
       s3Client.putObject({
         Bucket: env.AWS_S3_BUCKET,
-        Key: "tls/account/publicKey.pem",
+        Key: 'tls/account/publicKey.pem',
         Body: pemAccountKeys.publicKeyPEM,
       }),
       s3Client.putObject({
         Bucket: env.AWS_S3_BUCKET,
-        Key: "tls/account/privateKey.pem",
+        Key: 'tls/account/privateKey.pem',
         Body: pemAccountKeys.privateKeyPEM,
-      }),
-    );
+      })
+    )
   }
 
-  await Promise.all(persistOperations);
+  await Promise.all(persistOperations)
 
   if (certificate) {
     return Response.json({
-      status: "renewed",
-      message: "Certificate renewed successfully",
-    });
+      status: 'renewed',
+      message: 'Certificate renewed successfully',
+    })
   }
 
   return Response.json(
     {
-      status: "created",
-      message: "New certificate created successfully",
+      status: 'created',
+      message: 'New certificate created successfully',
     },
-    { status: 201 },
-  );
-});
+    { status: 201 }
+  )
+})
 
 async function isAuthorized(req: Request) {
-  const authHeader = req.headers.get("Authorization");
+  const authHeader = req.headers.get('Authorization')
 
   if (!authHeader) {
-    return false;
+    return false
   }
 
-  const bearerToken = authHeader.split(" ")[1];
+  const bearerToken = authHeader.split(' ')[1]
 
-  const supabaseClient = createClient(
-    env.SUPABASE_URL,
-    env.SUPABASE_SERVICE_ROLE_KEY,
-  );
-
-  const { data } = await supabaseClient.schema("vault").from(
-    "decrypted_secrets",
-  ).select("decrypted_secret").eq(
-    "name",
-    "supabase_functions_proxy_certificate_secret",
+  const { data: sharedSecret } = await supabaseClient.rpc(
+    'supabase_functions_proxy_certificate_secret'
   )
-    .single();
 
-  if (!data || data.decrypted_secret !== bearerToken) {
-    return false;
+  if (sharedSecret !== bearerToken) {
+    return false
   }
 
-  return true;
+  return true
 }
 
 async function getObject(key: string) {
@@ -141,10 +136,10 @@ async function getObject(key: string) {
     })
     .catch((e) => {
       if (e instanceof NoSuchKey) {
-        return undefined;
+        return undefined
       }
-      throw e;
-    });
+      throw e
+    })
 
-  return await response?.Body?.transformToString();
+  return await response?.Body?.transformToString()
 }
