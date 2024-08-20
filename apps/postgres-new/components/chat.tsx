@@ -506,12 +506,7 @@ export default function Chat() {
                 return
               }
 
-              if ( e.nativeEvent.isComposing )
-              {
-                return
-              }
-
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 if (!isLoading && isSubmitEnabled) {
                   handleFormSubmit(e)
