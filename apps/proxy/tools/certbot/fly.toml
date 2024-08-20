@@ -1,4 +1,0 @@
-app = 'postgres-new-certbot'
-
-[[vm]]
-size = "shared-cpu-1x"
