@@ -1,15 +1,6 @@
 import { X509Certificate } from "node:crypto";
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/certificates' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json'
-
-*/
 import { NoSuchKey, S3 } from "npm:@aws-sdk/client-s3";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import * as ACME from "https://deno.land/x/acme@v0.4.1/acme.ts";
 import { env } from "./env.ts";
 
@@ -17,7 +8,15 @@ const s3Client = new S3({
   forcePathStyle: true,
 });
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  // Check if the request is authorized
+  if (!await isAuthorized(req)) {
+    return Response.json({
+      status: "error",
+      message: "Unauthorized",
+    }, { status: 401 });
+  }
+
   // Check if we need to renew the certificate
   const certificate = await getObject("tls/cert.pem");
   if (certificate) {
@@ -104,6 +103,35 @@ Deno.serve(async () => {
     { status: 201 },
   );
 });
+
+async function isAuthorized(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+
+  if (!authHeader) {
+    return false;
+  }
+
+  const bearerToken = authHeader.split(" ")[1];
+
+  const supabaseClient = createClient(
+    env.SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+
+  const { data } = await supabaseClient.schema("vault").from(
+    "decrypted_secrets",
+  ).select("decrypted_secret").eq(
+    "name",
+    "supabase_functions_proxy_certificate_secret",
+  )
+    .single();
+
+  if (!data || data.decrypted_secret !== bearerToken) {
+    return false;
+  }
+
+  return true;
+}
 
 async function getObject(key: string) {
   const response = await s3Client
