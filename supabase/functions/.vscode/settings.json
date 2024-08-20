@@ -1,0 +1,13 @@
+{
+  "prettier.enable": false,
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": false,
+  "deno.config": "./deno.jsonc",
+  "[jsonc]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}
