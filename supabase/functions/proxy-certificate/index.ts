@@ -1,3 +1,4 @@
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { X509Certificate } from 'node:crypto'
 import { NoSuchKey, S3 } from 'npm:@aws-sdk/client-s3'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
