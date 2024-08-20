@@ -11,9 +11,6 @@ export const env = z
     AWS_REGION: z.string(),
     CLOUDFLARE_API_TOKEN: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
-    // Fix for local development
-    SUPABASE_URL: z.string() /*.transform((url) =>
-      url === "http://kong:8000" ? "http://172.17.0.1:54321" : url
-    ),*/,
+    SUPABASE_URL: z.string(),
   })
   .parse(Deno.env.toObject())
