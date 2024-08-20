@@ -1,6 +1,6 @@
 {
   "name": "@postgres-new/supabase-functions",
   "compilerOptions": {
-    "types": ["jsr:@supabase/functions-js/edge-runtime.d.ts"],
-  },
+    "types": ["jsr:@supabase/functions-js/edge-runtime.d.ts"]
+  }
 }
