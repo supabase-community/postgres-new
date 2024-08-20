@@ -1,0 +1,12 @@
+.:53 {
+    # Resolve all wildcard domain requests to the proxy
+    template IN ANY {$WILDCARD_DOMAIN} {
+        answer "{{ .Name }} 60 IN CNAME {$SERVICE_NAME}"
+    }
+
+    # Forward any other queries to Docker DNS
+    forward . 127.0.0.11
+    
+    log
+    errors
+}

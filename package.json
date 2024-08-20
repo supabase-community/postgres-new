@@ -1,12 +1,12 @@
 {
+  "name": "@postgres-new/root",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --workspace postgres-new"
+    "dev": "npm run dev -w @postgres-new/web",
+    "supabase:seed-buckets": "supabase seed buckets --local"
   },
-  "workspaces": [
-    "apps/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
-    "supabase": "^1.187.8"
+    "supabase": "^1.190.1"
   }
 }
