@@ -57,7 +57,8 @@ Deno.serve(async (req) => {
       },
     ],
     {
-      acmeDirectoryUrl: 'https://acme-staging-v02.api.letsencrypt.org/directory',
+      // Uncomment to use let's encrypt staging environment
+      // acmeDirectoryUrl: 'https://acme-staging-v02.api.letsencrypt.org/directory',
       yourEmail: env.ACME_EMAIL,
       pemAccountKeys: accountKeys,
     }
