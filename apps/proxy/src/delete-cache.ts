@@ -10,19 +10,45 @@ async function deleteOldFolders() {
   const ttlInMillis = env.CACHE_TTL * 60 * 60 * 1000
 
   try {
-    const folders = await fs.readdir(env.CACHE_PATH)
-    for (const folder of folders) {
-      const folderPath = path.join(env.CACHE_PATH, folder)
-      const stats = await fs.stat(folderPath)
+    const databaseFolders = await fs.readdir(env.CACHE_PATH)
+    for (const databaseFolder of databaseFolders) {
+      console.log(`Deleting old folder: ${databaseFolder}`)
+      const databaseFolderPath = path.join(env.CACHE_PATH, databaseFolder)
+      const stats = await fs.stat(databaseFolderPath)
 
       if (stats.isDirectory() && now - stats.mtimeMs > ttlInMillis) {
-        await fs.rm(folderPath, { recursive: true, force: true })
-        console.log(`Deleted folder: ${folderPath}`)
+        if (!(await isConnectionsFolderEmpty(databaseFolderPath))) {
+          continue
+        }
+
+        await fs.rm(databaseFolderPath, { recursive: true, force: true })
+        console.log(`Deleted folder: ${databaseFolderPath}`)
       }
     }
   } catch (err) {
     console.error('Failed to delete old folders:', err)
   }
+}
+
+async function isConnectionsFolderEmpty(databaseFolderPath: string) {
+  const connectionsFolderPath = path.join(databaseFolderPath, 'connections')
+
+  try {
+    const connectionsStats = await fs.stat(connectionsFolderPath)
+    if (connectionsStats.isDirectory()) {
+      const connectionsFolderContents = await fs.readdir(connectionsFolderPath)
+      if (connectionsFolderContents.length > 0) {
+        console.log(`Skipping deletion of ${databaseFolderPath}: connections folder is not empty`)
+        return false
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && err.code !== 'ENOENT') {
+      throw err
+    }
+  }
+
+  return true
 }
 
 async function scriptAlreadyRan() {
@@ -94,6 +120,11 @@ export async function deleteCache() {
     // Loop through the folders and delete them one by one until disk usage is below the threshold
     for (const folder of folders) {
       console.log(`Deleting folder: ${folder}`)
+
+      if (!(await isConnectionsFolderEmpty(folder))) {
+        continue
+      }
+
       await fs.rm(folder, { recursive: true, force: true })
 
       diskUsage = await getDiskUsage()
