@@ -234,14 +234,10 @@ async function initializePgData(params: { databaseId: string; connectionId: stri
   const connectionRootPath = path.join(databaseRootPath, 'connections', params.connectionId)
   await mkdir(connectionRootPath, { recursive: true })
 
-  // trick to make it works in Docker: https://stackoverflow.com/a/67208735
-  let overlayPath = connectionRootPath
-  if (env.DOCKER_RUNTIME) {
-    overlayPath = path.join(connectionRootPath, 'overlay')
-    await mkdir(overlayPath)
-    await exec(`mount -t tmpfs tmpfs ${overlayPath}`)
-  }
-
+  // isolate the writable parts of overlayfs in tmpfs to make it works in Docker and Fly: https://stackoverflow.com/a/67208735
+  const overlayPath = path.join(connectionRootPath, 'overlay')
+  await mkdir(overlayPath)
+  await exec(`mount -t tmpfs tmpfs ${overlayPath}`)
   const upPath = path.join(overlayPath, 'up')
   const workPath = path.join(overlayPath, 'work')
 
@@ -332,11 +328,9 @@ async function cleanupPgdata(params: { databaseId: string; connectionId: string 
 
   await exec(`umount ${mergedPath}`).catch(() => {})
 
-  // trick to make it works in Docker: https://stackoverflow.com/a/67208735
-  if (env.DOCKER_RUNTIME) {
-    const overlayPath = path.join(connectionRootPath, 'overlay')
-    await exec(`umount ${overlayPath}`).catch(() => {})
-  }
+  // cleanup the writable parts of overlayfs in tmpfs
+  const overlayPath = path.join(connectionRootPath, 'overlay')
+  await exec(`umount ${overlayPath}`).catch(() => {})
 
   await rm(connectionRootPath, { recursive: true, force: true }).catch(() => {})
 }
