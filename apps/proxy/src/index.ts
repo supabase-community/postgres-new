@@ -13,6 +13,11 @@ import { findUp } from 'find-up'
 import { env } from './env.js'
 import { deleteCache } from './delete-cache.js'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
+import util from 'node:util'
+import { exec as execSync } from 'node:child_process'
+
+const exec = util.promisify(execSync)
 
 const supabaseUrl = env.SUPABASE_URL
 const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
@@ -78,10 +83,14 @@ const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 const server = net.createServer((socket) => {
   let db: PGliteInterface
+  let databaseId: string | undefined
+  const connectionId = randomUUID()
 
-  deleteCache().catch((err) => {
-    console.error(`Error deleting cache: ${err}`)
-  })
+  console.log(`New connection ${connectionId}`)
+
+  // deleteCache().catch((err) => {
+  //   console.error(`Error deleting cache: ${err}`)
+  // })
 
   const connection = new PostgresConnection(socket, {
     serverVersion: async () => {
@@ -91,7 +100,7 @@ const server = net.createServer((socket) => {
         `select current_setting('server_version') as version;`
       )
       const serverVersion = `${version} ${pgliteVersion}`
-      console.log(serverVersion)
+
       return serverVersion
     },
     auth: {
@@ -105,7 +114,8 @@ const server = net.createServer((socket) => {
           )
         }
 
-        const databaseId = getIdFromServerName(tlsInfo.sniServerName)
+        databaseId = getIdFromServerName(tlsInfo.sniServerName)
+
         const { data, error } = await supabase
           .from('deployed_databases')
           .select('auth_method, auth_data')
@@ -165,67 +175,20 @@ const server = net.createServer((socket) => {
       // at this point we know sniServerName is set
       const databaseId = getIdFromServerName(tlsInfo!.sniServerName!)
 
-      console.log(`Serving database '${databaseId}'`)
-
-      const dbPath = path.join(env.CACHE_PATH, databaseId)
-
-      if (!(await fileExists(dbPath))) {
-        console.log(`Database '${databaseId}' is not cached, downloading...`)
-
-        const dumpPath = path.join(dumpDir, `${databaseId}.tar.gz`)
-
-        if (!(await fileExists(dumpPath))) {
-          connection.sendError({
-            severity: 'FATAL',
-            code: 'XX000',
-            message: `database ${databaseId} not found`,
-          })
-          connection.socket.end()
-          return
-        }
-
-        // Create a directory for the database
-        await mkdir(dbPath, { recursive: true })
-
-        try {
-          // Extract the .tar.gz file
-          await pipeline(createReadStream(dumpPath), createGunzip(), extract({ cwd: dbPath }))
-        } catch (error) {
-          console.error(error)
-          await rm(dbPath, { recursive: true, force: true }) // Clean up the partially created directory
-          connection.sendError({
-            severity: 'FATAL',
-            code: 'XX000',
-            message: `Error extracting database: ${(error as Error).message}`,
-          })
-          connection.socket.end()
-          return
-        }
+      try {
+        const dbPath = await initializePgData({ databaseId, connectionId })
+        db = await initializePGlite({ dbPath })
+        console.log(
+          `PGlite instance ready for database ${databaseId} with connection ${connectionId}`
+        )
+      } catch (err) {
+        connection.sendError({
+          severity: 'FATAL',
+          code: 'XX000',
+          message: (err as Error).message,
+        })
+        connection.socket.end()
       }
-
-      db = new PGlite({
-        dataDir: dbPath,
-        extensions: {
-          vector,
-        },
-      })
-      await db.waitReady
-      const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
-      if (rows.length === 0) {
-        await db.exec(`
-          CREATE USER readonly_postgres;
-          GRANT pg_read_all_data TO readonly_postgres;
-        `)
-      }
-      await db.close()
-      db = new PGlite({
-        dataDir: dbPath,
-        username: 'readonly_postgres',
-        extensions: {
-          vector,
-        },
-      })
-      await db.waitReady
     },
     async onMessage(data, { isAuthenticated }) {
       // Only forward messages to PGlite after authentication
@@ -245,11 +208,135 @@ const server = net.createServer((socket) => {
   })
 
   socket.on('close', async () => {
-    console.log('Client disconnected')
+    console.log(`Connection ${connectionId} closed`)
     await db?.close()
+    if (databaseId) {
+      await cleanupPgdata({ databaseId, connectionId })
+    }
   })
 })
 
 server.listen(5432, async () => {
   console.log('Server listening on port 5432')
 })
+
+/**
+ * Initialize a PGDATA folder usable for a dedicated PGlite instance
+ */
+async function initializePgData(params: { databaseId: string; connectionId: string }) {
+  const databaseRootPath = path.join(env.CACHE_PATH, params.databaseId)
+
+  const lowPath = await initializeBasePgData({
+    databaseId: params.databaseId,
+    databaseRootPath,
+  })
+
+  const connectionRootPath = path.join(databaseRootPath, 'connections', params.connectionId)
+  await mkdir(connectionRootPath, { recursive: true })
+
+  // trick to make it works in Docker: https://stackoverflow.com/a/67208735
+  let overlayPath = connectionRootPath
+  if (env.DOCKER_RUNTIME) {
+    const overlayPath = path.join(connectionRootPath, 'overlay')
+    await mkdir(overlayPath)
+    await exec(`mount -t tmpfs tmpfs ${overlayPath}`)
+  }
+
+  const upPath = path.join(overlayPath, 'up')
+  const workPath = path.join(overlayPath, 'work')
+
+  const mergedPath = path.join(connectionRootPath, 'merged')
+
+  await Promise.all([mkdir(upPath), mkdir(workPath), mkdir(mergedPath)])
+
+  await exec(
+    `mount -t overlay overlay -o lowerdir=${lowPath},upperdir=${upPath},workdir=${workPath} ${mergedPath}`
+  )
+
+  return mergedPath
+}
+
+/**
+ * Check if the base PGDATA exists on disk, otherwise download it and extract it
+ */
+async function initializeBasePgData(params: { databaseId: string; databaseRootPath: string }) {
+  const basePath = path.join(params.databaseRootPath, 'pgdata')
+
+  if (await fileExists(basePath)) {
+    return basePath
+  }
+
+  console.log(`Downloading PGDATA for database ${params.databaseId}...`)
+
+  const dumpPath = path.join(dumpDir, `${params.databaseId}.tar.gz`)
+
+  if (!(await fileExists(dumpPath))) {
+    throw new Error(`database ${params.databaseId} not found`)
+  }
+
+  // Create a directory for the database
+  await mkdir(basePath, { recursive: true })
+
+  try {
+    // Extract the .tar.gz file
+    await pipeline(createReadStream(dumpPath), createGunzip(), extract({ cwd: basePath }))
+  } catch (error) {
+    // Clean up the partially created directory
+    await rm(basePath, { recursive: true, force: true })
+    throw new Error(`Error extracting database ${params.databaseId}`)
+  }
+
+  console.log(`PGDATA for database ${params.databaseId} downloaded and extracted`)
+
+  return basePath
+}
+
+async function initializePGlite(params: { dbPath: string }) {
+  let db = new PGlite({
+    dataDir: params.dbPath,
+    extensions: {
+      vector,
+    },
+  })
+  await db.waitReady
+  const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
+  if (rows.length === 0) {
+    await db.exec(`
+      CREATE USER readonly_postgres;
+      GRANT pg_read_all_data TO readonly_postgres;
+    `)
+  }
+  await db.close()
+  db = new PGlite({
+    dataDir: params.dbPath,
+    username: 'readonly_postgres',
+    extensions: {
+      vector,
+    },
+  })
+  await db.waitReady
+
+  return db
+}
+
+async function cleanupPgdata(params: { databaseId: string; connectionId: string }) {
+  const databaseRootPath = path.join(env.CACHE_PATH, params.databaseId)
+
+  const connectionRootPath = path.join(databaseRootPath, 'connections', params.connectionId)
+
+  if (!(await fileExists(connectionRootPath))) {
+    return
+  }
+
+  const mergedPath = path.join(connectionRootPath, 'merged')
+
+  await exec(`umount ${mergedPath}`).catch(() => {})
+
+  // trick to make it works in Docker: https://stackoverflow.com/a/67208735
+  if (env.DOCKER_RUNTIME) {
+    const overlayPath = path.join(connectionRootPath, 'overlay')
+    await exec(`umount ${overlayPath}`).catch(() => {})
+  }
+
+  await rm(connectionRootPath, { recursive: true, force: true }).catch(() => {})
+}
