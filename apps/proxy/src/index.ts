@@ -88,9 +88,9 @@ const server = net.createServer((socket) => {
 
   console.log(`New connection ${connectionId}`)
 
-  // deleteCache().catch((err) => {
-  //   console.error(`Error deleting cache: ${err}`)
-  // })
+  deleteCache().catch((err) => {
+    console.error(`Error deleting cache: ${err}`)
+  })
 
   const connection = new PostgresConnection(socket, {
     serverVersion: async () => {
@@ -237,7 +237,7 @@ async function initializePgData(params: { databaseId: string; connectionId: stri
   // trick to make it works in Docker: https://stackoverflow.com/a/67208735
   let overlayPath = connectionRootPath
   if (env.DOCKER_RUNTIME) {
-    const overlayPath = path.join(connectionRootPath, 'overlay')
+    overlayPath = path.join(connectionRootPath, 'overlay')
     await mkdir(overlayPath)
     await exec(`mount -t tmpfs tmpfs ${overlayPath}`)
   }
