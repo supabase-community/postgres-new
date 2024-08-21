@@ -2,6 +2,7 @@ import { z } from 'https://deno.land/x/zod@v3.23.8/mod.ts'
 
 export const env = z
   .object({
+    ACME_DIRECTORY_URL: z.string(),
     ACME_DOMAIN: z.string(),
     ACME_EMAIL: z.string(),
     AWS_ACCESS_KEY_ID: z.string(),
