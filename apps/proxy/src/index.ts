@@ -1,106 +1,43 @@
-import { PGlite, PGliteInterface } from '@electric-sql/pglite'
-import { vector } from '@electric-sql/pglite/vector'
-import { mkdir, readFile, access, rm } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import net from 'node:net'
-import { createReadStream } from 'node:fs'
-import { pipeline } from 'node:stream/promises'
-import { createGunzip } from 'node:zlib'
-import { extract } from 'tar'
-import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
+import path from 'node:path'
+import { File } from 'node:buffer'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
-import { findUp } from 'find-up'
+import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
+import { PGlite, PGliteInterface } from '@electric-sql/pglite'
+import { vector } from '@electric-sql/pglite/vector'
 import { env } from './env.js'
-import { deleteCache } from './delete-cache.js'
-import path from 'node:path'
-import { randomUUID } from 'node:crypto'
-import util from 'node:util'
-import { exec as execSync } from 'node:child_process'
-import { Blob, File } from 'node:buffer'
-
-const exec = util.promisify(execSync)
-
-const supabaseUrl = env.SUPABASE_URL
-const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
-const s3fsMount = env.S3FS_MOUNT
-const wildcardDomain = env.WILDCARD_DOMAIN
-
-const packageLockJsonPath = await findUp('package-lock.json')
-if (!packageLockJsonPath) {
-  throw new Error('package-lock.json not found')
-}
-const packageLockJson = JSON.parse(await readFile(packageLockJsonPath, 'utf8')) as {
-  packages: {
-    'node_modules/@electric-sql/pglite': {
-      version: string
-    }
-  }
-}
-const pgliteVersion = `(PGlite ${packageLockJson.packages['node_modules/@electric-sql/pglite'].version})`
-
-const dumpDir = `${s3fsMount}/dbs`
-const tlsDir = `${s3fsMount}/tls`
-
-await mkdir(dumpDir, { recursive: true })
-await mkdir(env.CACHE_PATH, { recursive: true })
-await mkdir(tlsDir, { recursive: true })
+import { sendFatalError, PostgresErrorCode } from './utils.js'
 
 const tls: TlsOptions = {
-  key: await readFile(`${tlsDir}/key.pem`),
-  cert: await readFile(`${tlsDir}/cert.pem`),
+  key: await readFile(`${env.S3FS_MOUNT}/tls/key.pem`),
+  cert: await readFile(`${env.S3FS_MOUNT}/tls/cert.pem`),
 }
 
-function getIdFromServerName(serverName: string) {
-  // The left-most subdomain contains the ID
-  // ie. 12345.db.example.com -> 12345
-  const [id] = serverName.split('.')
-  return id
-}
+const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
-const PostgresErrorCodes = {
-  ConnectionException: '08000',
-} as const
-
-function sendFatalError(connection: PostgresConnection, code: string, message: string): Error {
-  connection.sendError({
-    severity: 'FATAL',
-    code,
-    message,
-  })
-  connection.socket.end()
-  return new Error(message)
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
-}
-
-const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+let isBusy = false
 
 const server = net.createServer((socket) => {
-  let db: PGliteInterface
+  if (isBusy) {
+    console.log('Max connections reached, closing new connection')
+    socket.end()
+    return
+  }
+  isBusy = true
+  let db: PGliteInterface | undefined
   let databaseId: string | undefined
-  const connectionId = randomUUID()
-
-  console.log(`New connection ${connectionId}`)
-
-  deleteCache().catch((err) => {
-    console.error(`Error deleting cache: ${err}`)
-  })
-
+  console.time('startup + tls upgrade')
+  console.time('auth')
   const connection = new PostgresConnection(socket, {
     serverVersion: async () => {
       const {
         rows: [{ version }],
-      } = await db.query<{ version: string }>(
+      } = await db!.query<{ version: string }>(
         `select current_setting('server_version') as version;`
       )
-      const serverVersion = `${version} ${pgliteVersion}`
+      const serverVersion = `${version} ${env.PGLITE_VERSION}`
 
       return serverVersion
     },
@@ -110,23 +47,21 @@ const server = net.createServer((socket) => {
         if (!tlsInfo?.sniServerName) {
           throw sendFatalError(
             connection,
-            PostgresErrorCodes.ConnectionException,
+            PostgresErrorCode.ConnectionException,
             'sniServerName required in TLS info'
           )
         }
 
-        databaseId = getIdFromServerName(tlsInfo.sniServerName)
-
         const { data, error } = await supabase
           .from('deployed_databases')
           .select('auth_method, auth_data')
-          .eq('database_id', databaseId)
+          .eq('database_id', databaseId!)
           .single()
 
         if (error) {
           throw sendFatalError(
             connection,
-            PostgresErrorCodes.ConnectionException,
+            PostgresErrorCode.ConnectionException,
             `Error getting auth data for database ${databaseId}`
           )
         }
@@ -134,7 +69,7 @@ const server = net.createServer((socket) => {
         if (data === null) {
           throw sendFatalError(
             connection,
-            PostgresErrorCodes.ConnectionException,
+            PostgresErrorCode.ConnectionException,
             `Database ${databaseId} not found`
           )
         }
@@ -142,7 +77,7 @@ const server = net.createServer((socket) => {
         if (data.auth_method !== 'scram-sha-256') {
           throw sendFatalError(
             connection,
-            PostgresErrorCodes.ConnectionException,
+            PostgresErrorCode.ConnectionException,
             `Unsupported auth method for database ${databaseId}: ${data.auth_method}`
           )
         }
@@ -153,32 +88,33 @@ const server = net.createServer((socket) => {
     tls,
     async onTlsUpgrade({ tlsInfo }) {
       if (!tlsInfo?.sniServerName) {
-        connection.sendError({
-          severity: 'FATAL',
-          code: '08000',
-          message: `ssl sni extension required`,
-        })
-        connection.socket.end()
-        return
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `ssl sni extension required`
+        )
       }
 
-      if (!tlsInfo.sniServerName.endsWith(wildcardDomain)) {
-        connection.sendError({
-          severity: 'FATAL',
-          code: '08000',
-          message: `unknown server ${tlsInfo.sniServerName}`,
-        })
-        connection.socket.end()
-        return
+      if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `unknown server ${tlsInfo.sniServerName}`
+        )
       }
+
+      const serverNameParts = tlsInfo.sniServerName.split('.')
+      // The left-most subdomain contains the database id
+      databaseId = serverNameParts[0]
+      console.timeEnd('startup + tls upgrade')
     },
-    async onAuthenticated({ tlsInfo }) {
-      // at this point we know sniServerName is set
-      const databaseId = getIdFromServerName(tlsInfo!.sniServerName!)
-
-      const buffer = await readFile(path.join(dumpDir, `${databaseId}.tar.gz`))
+    async onAuthenticated() {
+      console.timeEnd('auth')
+      console.time('Read the dump from S3')
+      const buffer = await readFile(path.join(env.S3FS_MOUNT, 'dbs', `${databaseId}.tar.gz`))
       const file = new File([buffer], `${databaseId}.tar.gz`, { type: 'application/gzip' })
-      console.log('file size', file.size)
+      console.timeEnd('Read the dump from S3')
+      console.time('Create PGlite instance')
       // @ts-expect-error File
       db = new PGlite({
         loadDataDir: file,
@@ -186,30 +122,8 @@ const server = net.createServer((socket) => {
           vector,
         },
       })
-
       await db.waitReady
-
-      const memoryUsage = process.memoryUsage()
-      console.log('Memory usage with PGlite session:', {
-        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-        external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
-      })
-      // try {
-      //   const dbPath = await initializePgData({ databaseId, connectionId })
-      //   db = await initializePGlite({ dbPath })
-      //   console.log(
-      //     `PGlite instance ready for database ${databaseId} with connection ${connectionId}`
-      //   )
-      // } catch (err) {
-      //   connection.sendError({
-      //     severity: 'FATAL',
-      //     code: 'XX000',
-      //     message: (err as Error).message,
-      //   })
-      //   connection.socket.end()
-      // }
+      console.timeEnd('Create PGlite instance')
     },
     async onMessage(data, { isAuthenticated }) {
       // Only forward messages to PGlite after authentication
@@ -219,7 +133,7 @@ const server = net.createServer((socket) => {
 
       // Forward raw message to PGlite
       try {
-        const responseData = await db.execProtocolRaw(data)
+        const responseData = await db!.execProtocolRaw(data)
         connection.sendData(responseData)
       } catch (err) {
         console.error(err)
@@ -229,150 +143,25 @@ const server = net.createServer((socket) => {
   })
 
   socket.on('close', async () => {
-    console.log(`Connection ${connectionId} closed`)
     await db?.close()
-    // if (databaseId) {
-    //   await cleanupPgdata({ databaseId, connectionId })
-    // }
-    const memoryUsage = process.memoryUsage()
-    console.log('Memory usage with PGlite session end:', {
-      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-      external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
-    })
+    db = undefined
+    databaseId = undefined
+    isBusy = false
+    if (env.FLY_APP_NAME && env.FLY_MACHINE_ID && env.FLY_API_TOKEN) {
+      // suspend the machine
+      fetch(
+        `https://api.machines.dev/v1/apps/${env.FLY_APP_NAME}/machines/${env.FLY_MACHINE_ID}/suspend`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+          },
+        }
+      )
+    }
   })
 })
 
 server.listen(5432, async () => {
   console.log('Server listening on port 5432')
-  const memoryUsage = process.memoryUsage()
-  console.log('Initial Memory usage:', {
-    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-    external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
-  })
 })
-
-/**
- * Initialize a PGDATA folder usable for a dedicated PGlite instance
- */
-async function initializePgData(params: { databaseId: string; connectionId: string }) {
-  const databaseRootPath = path.join(env.CACHE_PATH, params.databaseId)
-
-  const lowPath = await initializeBasePgData({
-    databaseId: params.databaseId,
-    databaseRootPath,
-  })
-
-  const connectionRootPath = path.join(databaseRootPath, 'connections', params.connectionId)
-  await mkdir(connectionRootPath, { recursive: true })
-
-  // isolate the writable parts of overlayfs in tmpfs to make it works in Docker and Fly: https://stackoverflow.com/a/67208735
-  const overlayPath = path.join(connectionRootPath, 'overlay')
-  await mkdir(overlayPath)
-  await exec(`mount -t tmpfs tmpfs ${overlayPath}`)
-  const upPath = path.join(overlayPath, 'up')
-  const workPath = path.join(overlayPath, 'work')
-
-  const mergedPath = path.join(connectionRootPath, 'merged')
-
-  await Promise.all([mkdir(upPath), mkdir(workPath), mkdir(mergedPath)])
-
-  await exec(
-    `mount -t overlay overlay -o lowerdir=${lowPath},upperdir=${upPath},workdir=${workPath} ${mergedPath}`
-  )
-
-  return mergedPath
-}
-
-/**
- * Check if the base PGDATA exists on disk, otherwise download it and extract it
- */
-async function initializeBasePgData(params: { databaseId: string; databaseRootPath: string }) {
-  const basePath = path.join(params.databaseRootPath, 'pgdata')
-
-  if (await fileExists(basePath)) {
-    return basePath
-  }
-
-  console.log(`Downloading PGDATA for database ${params.databaseId}...`)
-
-  const dumpPath = path.join(dumpDir, `${params.databaseId}.tar.gz`)
-
-  if (!(await fileExists(dumpPath))) {
-    throw new Error(`database ${params.databaseId} not found`)
-  }
-
-  // Create a directory for the database
-  await mkdir(basePath, { recursive: true })
-
-  try {
-    // Extract the .tar.gz file
-    await pipeline(createReadStream(dumpPath), createGunzip(), extract({ cwd: basePath }))
-  } catch (error) {
-    // Clean up the partially created directory
-    await rm(basePath, { recursive: true, force: true })
-    throw new Error(`Error extracting database ${params.databaseId}`)
-  }
-
-  console.log(`PGDATA for database ${params.databaseId} downloaded and extracted`)
-
-  return basePath
-}
-
-async function initializePGlite(params: { databaseId: string }) {
-  // @ts-expect-error Buffer is fine
-  let db = new PGlite({
-    loadDataDir: await readFile(path.join(dumpDir, `${params.databaseId}.tar.gz`)),
-    extensions: {
-      vector,
-    },
-  })
-  // await db.waitReady
-  // const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
-  // if (rows.length === 0) {
-  //   await db.exec(`
-  //     CREATE USER readonly_postgres;
-  //     GRANT pg_read_all_data TO readonly_postgres;
-  //   `)
-  // }
-  // await db.close()
-  // db = new PGlite({
-  //   dataDir: params.dbPath,
-  //   username: 'readonly_postgres',
-  //   extensions: {
-  //     vector,
-  //   },
-  // })
-  await db.waitReady
-  const memoryUsage = process.memoryUsage()
-  console.log('Memory usage:', {
-    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-    external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
-  })
-  return db
-}
-
-async function cleanupPgdata(params: { databaseId: string; connectionId: string }) {
-  const databaseRootPath = path.join(env.CACHE_PATH, params.databaseId)
-
-  const connectionRootPath = path.join(databaseRootPath, 'connections', params.connectionId)
-
-  if (!(await fileExists(connectionRootPath))) {
-    return
-  }
-
-  const mergedPath = path.join(connectionRootPath, 'merged')
-
-  await exec(`umount ${mergedPath}`).catch(() => {})
-
-  // cleanup the writable parts of overlayfs in tmpfs
-  const overlayPath = path.join(connectionRootPath, 'overlay')
-  await exec(`umount ${overlayPath}`).catch(() => {})
-
-  await rm(connectionRootPath, { recursive: true, force: true }).catch(() => {})
-}
