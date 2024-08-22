@@ -190,7 +190,7 @@ const server = net.createServer((socket) => {
       await db.waitReady
 
       const memoryUsage = process.memoryUsage()
-      console.log('Memory usage:', {
+      console.log('Memory usage with PGlite session:', {
         rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
         heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
         heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
@@ -234,11 +234,25 @@ const server = net.createServer((socket) => {
     // if (databaseId) {
     //   await cleanupPgdata({ databaseId, connectionId })
     // }
+    const memoryUsage = process.memoryUsage()
+    console.log('Memory usage with PGlite session end:', {
+      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+      external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
+    })
   })
 })
 
 server.listen(5432, async () => {
   console.log('Server listening on port 5432')
+  const memoryUsage = process.memoryUsage()
+  console.log('Initial Memory usage:', {
+    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+    external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
+  })
 })
 
 /**

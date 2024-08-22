@@ -1,8 +1,8 @@
 # syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
-ARG NODE_VERSION=20.16.0
-FROM node:${NODE_VERSION}-bookworm AS base
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS base
 
 LABEL fly_launch_runtime="NodeJS"
 
@@ -16,9 +16,14 @@ ENV NODE_ENV=production
 FROM base AS build-s3fs
 
 # Install dependencies
-RUN apt-get update && \
-    apt-get install -y \
-    libfuse-dev
+RUN apk add --no-cache \
+    autoconf \
+    automake \
+    build-base \
+    curl-dev \
+    fuse-dev \
+    git \
+    libxml2-dev
 
 RUN git clone https://github.com/supabase/s3fs-fuse.git --branch s3/support-endpoint-with-uris && \
     cd s3fs-fuse && \
@@ -31,11 +36,10 @@ RUN git clone https://github.com/supabase/s3fs-fuse.git --branch s3/support-endp
 FROM base AS build-app
 
 # Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install -y \
-    python-is-python3 \
-    pkg-config \
-    build-essential 
+RUN apk add --no-cache \
+    python3 \
+    pkgconfig \
+    build-base
 
 # Copy everything
 COPY --link . .
@@ -53,10 +57,10 @@ RUN npm prune -w @postgres-new/proxy --production
 FROM base
 
 # Install dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apk add --no-cache \
+    curl \
     fuse \
-    && rm -rf /var/lib/apt/lists/*
+    libxml2
 
 COPY --from=build-s3fs /usr/local/bin/s3fs /usr/local/bin/s3fs
 # We copy the root node_modules
@@ -68,7 +72,9 @@ COPY --from=build-app /app/apps/proxy /app/proxy
 
 EXPOSE 5432
 
-ENTRYPOINT [ "./proxy/entrypoint.sh" ]
+WORKDIR /app/proxy
+
+ENTRYPOINT [ "./entrypoint.sh" ]
 
 # Start the server by default, this can be overwritten at runtime
-CMD [ "node", "proxy/dist/index.js" ]
+CMD [ "node", "dist/index.js" ]
