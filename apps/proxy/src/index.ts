@@ -16,6 +16,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import util from 'node:util'
 import { exec as execSync } from 'node:child_process'
+import { Blob, File } from 'node:buffer'
 
 const exec = util.promisify(execSync)
 
@@ -175,20 +176,40 @@ const server = net.createServer((socket) => {
       // at this point we know sniServerName is set
       const databaseId = getIdFromServerName(tlsInfo!.sniServerName!)
 
-      try {
-        const dbPath = await initializePgData({ databaseId, connectionId })
-        db = await initializePGlite({ dbPath })
-        console.log(
-          `PGlite instance ready for database ${databaseId} with connection ${connectionId}`
-        )
-      } catch (err) {
-        connection.sendError({
-          severity: 'FATAL',
-          code: 'XX000',
-          message: (err as Error).message,
-        })
-        connection.socket.end()
-      }
+      const buffer = await readFile(path.join(dumpDir, `${databaseId}.tar.gz`))
+      const file = new File([buffer], `${databaseId}.tar.gz`, { type: 'application/gzip' })
+      console.log('file size', file.size)
+      // @ts-expect-error File
+      db = new PGlite({
+        loadDataDir: file,
+        extensions: {
+          vector,
+        },
+      })
+
+      await db.waitReady
+
+      const memoryUsage = process.memoryUsage()
+      console.log('Memory usage:', {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+        external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
+      })
+      // try {
+      //   const dbPath = await initializePgData({ databaseId, connectionId })
+      //   db = await initializePGlite({ dbPath })
+      //   console.log(
+      //     `PGlite instance ready for database ${databaseId} with connection ${connectionId}`
+      //   )
+      // } catch (err) {
+      //   connection.sendError({
+      //     severity: 'FATAL',
+      //     code: 'XX000',
+      //     message: (err as Error).message,
+      //   })
+      //   connection.socket.end()
+      // }
     },
     async onMessage(data, { isAuthenticated }) {
       // Only forward messages to PGlite after authentication
@@ -210,9 +231,9 @@ const server = net.createServer((socket) => {
   socket.on('close', async () => {
     console.log(`Connection ${connectionId} closed`)
     await db?.close()
-    if (databaseId) {
-      await cleanupPgdata({ databaseId, connectionId })
-    }
+    // if (databaseId) {
+    //   await cleanupPgdata({ databaseId, connectionId })
+    // }
   })
 })
 
@@ -287,31 +308,38 @@ async function initializeBasePgData(params: { databaseId: string; databaseRootPa
   return basePath
 }
 
-async function initializePGlite(params: { dbPath: string }) {
+async function initializePGlite(params: { databaseId: string }) {
+  // @ts-expect-error Buffer is fine
   let db = new PGlite({
-    dataDir: params.dbPath,
+    loadDataDir: await readFile(path.join(dumpDir, `${params.databaseId}.tar.gz`)),
     extensions: {
       vector,
     },
   })
+  // await db.waitReady
+  // const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
+  // if (rows.length === 0) {
+  //   await db.exec(`
+  //     CREATE USER readonly_postgres;
+  //     GRANT pg_read_all_data TO readonly_postgres;
+  //   `)
+  // }
+  // await db.close()
+  // db = new PGlite({
+  //   dataDir: params.dbPath,
+  //   username: 'readonly_postgres',
+  //   extensions: {
+  //     vector,
+  //   },
+  // })
   await db.waitReady
-  const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
-  if (rows.length === 0) {
-    await db.exec(`
-      CREATE USER readonly_postgres;
-      GRANT pg_read_all_data TO readonly_postgres;
-    `)
-  }
-  await db.close()
-  db = new PGlite({
-    dataDir: params.dbPath,
-    username: 'readonly_postgres',
-    extensions: {
-      vector,
-    },
+  const memoryUsage = process.memoryUsage()
+  console.log('Memory usage:', {
+    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+    external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`,
   })
-  await db.waitReady
-
   return db
 }
 

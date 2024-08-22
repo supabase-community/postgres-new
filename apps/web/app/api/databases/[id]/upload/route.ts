@@ -76,15 +76,15 @@ export async function POST(
   const databaseId = params.id
   const key = `dbs/${databaseId}.tar.gz`
 
-  const gzip = createGzip()
-  const body = Readable.from(streamToAsyncIterable(dump.stream()))
+  // const gzip = createGzip()
+  // const body = Readable.from(streamToAsyncIterable(dump.stream()))
 
   const upload = new Upload({
     client: s3Client,
     params: {
       Bucket: process.env.AWS_S3_BUCKET,
       Key: key,
-      Body: body.pipe(gzip),
+      Body: dump.stream(),
     },
   })
 
@@ -126,17 +126,4 @@ export async function POST(
       databaseName: 'postgres',
     },
   })
-}
-
-async function* streamToAsyncIterable(stream: ReadableStream) {
-  const reader = stream.getReader()
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) return
-      yield value
-    }
-  } finally {
-    reader.releaseLock()
-  }
 }
