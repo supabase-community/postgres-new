@@ -15,6 +15,7 @@
     "find-up": "^7.0.0",
     "pg-gateway": "0.3.0-alpha.6",
     "tar": "^7.4.3",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.47.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
