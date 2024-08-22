@@ -1,7 +1,5 @@
-import { PGlite, PGliteInterface } from '@electric-sql/pglite'
-import { vector } from '@electric-sql/pglite/vector'
-import { mkdir, readFile, access, rm } from 'node:fs/promises'
-import net from 'node:net'
+import { mkdir, readFile, access, rm, writeFile, chown } from 'node:fs/promises'
+import net, { connect } from 'node:net'
 import { createReadStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
@@ -9,28 +7,16 @@ import { extract } from 'tar'
 import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
-import { findUp } from 'find-up'
 import { env } from './env.js'
-import { deleteCache } from './delete-cache.js'
 import path from 'node:path'
+import { exec as execSync, spawn } from 'node:child_process'
+import { promisify } from 'node:util'
 
+const exec = promisify(execSync)
 const supabaseUrl = env.SUPABASE_URL
 const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
 const s3fsMount = env.S3FS_MOUNT
 const wildcardDomain = env.WILDCARD_DOMAIN
-
-const packageLockJsonPath = await findUp('package-lock.json')
-if (!packageLockJsonPath) {
-  throw new Error('package-lock.json not found')
-}
-const packageLockJson = JSON.parse(await readFile(packageLockJsonPath, 'utf8')) as {
-  packages: {
-    'node_modules/@electric-sql/pglite': {
-      version: string
-    }
-  }
-}
-const pgliteVersion = `(PGlite ${packageLockJson.packages['node_modules/@electric-sql/pglite'].version})`
 
 const dumpDir = `${s3fsMount}/dbs`
 const tlsDir = `${s3fsMount}/tls`
@@ -77,23 +63,7 @@ async function fileExists(path: string): Promise<boolean> {
 const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
 const server = net.createServer((socket) => {
-  let db: PGliteInterface
-
-  deleteCache().catch((err) => {
-    console.error(`Error deleting cache: ${err}`)
-  })
-
   const connection = new PostgresConnection(socket, {
-    serverVersion: async () => {
-      const {
-        rows: [{ version }],
-      } = await db.query<{ version: string }>(
-        `select current_setting('server_version') as version;`
-      )
-      const serverVersion = `${version} ${pgliteVersion}`
-      console.log(serverVersion)
-      return serverVersion
-    },
     auth: {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
@@ -201,52 +171,155 @@ const server = net.createServer((socket) => {
           connection.socket.end()
           return
         }
+
+        // delete postmaster.pid
+        await rm(path.join(dbPath, 'postmaster.pid'))
+
+        // replace postgresql.conf and pg_hba.conf
+        const postgresConf = `
+          listen_addresses = ''
+          unix_socket_directories = '${dbPath}'
+          shared_buffers = 4MB
+          work_mem = 64kB
+          maintenance_work_mem = 1MB
+          max_connections = 10
+          max_wal_senders = 0
+          wal_level = minimal
+          fsync = off
+          synchronous_commit = off
+          full_page_writes = off
+          wal_buffers = 32kB
+          autovacuum = off
+          max_worker_processes = 2
+          max_parallel_workers_per_gather = 0
+          max_parallel_workers = 0
+          max_parallel_maintenance_workers = 0
+          logging_collector = off
+          log_min_duration_statement = -1
+          log_statement = 'none'
+          log_connections = off
+          log_disconnections = off
+        `
+        const pgHbaConf = `
+        local   all   all   trust
+        `
+        await writeFile(path.join(dbPath, 'postgresql.conf'), postgresConf)
+        await writeFile(path.join(dbPath, 'pg_hba.conf'), pgHbaConf)
+
+        // give ownership to postgres using exec
+        await exec(`chown -R postgres:postgres ${dbPath}`)
+
+        // set permissions to 700 on the data directory
+        await exec(`chmod -R 700 ${dbPath}`)
       }
 
-      db = new PGlite({
-        dataDir: dbPath,
-        extensions: {
-          vector,
-        },
-      })
-      await db.waitReady
-      const { rows } = await db.query("SELECT 1 FROM pg_roles WHERE rolname = 'readonly_postgres';")
-      if (rows.length === 0) {
-        await db.exec(`
-          CREATE USER readonly_postgres;
-          GRANT pg_read_all_data TO readonly_postgres;
-        `)
-      }
-      await db.close()
-      db = new PGlite({
-        dataDir: dbPath,
-        username: 'readonly_postgres',
-        extensions: {
-          vector,
-        },
-      })
-      await db.waitReady
-    },
-    async onMessage(data, { isAuthenticated }) {
-      // Only forward messages to PGlite after authentication
-      if (!isAuthenticated) {
-        return false
-      }
+      // Call pg_ctl and wait for it to be ready
+      const dataDir = path.join(dbPath, 'data')
 
-      // Forward raw message to PGlite
-      try {
-        const responseData = await db.execProtocolRaw(data)
-        connection.sendData(responseData)
-      } catch (err) {
-        console.error(err)
+      console.log(`Starting PostgreSQL for database '${databaseId}'`)
+
+      // prettier-ignore
+      const startProcess = spawn('su-exec', ['postgres',
+        'pg_ctl', 'start',
+        '-D', dataDir,
+        '-w'
+      ])
+
+      await new Promise<void>((resolve, reject) => {
+        startProcess.on('exit', (code) => {
+          if (code === 0) {
+            console.log(`PostgreSQL started successfully for database '${databaseId}'`)
+            resolve()
+          } else {
+            reject(
+              new Error(
+                `Failed to start PostgreSQL for database '${databaseId}'. Exit code: ${code}`
+              )
+            )
+          }
+        })
+
+        startProcess.on('error', (err) => {
+          reject(
+            new Error(`Error starting PostgreSQL for database '${databaseId}': ${err.message}`)
+          )
+        })
+      })
+
+      // Wait for PostgreSQL to be ready using pg_isready
+      const isReadyProcess = spawn('su-exec', ['postgres', 'pg_isready', '-U', 'postgres'])
+
+      await new Promise<void>((resolve, reject) => {
+        isReadyProcess.on('exit', (code) => {
+          if (code === 0) {
+            resolve()
+          } else {
+            reject(new Error(`pg_isready failed with code ${code}`))
+          }
+        })
+      })
+
+      // Establish a TCP connection to the downstream server using the above host/port
+      const proxySocket = connect({ path: path.join(socketDir, '.s.PGSQL.5432') })
+
+      // Detach from the `PostgresConnection` to prevent further buffering/processing
+      const socket = connection.detach()
+      const user = 'postgres' // or whatever user you want to connect as
+      // prettier-ignore
+      const startupMessage = Buffer.from([
+        0, 0, 0, 0, // Length placeholder
+        3, 0, 0, 0, // Protocol version 3.0
+        ...Buffer.from('user\0'), // "user" parameter name
+        ...Buffer.from(user + '\0'), // user value
+        0, // Null terminator
+      ])
+
+      // Set the correct length in the message header
+      startupMessage.writeInt32BE(startupMessage.length, 0)
+
+      // Send the startup message to the proxy socket
+      proxySocket.write(startupMessage)
+
+      // Wait for the "ready for query" message from the downstream server
+      await new Promise<void>((resolve, reject) => {
+        const onData = (data: Buffer) => {
+          // Check if the message is "ready for query" (ASCII 'Z')
+          if (data[0] === 90) {
+            proxySocket.removeListener('data', onData)
+            proxySocket.removeListener('error', onError)
+            resolve()
+          }
+        }
+
+        const onError = (err: Error) => {
+          proxySocket.removeListener('data', onData)
+          proxySocket.removeListener('error', onError)
+          reject(err)
+        }
+
+        proxySocket.on('data', onData)
+        proxySocket.on('error', onError)
+      })
+
+      // Pipe data directly between sockets
+      proxySocket.pipe(socket, { end: true })
+      socket.pipe(proxySocket, { end: true })
+
+      // Handle errors and close events
+      function destroyBoth(err?: Error) {
+        socket.destroy(err)
+        proxySocket.destroy(err)
       }
-      return true
+      proxySocket.on('error', destroyBoth)
+      socket.on('error', destroyBoth)
+      proxySocket.on('close', destroyBoth)
+      socket.on('close', destroyBoth)
     },
   })
 
   socket.on('close', async () => {
     console.log('Client disconnected')
-    await db?.close()
+    // TODO: stop the pg_ctl process
   })
 })
 

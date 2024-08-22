@@ -10,7 +10,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.2.2",
     "@supabase/supabase-js": "^2.45.1",
     "find-up": "^7.0.0",
     "pg-gateway": "0.3.0-alpha.6",
