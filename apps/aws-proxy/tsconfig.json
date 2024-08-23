@@ -1,0 +1,3 @@
+{
+  "extends": "@total-typescript/tsconfig/bundler/no-dom/app"
+}
