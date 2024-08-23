@@ -1,0 +1,25 @@
+app = 'postgres-new-ha-proxy'
+
+primary_region = 'iad'
+
+[build]
+dockerfile = "Dockerfile"
+
+[[services]]
+internal_port = 5432
+protocol = "tcp"
+auto_start_machines = true
+min_machines_running = 1
+
+[[services.ports]]
+port = 5432
+
+[services.concurrency]
+type = "connections"
+hard_limit = 700
+soft_limit = 500
+
+[[vm]]
+memory = '256mb'
+cpu_kind = 'shared'
+cpus = 1
