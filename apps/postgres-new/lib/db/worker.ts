@@ -22,7 +22,6 @@ import { fuzzystrmatch } from '@electric-sql/pglite/contrib/fuzzystrmatch'
 import { auto_explain } from '@electric-sql/pglite/contrib/auto_explain'
 import { amcheck } from '@electric-sql/pglite/contrib/amcheck'
 import { adminpack } from '@electric-sql/pglite/contrib/adminpack'
-import { live } from '@electric-sql/pglite/live'
 
 worker({
   async init(options: PGliteWorkerOptions) {
@@ -30,7 +29,7 @@ worker({
       ...options,
       extensions: {
         ...options.extensions,
-
+        // postgres extensions need to be passed directly in the worker vs. main thread
         adminpack,
         amcheck,
         auto_explain,
@@ -43,7 +42,6 @@ worker({
         fuzzystrmatch,
         hstore,
         isn,
-        live,
         lo,
         ltree,
         pg_trgm,
