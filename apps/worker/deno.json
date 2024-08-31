@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@electric-sql/pglite": "npm:@electric-sql/pglite@0.2.3"
+  }
+}

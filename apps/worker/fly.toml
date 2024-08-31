@@ -1,0 +1,11 @@
+app = 'postgres-new-worker'
+
+primary_region = 'iad'
+
+[build]
+dockerfile = "Dockerfile"
+
+[[vm]]
+memory = '512mb'
+cpu_kind = 'shared'
+cpus = 1

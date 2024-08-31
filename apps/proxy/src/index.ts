@@ -1,14 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import net from 'node:net'
-import path from 'node:path'
-import { File } from 'node:buffer'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@postgres-new/supabase'
 import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
-import { PGlite, PGliteInterface } from '@electric-sql/pglite'
-import { vector } from '@electric-sql/pglite/vector'
 import { env } from './env.js'
-import { sendFatalError, PostgresErrorCode } from './utils.js'
+import { sendFatalError, PostgresErrorCode, connectWithRetry } from './utils.js'
 
 const tls: TlsOptions = {
   key: await readFile(`${env.S3FS_MOUNT}/tls/key.pem`),
@@ -17,30 +13,8 @@ const tls: TlsOptions = {
 
 const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
-let isBusy = false
-
 const server = net.createServer((socket) => {
-  if (isBusy) {
-    console.log('Max connections reached, closing new connection')
-    socket.end()
-    return
-  }
-  isBusy = true
-  let db: PGliteInterface | undefined
-  let databaseId: string | undefined
-  console.time('startup + tls upgrade')
-  console.time('auth')
   const connection = new PostgresConnection(socket, {
-    serverVersion: async () => {
-      const {
-        rows: [{ version }],
-      } = await db!.query<{ version: string }>(
-        `select current_setting('server_version') as version;`
-      )
-      const serverVersion = `${version} ${env.PGLITE_VERSION}`
-
-      return serverVersion
-    },
     auth: {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
@@ -51,6 +25,10 @@ const server = net.createServer((socket) => {
             'sniServerName required in TLS info'
           )
         }
+
+        const serverNameParts = tlsInfo.sniServerName.split('.')
+        // The left-most subdomain contains the database id
+        const databaseId = serverNameParts[0]
 
         const { data, error } = await supabase
           .from('deployed_databases')
@@ -102,64 +80,79 @@ const server = net.createServer((socket) => {
           `unknown server ${tlsInfo.sniServerName}`
         )
       }
-
-      const serverNameParts = tlsInfo.sniServerName.split('.')
+    },
+    async onAuthenticated({ tlsInfo }) {
+      const serverNameParts = tlsInfo!.sniServerName!.split('.')
       // The left-most subdomain contains the database id
-      databaseId = serverNameParts[0]
-      console.timeEnd('startup + tls upgrade')
-    },
-    async onAuthenticated() {
-      console.timeEnd('auth')
-      console.time('Read the dump from S3')
-      const buffer = await readFile(path.join(env.S3FS_MOUNT, 'dbs', `${databaseId}.tar.gz`))
-      const file = new File([buffer], `${databaseId}.tar.gz`, { type: 'application/gzip' })
-      console.timeEnd('Read the dump from S3')
-      console.time('Create PGlite instance')
-      // @ts-expect-error File
-      db = new PGlite({
-        loadDataDir: file,
-        extensions: {
-          vector,
+      const databaseId = serverNameParts[0]
+
+      const appName = 'postgres-new-proxy'
+
+      // Create a new Fly Machine
+      const machine = await fetch(`http://_api.internal:4280/v1/apps/${appName}/machines`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.FLY_API_TOKEN}`,
         },
-      })
-      await db.waitReady
-      console.timeEnd('Create PGlite instance')
-    },
-    async onMessage(data, { isAuthenticated }) {
-      // Only forward messages to PGlite after authentication
-      if (!isAuthenticated) {
-        return false
-      }
-
-      // Forward raw message to PGlite
-      try {
-        const responseData = await db!.execProtocolRaw(data)
-        connection.sendData(responseData)
-      } catch (err) {
-        console.error(err)
-      }
-      return true
-    },
-  })
-
-  socket.on('close', async () => {
-    await db?.close()
-    db = undefined
-    databaseId = undefined
-    isBusy = false
-    if (env.FLY_APP_NAME && env.FLY_MACHINE_ID && env.FLY_API_TOKEN) {
-      // suspend the machine
-      fetch(
-        `https://api.machines.dev/v1/apps/${env.FLY_APP_NAME}/machines/${env.FLY_MACHINE_ID}/suspend`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+        body: JSON.stringify({
+          config: {
+            image: 'registry.fly.dev/postgres-new-worker:latest',
+            env: {
+              DATABASE_ID: databaseId,
+            },
+            metadata: {
+              databaseId,
+            },
+            guest: {
+              cpu_kind: 'shared',
+              cpus: 1,
+              memory_mb: 512,
+            },
           },
-        }
+        }),
+      }).then((res) => res.json())
+
+      // Establish a TCP connection to the worker
+      const workerSocket = await connectWithRetry(
+        {
+          host: `${machine.id}.vm.${appName}.internal`,
+          port: 5432,
+        },
+        10000
       )
-    }
+
+      // Detach from the `PostgresConnection` to prevent further buffering/processing
+      const socket = connection.detach()
+
+      // Pipe data directly between sockets
+      socket.pipe(workerSocket)
+      workerSocket.pipe(socket)
+
+      socket.on('end', () => workerSocket.end())
+      workerSocket.on('end', () => socket.end())
+
+      socket.on('error', (err) => workerSocket.destroy(err))
+      workerSocket.on('error', (err) => socket.destroy(err))
+
+      socket.on('close', () => workerSocket.destroy())
+      workerSocket.on('close', () => socket.destroy())
+    },
   })
+
+  // socket.on('close', async () => {
+  //   if (env.FLY_APP_NAME && env.FLY_MACHINE_ID && env.FLY_API_TOKEN) {
+  //     // suspend the machine
+  //     fetch(
+  //       `https://api.machines.dev/v1/apps/${env.FLY_APP_NAME}/machines/${env.FLY_MACHINE_ID}/suspend`,
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+  //         },
+  //       }
+  //     )
+  //   }
+  // })
 })
 
 server.listen(5432, async () => {
