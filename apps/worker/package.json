@@ -3,13 +3,11 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "start:node": "node --env-file=.env --experimental-strip-types src/index.ts",
-    "start:deno": "deno run --config deno.json --env --allow-all src/index.ts",
-    "start:bun": "bun src/index.ts",
+    "dev": "node --env-file=.env --experimental-strip-types src/index.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.2.3"
+    "@electric-sql/pglite": "0.2.4"
   },
   "devDependencies": {
     "@types/node": "^20.14.11",

@@ -5,7 +5,7 @@ import path from 'node:path'
 export default defineConfig({
   entry: ['src/index.ts'],
   bundle: true,
-  format: ['esm'],
+  format: 'esm',
   target: 'esnext',
   outDir: 'dist',
   esbuildPlugins: [pglitePlugin({ outDir: 'dist', extensions: ['vector'] })],
