@@ -13,7 +13,7 @@ console.timeEnd('init database')
 
 net
   .createServer(async (socket) => {
-    for await (const data of socket) {
+    for await (const data of socket as AsyncIterable<Buffer>) {
       const response = await database.execProtocolRaw(data)
       socket.write(response)
     }
