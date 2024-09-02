@@ -20,40 +20,46 @@ server.on('connection', async (socket) => {
 
   // TODO: reuse MessageBuffer from pg-gateway to handle the data
   socket.on('data', async (data) => {
-    if (!database) {
-      console.time(`download pgdata for database ${databaseId}`)
-      const response = await s3GetObject({
-        bucket: process.env.AWS_S3_BUCKET!,
-        endpoint: process.env.AWS_ENDPOINT_URL_S3!,
-        region: process.env.AWS_REGION!,
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        key: `dbs/${databaseId}.tar.gz`,
-      })
-      console.timeEnd(`download pgdata for database ${databaseId}`)
+    try {
+      if (!database) {
+        console.time(`download pgdata for database ${databaseId}`)
+        const response = await s3GetObject({
+          bucket: process.env.AWS_S3_BUCKET!,
+          endpoint: process.env.AWS_ENDPOINT_URL_S3!,
+          region: process.env.AWS_REGION!,
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          key: `dbs/${databaseId}.tar.gz`,
+        })
+        console.timeEnd(`download pgdata for database ${databaseId}`)
 
-      console.time(`decompress pgdata for database ${databaseId}`)
-      if (!response.body) {
-        throw new Error('No body in response')
+        console.time(`decompress pgdata for database ${databaseId}`)
+        if (!response.body) {
+          throw new Error('No body in response')
+        }
+        await decompressArchive(response.body, dataDir)
+        console.timeEnd(`decompress pgdata for database ${databaseId}`)
+
+        console.time(`init database ${databaseId}`)
+        database = await PGlite.create({
+          dataDir,
+          extensions: {
+            vector,
+          },
+        })
+        console.timeEnd(`init database ${databaseId}`)
       }
-      await decompressArchive(response.body, dataDir)
-      console.timeEnd(`decompress pgdata for database ${databaseId}`)
 
-      console.time(`init database ${databaseId}`)
-      database = await PGlite.create({
-        dataDir,
-        extensions: {
-          vector,
-        },
-      })
-      console.timeEnd(`init database ${databaseId}`)
+      const response = await database.execProtocolRaw(data)
+      socket.write(response)
+    } catch (error) {
+      console.error('data error', error)
+      socket.destroy()
     }
-
-    const response = await database.execProtocolRaw(data)
-    socket.write(response)
   })
 
-  socket.on('error', async () => {
+  socket.on('error', async (err) => {
+    console.error('socket error', err)
     await database?.close()
     await rm(dataDir, { recursive: true, force: true }).catch(() => {})
     database = undefined
