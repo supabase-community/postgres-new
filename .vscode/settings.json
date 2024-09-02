@@ -1,5 +1,5 @@
 {
-  "deno.enablePaths": ["supabase/functions"],
+  "deno.enablePaths": ["supabase/functions", "apps/worker"],
   "deno.lint": true,
   "deno.unstable": false,
   "[javascript]": {

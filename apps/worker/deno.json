@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "@electric-sql/pglite": "npm:@electric-sql/pglite@0.2.4",
+    "@std/io": "jsr:@std/io@^0.224.6",
+    "path": "node:path",
+    "fs": "node:fs"
+  }
+}

@@ -5,6 +5,7 @@ import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
 import { connectWithRetry } from './utils/connect-with-retry.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
+import { fly } from './lib/fly/client.ts'
 
 const server = net.createServer((socket) => {
   console.time('new connection to authenticated')
@@ -78,38 +79,35 @@ const server = net.createServer((socket) => {
 
       // Create a new Fly Machine
       console.time('create and connect to machine')
-      const machine = await fetch(
-        `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${env.FLY_API_TOKEN}`,
-            'Content-Type': 'application/json',
+      const { data: machine } = await fly.POST('/apps/{app_name}/machines', {
+        params: {
+          path: {
+            app_name: env.WORKER_APP_NAME,
           },
-          body: JSON.stringify({
-            config: {
-              image: `registry.fly.io/${env.WORKER_APP_NAME}:latest`,
-              env: {
-                DATABASE_ID: databaseId,
-              },
-              metadata: {
-                databaseId,
-              },
-              guest: {
-                cpu_kind: 'shared',
-                cpus: 1,
-                memory_mb: 512,
-              },
-              auto_destroy: true,
+        },
+        body: {
+          config: {
+            image: `registry.fly.io/${env.WORKER_APP_NAME}:latest`,
+            env: {
+              DATABASE_ID: databaseId!,
             },
-          }),
-        }
-      ).then((res) => res.json())
+            metadata: {
+              databaseId: databaseId!,
+            },
+            guest: {
+              cpu_kind: 'shared',
+              cpus: 1,
+              memory_mb: 512,
+            },
+            auto_destroy: true,
+          },
+        },
+      })
 
       // Establish a TCP connection to the worker
       const workerSocket = await connectWithRetry(
         {
-          host: machine.private_ip, //`${machine.id}.vm.${env.WORKER_APP_NAME}.internal`,
+          host: machine!.private_ip!,
           port: 5432,
         },
         10000
