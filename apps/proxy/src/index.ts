@@ -7,8 +7,14 @@ import { connectWithRetry } from './utils/connect-with-retry.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 
 const server = net.createServer((socket) => {
+  console.time('new connection to authenticated')
   const connection = new PostgresConnection(socket, {
-    tls: getTlsOptions,
+    tls: async () => {
+      console.time('get tls options')
+      const tlsOptions = await getTlsOptions()
+      console.timeEnd('get tls options')
+      return tlsOptions
+    },
     async onTlsUpgrade({ tlsInfo }) {
       if (!tlsInfo?.sniServerName) {
         throw sendFatalError(
@@ -33,7 +39,9 @@ const server = net.createServer((socket) => {
         // The left-most subdomain contains the database id
         const databaseId = serverNameParts.at(0)!
 
+        console.time('get deployed database infos')
         const { data, error } = await getDeployedDatabase(databaseId)
+        console.timeEnd('get deployed database infos')
 
         if (error) {
           throw sendFatalError(
@@ -63,11 +71,13 @@ const server = net.createServer((socket) => {
       },
     },
     async onAuthenticated({ tlsInfo }) {
+      console.timeEnd('new connection to authenticated')
       const serverNameParts = tlsInfo!.sniServerName!.split('.')
       // The left-most subdomain contains the database id
       const databaseId = serverNameParts[0]
 
       // Create a new Fly Machine
+      console.time('create and connect to machine')
       const machine = await fetch(
         `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`,
         {
@@ -120,6 +130,7 @@ const server = net.createServer((socket) => {
 
       socket.on('close', () => workerSocket.destroy())
       workerSocket.on('close', () => socket.destroy())
+      console.timeEnd('create and connect to machine')
     },
   })
 })
