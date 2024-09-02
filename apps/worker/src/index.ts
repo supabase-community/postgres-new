@@ -52,8 +52,6 @@ server.on('connection', async (socket) => {
   // send ack to proxy
 
   socket.on('data', async (data) => {
-    console.log('data:', data.toString('hex'))
-
     if (!database) {
       console.time('download pgdata')
       const response = await s3GetObject({
@@ -84,6 +82,7 @@ server.on('connection', async (socket) => {
   socket.on('close', async () => {
     await database?.close()
     database = undefined
+    console.log('database closed')
   })
 
   console.log('sending ack to proxy')
