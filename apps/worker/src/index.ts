@@ -1,59 +1,27 @@
 import net from 'node:net'
 import { PGlite, type PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-// import { PostgresConnection } from 'pg-gateway'
 import { s3GetObject } from './s3-get-object.ts'
+import { decompressArchive } from './decompress-archive.ts'
+import path from 'node:path'
+import { rm } from 'node:fs/promises'
+
+const dataDir = path.join(process.cwd(), 'pgdata')
 
 const server = net.createServer()
 
 server.on('connection', async (socket) => {
-  console.log('new connection')
   // the first message contains the databaseId
   const databaseId = await new Promise<string>((res) =>
     socket.once('data', (data) => res(data.toString('utf-8')))
   )
 
-  console.log('databaseId', databaseId)
-
   let database: PGliteInterface | undefined
 
-  // const connection = new PostgresConnection(socket, {
-  //   async onMessage(data) {
-  //     if (!database) {
-  //       console.time('download pgdata')
-  //       const response = await s3GetObject({
-  //         bucket: process.env.AWS_S3_BUCKET!,
-  //         endpoint: process.env.AWS_ENDPOINT_URL_S3!,
-  //         region: process.env.AWS_REGION!,
-  //         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-  //         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  //         key: `dbs/${databaseId}.tar.gz`,
-  //       })
-  //       const pgdata = new Blob([await response.arrayBuffer()], { type: 'application/gzip' })
-  //       console.timeEnd('download tarball')
-
-  //       console.time('init database')
-  //       database = await PGlite.create({
-  //         loadDataDir: pgdata,
-  //         extensions: {
-  //           vector,
-  //         },
-  //       })
-  //       console.timeEnd('init database')
-  //     }
-
-  //     const response = await database.execProtocolRaw(data)
-  //     connection.sendData(response)
-
-  //     return true
-  //   },
-  // })
-
-  // send ack to proxy
-
+  // TODO: reuse MessageBuffer from pg-gateway to handle the data
   socket.on('data', async (data) => {
     if (!database) {
-      console.time('download pgdata')
+      console.time(`download pgdata for database ${databaseId}`)
       const response = await s3GetObject({
         bucket: process.env.AWS_S3_BUCKET!,
         endpoint: process.env.AWS_ENDPOINT_URL_S3!,
@@ -62,30 +30,44 @@ server.on('connection', async (socket) => {
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
         key: `dbs/${databaseId}.tar.gz`,
       })
-      const pgdata = new Blob([await response.arrayBuffer()], { type: 'application/gzip' })
-      console.timeEnd('download tarball')
+      console.timeEnd(`download pgdata for database ${databaseId}`)
 
-      console.time('init database')
+      console.time(`decompress pgdata for database ${databaseId}`)
+      if (!response.body) {
+        throw new Error('No body in response')
+      }
+      await decompressArchive(response.body, dataDir)
+      console.timeEnd(`decompress pgdata for database ${databaseId}`)
+
+      console.time(`init database ${databaseId}`)
       database = await PGlite.create({
-        loadDataDir: pgdata,
+        dataDir,
         extensions: {
           vector,
         },
       })
-      console.timeEnd('init database')
+      console.timeEnd(`init database ${databaseId}`)
     }
 
     const response = await database.execProtocolRaw(data)
     socket.write(response)
   })
 
-  socket.on('close', async () => {
+  socket.on('error', async () => {
     await database?.close()
+    await rm(dataDir, { recursive: true, force: true }).catch(() => {})
     database = undefined
-    console.log('database closed')
+    console.log(`database ${databaseId} closed`)
   })
 
-  console.log('sending ack to proxy')
+  socket.on('close', async () => {
+    await database?.close()
+    await rm(dataDir, { recursive: true, force: true }).catch(() => {})
+    database = undefined
+    console.log(`database ${databaseId} closed`)
+  })
+
+  // send ack to proxy that we are ready
   socket.write('ACK', 'utf-8')
 })
 
