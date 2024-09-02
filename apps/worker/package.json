@@ -2,17 +2,16 @@
   "name": "@postgres-new/worker",
   "type": "module",
   "scripts": {
-    "build": "tsup",
     "deploy:image": "fly deploy --build-only --push --image-label latest",
     "dev": "node --env-file=.env --experimental-strip-types src/index.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.2.4"
+    "@electric-sql/pglite": "0.2.4",
+    "pg-gateway": "0.3.0-alpha.6"
   },
   "devDependencies": {
     "@types/node": "^20.14.11",
-    "tsup": "^8.2.4",
     "typescript": "^5.5.3"
   }
 }

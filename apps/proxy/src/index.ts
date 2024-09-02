@@ -5,6 +5,39 @@ import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
 import { connectWithRetry } from './utils/connect-with-retry.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
+import { getMachine, suspendMachine } from './utils/get-machine.ts'
+
+type Machine = {
+  id: string
+  private_ip: string
+  state:
+    | 'created'
+    | 'starting'
+    | 'started'
+    | 'stopping'
+    | 'stopped'
+    | 'suspending'
+    | 'suspended'
+    | 'replacing'
+    | 'destroying'
+    | 'destroyed'
+}
+
+const workers = new Map<string, Machine>()
+
+const machines = (await fetch(
+  `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines?region=${env.FLY_REGION}`,
+  {
+    headers: {
+      Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+  }
+).then((res) => res.json())) as Array<Machine>
+
+for (const machine of machines) {
+  workers.set(machine.id, machine)
+}
 
 const server = net.createServer((socket) => {
   console.time('new connection to authenticated')
@@ -76,44 +109,39 @@ const server = net.createServer((socket) => {
       // The left-most subdomain contains the database id
       const databaseId = serverNameParts[0]
 
-      // Create a new Fly Machine
-      console.time('create and connect to machine')
-      const machine = await fetch(
-        `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${env.FLY_API_TOKEN}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            config: {
-              image: `registry.fly.io/${env.WORKER_APP_NAME}:latest`,
-              env: {
-                DATABASE_ID: databaseId,
-              },
-              metadata: {
-                databaseId,
-              },
-              guest: {
-                cpu_kind: 'shared',
-                cpus: 1,
-                memory_mb: 512,
-              },
-              auto_destroy: true,
-            },
-          }),
-        }
-      ).then((res) => res.json())
+      // Get an available Machine
+      console.time('get machine')
+      const machine = await getMachine()
+      console.timeEnd('get machine')
 
       // Establish a TCP connection to the worker
+      console.time('connect to worker')
       const workerSocket = await connectWithRetry(
         {
-          host: machine.private_ip, //`${machine.id}.vm.${env.WORKER_APP_NAME}.internal`,
+          host: machine.private_ip,
           port: 5432,
         },
         10000
       )
+      console.timeEnd('connect to worker')
+
+      console.log('sending databaseId to worker')
+      // send the databaseId to the worker
+      workerSocket.write(databaseId!, 'utf-8')
+
+      console.time('waiting for worker to ack')
+      // wait for the worker to ack
+      await new Promise<void>((res, rej) =>
+        workerSocket.once('data', (data) => {
+          if (data.toString('utf-8') === 'ACK') {
+            console.log('worker did ack')
+            res()
+          } else {
+            rej(new Error('Worker did not ACK'))
+          }
+        })
+      )
+      console.timeEnd('waiting for worker to ack')
 
       // Detach from the `PostgresConnection` to prevent further buffering/processing
       const socket = connection.detach()
@@ -128,7 +156,11 @@ const server = net.createServer((socket) => {
       socket.on('error', (err) => workerSocket.destroy(err))
       workerSocket.on('error', (err) => socket.destroy(err))
 
-      socket.on('close', () => workerSocket.destroy())
+      socket.on('close', async () => {
+        workerSocket.destroy()
+        // let the time for the worker to cleanup
+        setTimeout(async () => await suspendMachine(machine.id), 1000)
+      })
       workerSocket.on('close', () => socket.destroy())
       console.timeEnd('create and connect to machine')
     },

@@ -1,37 +1,67 @@
 import net from 'node:net'
-import process from 'node:process'
-import { PGlite } from '@electric-sql/pglite'
+import { PGlite, type PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
+import { PostgresConnection } from 'pg-gateway'
+import { s3GetObject } from './s3-get-object.ts'
 
-console.time('init database')
-const database = await PGlite.create({
-  dataDir: './pgdata',
-  extensions: {
-    vector,
-  },
-})
-console.timeEnd('init database')
+const server = net.createServer()
 
-// Exit after 30 seconds if the proxy doesn't connect
-const timeout = setTimeout(() => {
-  process.exit(0)
-}, 30_000)
-
-net
-  .createServer(async (socket) => {
-    // Clear the timeout when the socket is connected
-    clearTimeout(timeout)
-
-    // Exit when the socket is closed
-    socket.on('close', () => {
-      process.exit(0)
+server.on('connection', async (socket) => {
+  console.log('new connection')
+  // the first message contains the databaseId
+  const databaseId = await new Promise<string>((res) =>
+    socket.once('data', (data) => {
+      console.log('received databaseId from proxy', data)
+      res(data.toString('utf-8'))
     })
+  )
 
-    for await (const data of socket as AsyncIterable<Buffer>) {
+  console.log('databaseId', databaseId)
+
+  let database: PGliteInterface | undefined
+
+  const connection = new PostgresConnection(socket, {
+    async onMessage(data) {
+      if (!database) {
+        console.time('download pgdata')
+        const response = await s3GetObject({
+          bucket: process.env.AWS_S3_BUCKET!,
+          endpoint: process.env.AWS_ENDPOINT_URL_S3!,
+          region: process.env.AWS_REGION!,
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          key: `dbs/${databaseId}.tar.gz`,
+        })
+        const pgdata = new Blob([await response.arrayBuffer()], { type: 'application/gzip' })
+        console.timeEnd('download tarball')
+
+        console.time('init database')
+        database = await PGlite.create({
+          loadDataDir: pgdata,
+          extensions: {
+            vector,
+          },
+        })
+        console.timeEnd('init database')
+      }
+
       const response = await database.execProtocolRaw(data)
-      socket.write(response)
-    }
+      connection.sendData(response)
+
+      return true
+    },
   })
-  .listen(5432, () => {
-    console.log('Server listening on port 5432')
+
+  // send ack to proxy
+  console.log('sending ack to proxy')
+  socket.write('ACK', 'utf-8')
+
+  socket.on('close', async () => {
+    await database?.close()
+    database = undefined
   })
+})
+
+server.listen(5432, () => {
+  console.log('Server is running on port 5432')
+})

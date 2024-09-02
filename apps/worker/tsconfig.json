@@ -9,6 +9,7 @@
     "moduleDetection": "force",
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
 
     /* Strictness */
     "strict": true,
