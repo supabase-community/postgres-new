@@ -153,13 +153,15 @@ const server = net.createServer((socket) => {
       socket.on('end', () => workerSocket.end())
       workerSocket.on('end', () => socket.end())
 
-      socket.on('error', (err) => workerSocket.destroy(err))
+      socket.on('error', async (err) => {
+        workerSocket.destroy(err)
+        await suspendMachine(machine.id)
+      })
       workerSocket.on('error', (err) => socket.destroy(err))
 
       socket.on('close', async () => {
         workerSocket.destroy()
-        // let the time for the worker to cleanup
-        setTimeout(async () => await suspendMachine(machine.id), 1000)
+        await suspendMachine(machine.id)
       })
       workerSocket.on('close', () => socket.destroy())
       console.timeEnd('create and connect to machine')
