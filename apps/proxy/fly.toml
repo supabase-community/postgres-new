@@ -2,10 +2,6 @@ app = 'postgres-new-proxy'
 
 primary_region = 'iad'
 
-[build]
-dockerfile = "Dockerfile"
-ignorefile = ".dockerignore"
-
 [[services]]
 internal_port = 5432
 protocol = "tcp"
@@ -18,8 +14,8 @@ port = 5432
 
 [services.concurrency]
 type = "connections"
-soft_limit = 1
-hard_limit = 1
+soft_limit = 2000
+hard_limit = 2500
 
 [[vm]]
 memory = '512mb'

@@ -1,40 +1,39 @@
-import { readFile } from 'node:fs/promises'
 import net from 'node:net'
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@postgres-new/supabase'
-import { PostgresConnection, ScramSha256Data, TlsOptions } from 'pg-gateway'
-import { env } from './env.js'
-import { sendFatalError, PostgresErrorCode, connectWithRetry } from './utils.js'
-
-const tls: TlsOptions = {
-  key: await readFile(`${env.S3FS_MOUNT}/tls/key.pem`),
-  cert: await readFile(`${env.S3FS_MOUNT}/tls/cert.pem`),
-}
-
-const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+import { PostgresConnection, type ScramSha256Data } from 'pg-gateway'
+import { env } from './env.ts'
+import { getTlsOptions } from './utils/get-tls-options.ts'
+import { getDeployedDatabase } from './utils/get-deployed-database.ts'
+import { connectWithRetry } from './utils/connect-with-retry.ts'
+import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 
 const server = net.createServer((socket) => {
   const connection = new PostgresConnection(socket, {
+    tls: getTlsOptions,
+    async onTlsUpgrade({ tlsInfo }) {
+      if (!tlsInfo?.sniServerName) {
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `ssl sni extension required`
+        )
+      }
+
+      if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `unknown server ${tlsInfo.sniServerName}`
+        )
+      }
+    },
     auth: {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
-        if (!tlsInfo?.sniServerName) {
-          throw sendFatalError(
-            connection,
-            PostgresErrorCode.ConnectionException,
-            'sniServerName required in TLS info'
-          )
-        }
-
-        const serverNameParts = tlsInfo.sniServerName.split('.')
+        const serverNameParts = tlsInfo!.sniServerName!.split('.')
         // The left-most subdomain contains the database id
-        const databaseId = serverNameParts[0]
+        const databaseId = serverNameParts.at(0)!
 
-        const { data, error } = await supabase
-          .from('deployed_databases')
-          .select('auth_method, auth_data')
-          .eq('database_id', databaseId!)
-          .single()
+        const { data, error } = await getDeployedDatabase(databaseId)
 
         if (error) {
           throw sendFatalError(
@@ -63,59 +62,44 @@ const server = net.createServer((socket) => {
         return data.auth_data as ScramSha256Data
       },
     },
-    tls,
-    async onTlsUpgrade({ tlsInfo }) {
-      if (!tlsInfo?.sniServerName) {
-        throw sendFatalError(
-          connection,
-          PostgresErrorCode.ConnectionException,
-          `ssl sni extension required`
-        )
-      }
-
-      if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
-        throw sendFatalError(
-          connection,
-          PostgresErrorCode.ConnectionException,
-          `unknown server ${tlsInfo.sniServerName}`
-        )
-      }
-    },
     async onAuthenticated({ tlsInfo }) {
       const serverNameParts = tlsInfo!.sniServerName!.split('.')
       // The left-most subdomain contains the database id
       const databaseId = serverNameParts[0]
 
-      const appName = 'postgres-new-proxy'
-
       // Create a new Fly Machine
-      const machine = await fetch(`http://_api.internal:4280/v1/apps/${appName}/machines`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${env.FLY_API_TOKEN}`,
-        },
-        body: JSON.stringify({
-          config: {
-            image: 'registry.fly.dev/postgres-new-worker:latest',
-            env: {
-              DATABASE_ID: databaseId,
-            },
-            metadata: {
-              databaseId,
-            },
-            guest: {
-              cpu_kind: 'shared',
-              cpus: 1,
-              memory_mb: 512,
-            },
+      const machine = await fetch(
+        `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      }).then((res) => res.json())
+          body: JSON.stringify({
+            config: {
+              image: `registry.fly.io/${env.WORKER_APP_NAME}:latest`,
+              env: {
+                DATABASE_ID: databaseId,
+              },
+              metadata: {
+                databaseId,
+              },
+              guest: {
+                cpu_kind: 'shared',
+                cpus: 1,
+                memory_mb: 512,
+              },
+              auto_destroy: true,
+            },
+          }),
+        }
+      ).then((res) => res.json())
 
       // Establish a TCP connection to the worker
       const workerSocket = await connectWithRetry(
         {
-          host: `${machine.id}.vm.${appName}.internal`,
+          host: machine.private_ip, //`${machine.id}.vm.${env.WORKER_APP_NAME}.internal`,
           port: 5432,
         },
         10000
@@ -138,21 +122,6 @@ const server = net.createServer((socket) => {
       workerSocket.on('close', () => socket.destroy())
     },
   })
-
-  // socket.on('close', async () => {
-  //   if (env.FLY_APP_NAME && env.FLY_MACHINE_ID && env.FLY_API_TOKEN) {
-  //     // suspend the machine
-  //     fetch(
-  //       `https://api.machines.dev/v1/apps/${env.FLY_APP_NAME}/machines/${env.FLY_MACHINE_ID}/suspend`,
-  //       {
-  //         method: 'POST',
-  //         headers: {
-  //           Authorization: `Bearer ${env.FLY_API_TOKEN}`,
-  //         },
-  //       }
-  //     )
-  //   }
-  // })
 })
 
 server.listen(5432, async () => {

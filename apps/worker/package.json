@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
+    "deploy:image": "fly deploy --build-only --push --image-label latest",
     "dev": "node --env-file=.env --experimental-strip-types src/index.ts",
     "type-check": "tsc --noEmit"
   },

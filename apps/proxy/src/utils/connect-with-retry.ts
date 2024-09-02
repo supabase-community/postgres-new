@@ -1,18 +1,4 @@
 import { connect, type Socket } from 'node:net'
-import type { PostgresConnection } from 'pg-gateway'
-
-export const PostgresErrorCode = {
-  ConnectionException: '08000',
-} as const
-
-export function sendFatalError(connection: PostgresConnection, code: string, message: string) {
-  connection.sendError({
-    severity: 'FATAL',
-    code,
-    message,
-  })
-  connection.socket.end()
-}
 
 export function connectWithRetry(params: { host: string; port: number }, timeout: number) {
   return new Promise<Socket>((resolve, reject) => {
@@ -24,6 +10,7 @@ export function connectWithRetry(params: { host: string; port: number }, timeout
       socket.on('error', (err) => {
         if ('code' in err && err.code === 'ECONNREFUSED' && Date.now() - startTime < timeout) {
           socket.destroy()
+          // retry every 50ms
           setTimeout(attemptConnection, 50)
         } else {
           reject(err)

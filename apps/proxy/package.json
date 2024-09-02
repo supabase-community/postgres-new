@@ -5,23 +5,22 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "build": "tsc",
+    "deploy:image": "fly deploy --build-only --push --image-label latest",
     "generate:certs": "scripts/generate-certs.sh",
     "psql": "docker compose run --rm -i psql psql",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.2.3",
+    "@aws-sdk/client-s3": "^3.637.0",
     "@supabase/supabase-js": "^2.45.1",
-    "find-up": "^7.0.0",
+    "p-memoize": "^7.1.1",
     "pg-gateway": "0.3.0-alpha.6",
-    "tar": "^7.4.3",
+    "quick-lru": "^7.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@postgres-new/supabase": "*",
     "@types/node": "^20.14.11",
-    "@types/tar": "^6.1.13",
-    "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   }
 }

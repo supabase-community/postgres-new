@@ -1,38 +1,17 @@
-import { findUp } from 'find-up'
-import { readFile } from 'node:fs/promises'
+import process from 'node:process'
 import { z } from 'zod'
 
-const _env = z
+export const env = z
   .object({
-    FLY_API_TOKEN: z.string().optional(),
-    FLY_APP_NAME: z.string().optional(),
-    FLY_MACHINE_ID: z.string().optional(),
-    S3FS_MOUNT: z.string(),
+    AWS_S3_BUCKET: z.string(),
+    AWS_ENDPOINT_URL_S3: z.string(),
+    AWS_ACCESS_KEY_ID: z.string(),
+    AWS_SECRET_ACCESS_KEY: z.string(),
+    AWS_REGION: z.string(),
+    FLY_API_TOKEN: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     SUPABASE_URL: z.string(),
     WILDCARD_DOMAIN: z.string(),
+    WORKER_APP_NAME: z.string(),
   })
   .parse(process.env)
-
-export const env = {
-  ..._env,
-  PGLITE_VERSION: await getPgliteVersion(),
-}
-
-async function getPgliteVersion() {
-  const packageLockJsonPath = await findUp('package-lock.json')
-
-  if (!packageLockJsonPath) {
-    throw new Error('package-lock.json not found')
-  }
-
-  const packageLockJson = JSON.parse(await readFile(packageLockJsonPath, 'utf8')) as {
-    packages: {
-      'node_modules/@electric-sql/pglite': {
-        version: string
-      }
-    }
-  }
-
-  return `(PGlite ${packageLockJson.packages['node_modules/@electric-sql/pglite'].version})`
-}
