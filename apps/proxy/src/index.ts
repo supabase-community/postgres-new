@@ -9,37 +9,42 @@ import { getMachine, stopMachine, suspendMachine } from './utils/get-machine.ts'
 import { randomBytes } from 'node:crypto'
 
 function getDatabaseId(serverName?: string) {
-  return 'fcn7kjjf6lmhfye8'
-  // return serverName.split('.').at(0)!
+  // return 'fcn7kjjf6lmhfye8'
+  return serverName!.split('.').at(0)!
 }
 
 const server = net.createServer((socket) => {
   const connectionId = randomBytes(16).toString('hex')
   console.time(`[${connectionId}] new connection to authenticated`)
   const connection = new PostgresConnection(socket, {
-    // tls: async () => {
-    //   console.time('get tls options')
-    //   const tlsOptions = await getTlsOptions()
-    //   console.timeEnd('get tls options')
-    //   return tlsOptions
-    // },
-    // async onTlsUpgrade({ tlsInfo }) {
-    //   if (!tlsInfo?.sniServerName) {
-    //     throw sendFatalError(
-    //       connection,
-    //       PostgresErrorCode.ConnectionException,
-    //       `ssl sni extension required`
-    //     )
-    //   }
+    tls: async () => {
+      try {
+        console.time(`[${connectionId}] get tls options`)
+        const tlsOptions = await getTlsOptions()
+        console.timeEnd(`[${connectionId}] get tls options`)
+        return tlsOptions
+      } catch (err) {
+        console.error('Error in tls option callback', err)
+        throw err
+      }
+    },
+    async onTlsUpgrade({ tlsInfo }) {
+      if (!tlsInfo?.sniServerName) {
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `ssl sni extension required`
+        )
+      }
 
-    //   if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
-    //     throw sendFatalError(
-    //       connection,
-    //       PostgresErrorCode.ConnectionException,
-    //       `unknown server ${tlsInfo.sniServerName}`
-    //     )
-    //   }
-    // },
+      if (!tlsInfo.sniServerName.endsWith(env.WILDCARD_DOMAIN)) {
+        throw sendFatalError(
+          connection,
+          PostgresErrorCode.ConnectionException,
+          `unknown server ${tlsInfo.sniServerName}`
+        )
+      }
+    },
     auth: {
       method: 'scram-sha-256',
       async getScramSha256Data(_, { tlsInfo }) {
