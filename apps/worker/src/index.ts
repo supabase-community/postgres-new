@@ -21,9 +21,6 @@ server.on('connection', async (socket) => {
     await database?.close()
     database = undefined
     console.timeEnd(`close database`)
-    console.time(`remove pgdata`)
-    await rm(dataDir, { recursive: true, force: true }).catch(() => {})
-    console.timeEnd(`remove pgdata`)
   })
 
   socket.on('close', async () => {
@@ -32,9 +29,6 @@ server.on('connection', async (socket) => {
     await database?.close()
     database = undefined
     console.timeEnd(`close database`)
-    console.time(`remove pgdata`)
-    await rm(dataDir, { recursive: true, force: true }).catch(() => {})
-    console.timeEnd(`remove pgdata`)
   })
 
   // the first message contains the databaseId
