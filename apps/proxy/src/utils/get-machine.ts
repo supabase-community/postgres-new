@@ -62,8 +62,11 @@ async function getMachine(): Promise<Machine> {
       return newMachine
     }
 
-    // If at MAX_WORKERS, wait for a suspended machine
-    while (true) {
+    // If at MAX_WORKERS, wait for a suspended machine with a max timeout of 10 seconds
+    const maxWaitTime = 10_000 // 10 seconds
+    const startTime = Date.now()
+
+    while (Date.now() - startTime < maxWaitTime) {
       await new Promise((resolve) => setTimeout(resolve, 1000)) // Wait 1 second
       await refreshMachines()
       for (const machine of workers) {
@@ -73,6 +76,8 @@ async function getMachine(): Promise<Machine> {
         }
       }
     }
+
+    throw new Error(`Timeout: No suspended machine available within ${maxWaitTime / 1000} seconds`)
   })
 }
 

@@ -3,7 +3,7 @@ import * as path from 'node:path'
 import { exec as execCallback } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
-import { decompressArchive } from './decompress-archive'
+import { decompressArchive } from './decompress-archive.ts'
 const exec = promisify(execCallback)
 
 const s3 = new S3Client({ forcePathStyle: true })
@@ -31,14 +31,9 @@ class LRUCache {
   }
 
   private async getCurrentDiskUsage(): Promise<number> {
-    try {
-      const { stdout } = await exec('df -h --output=pcent /')
-      const usage = stdout.split('\n')[1]!.trim().replace('%', '')
-      return parseFloat(usage) / 100
-    } catch (error) {
-      console.error('Error getting disk usage:', error)
-      return 0
-    }
+    const { stdout } = await exec("df -h / | awk 'NR==2 {print $5}'")
+    const usage = stdout.trim().replace('%', '')
+    return parseFloat(usage) / 100
   }
 
   private async ensureDiskUsage(): Promise<void> {

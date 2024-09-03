@@ -1,13 +1,10 @@
 import net from 'node:net'
 import { PGlite, type PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import { decompressArchive } from './decompress-archive.ts'
 import path from 'node:path'
 import { rm } from 'node:fs/promises'
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getPgData } from './get-pgdata.ts'
-
-const s3 = new S3Client({ forcePathStyle: true })
+import { MessageBuffer } from './message-buffer.ts'
 
 const dataDir = path.join(process.cwd(), 'pgdata')
 
@@ -15,6 +12,8 @@ const server = net.createServer()
 
 server.on('connection', async (socket) => {
   let database: PGliteInterface | undefined
+
+  const messageBuffer = new MessageBuffer()
 
   socket.on('error', async (err) => {
     console.error('socket error', err)
@@ -45,30 +44,34 @@ server.on('connection', async (socket) => {
   )
   console.timeEnd(`read databaseId`)
 
-  // TODO: reuse MessageBuffer from pg-gateway to handle the data
-  socket.on('data', async (data) => {
-    try {
-      if (!database) {
-        console.time(`get pgdata for database ${databaseId}`)
-        const pgData = await getPgData(databaseId)
-        console.timeEnd(`get pgdata for database ${databaseId}`)
+  socket.on('data', async (socketData) => {
+    console.log('Received raw data:', socketData.toString('hex'))
+    await messageBuffer.handleData(socketData, async (data) => {
+      console.log('Processing buffered message:', data.toString('hex'))
+      try {
+        if (!database) {
+          console.time(`get pgdata for database ${databaseId}`)
+          const pgData = await getPgData(databaseId)
+          console.timeEnd(`get pgdata for database ${databaseId}`)
 
-        console.time(`init database ${databaseId}`)
-        database = await PGlite.create({
-          dataDir: pgData,
-          extensions: {
-            vector,
-          },
-        })
-        console.timeEnd(`init database ${databaseId}`)
+          console.time(`init database ${databaseId}`)
+          database = await PGlite.create({
+            dataDir: pgData,
+            extensions: {
+              vector,
+            },
+          })
+          console.timeEnd(`init database ${databaseId}`)
+        }
+
+        const response = Buffer.from(await database.execProtocolRaw(data))
+        console.log('Sending response:', response.toString('hex'))
+        socket.write(response)
+      } catch (error) {
+        console.error('Error processing message:', error)
+        socket.destroy()
       }
-
-      const response = await database.execProtocolRaw(data)
-      socket.write(response)
-    } catch (error) {
-      console.error('data error', error)
-      socket.destroy()
-    }
+    })
   })
 
   // send ack to proxy that we are ready
