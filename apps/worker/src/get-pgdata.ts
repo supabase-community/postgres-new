@@ -11,7 +11,6 @@ const s3 = new S3Client({ forcePathStyle: true })
 async function exists(folderPath: string) {
   try {
     await fs.access(folderPath)
-    console.log('Folder exists.')
     return true
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
