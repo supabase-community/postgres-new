@@ -1,12 +1,8 @@
 import net from 'node:net'
 import { PGlite, type PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
-import path from 'node:path'
-import { rm } from 'node:fs/promises'
 import { getPgData } from './get-pgdata.ts'
 import { MessageBuffer } from './message-buffer.ts'
-
-const dataDir = path.join(process.cwd(), 'pgdata')
 
 const server = net.createServer()
 
@@ -17,18 +13,15 @@ server.on('connection', async (socket) => {
 
   socket.on('error', async (err) => {
     console.error('socket error', err)
-    console.time(`close database`)
-    await database?.close()
-    database = undefined
-    console.timeEnd(`close database`)
   })
 
-  socket.on('close', async () => {
-    console.error('socket closed')
-    console.time(`close database`)
+  socket.on('close', async (hadError) => {
+    console.log(`socket closed${hadError ? ' due to error' : ''}`)
+    console.time('close database')
     await database?.close()
     database = undefined
-    console.timeEnd(`close database`)
+    console.timeEnd('close database')
+    // TODO: notify proxy that we are done
   })
 
   // the first message contains the databaseId
