@@ -73,6 +73,19 @@ export async function stopMachine(machineId: string) {
   ).then((res) => res.json())) as { ok: boolean }
 }
 
+export async function destroyMachine(machineId: string) {
+  return (await fetch(
+    `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}?force=true`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  ).then((res) => res.json())) as { ok: boolean }
+}
+
 export async function createMachine() {
   return (await fetch(`http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`, {
     method: 'POST',

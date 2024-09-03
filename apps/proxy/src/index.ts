@@ -3,10 +3,10 @@ import { PostgresConnection, type ScramSha256Data } from 'pg-gateway'
 import { env } from './env.ts'
 import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
-import { connectWithRetry } from './utils/connect-with-retry.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
-import { getMachine, stopMachine, suspendMachine } from './utils/get-machine.ts'
 import { randomBytes } from 'node:crypto'
+import { destroyWorker, getWorker, releaseWorker } from './utils/get-worker.ts'
+import { connectWithRetry } from './utils/connect-with-retry.ts'
 
 function getDatabaseId(serverName?: string) {
   // return 'fcn7kjjf6lmhfye8'
@@ -85,22 +85,23 @@ const server = net.createServer((socket) => {
       console.timeEnd(`[${connectionId}] new connection to authenticated`)
       const databaseId = getDatabaseId(tlsInfo?.sniServerName)
 
-      // Get an available Machine
-      console.time(`[${connectionId}] get machine`)
-      const machine = await getMachine()
-      console.timeEnd(`[${connectionId}] get machine`)
+      // Get a worker
+      console.time(`[${connectionId}] get worker`)
+      const worker = await getWorker()
+      console.timeEnd(`[${connectionId}] get worker`)
 
       try {
         // Establish a TCP connection to the worker
-        console.time(`[${connectionId}] connect to worker ${machine.id}`)
+        console.time(`[${connectionId}] connect to worker ${worker.id}`)
+        // TODO: check that it works, the worker should be listening on 5432 at this point
         const workerSocket = await connectWithRetry(
           {
-            host: machine.private_ip,
+            host: worker.private_ip,
             port: 5432,
           },
-          10000
+          10_000
         )
-        console.timeEnd(`[${connectionId}] connect to worker ${machine.id}`)
+        console.timeEnd(`[${connectionId}] connect to worker ${worker.id}`)
 
         // send the databaseId to the worker
         workerSocket.write(databaseId!, 'utf-8')
@@ -126,41 +127,76 @@ const server = net.createServer((socket) => {
         socket.pipe(workerSocket)
         workerSocket.pipe(socket)
 
+        let isCleanup = false
+
+        const cleanup = async (hadError: boolean) => {
+          if (isCleanup) return
+          isCleanup = true
+
+          console.log(`[${connectionId}] cleanup${hadError ? ' due to error' : ''}`)
+
+          socket.destroy()
+          workerSocket.destroy()
+
+          if (hadError) {
+            await destroyWorker(worker)
+          } else {
+            await releaseWorker(worker)
+          }
+        }
+
+        socket.on('error', (err) => {
+          console.error(`[${connectionId}] socket error`, err)
+          cleanup(true)
+        })
+
+        socket.on('close', (hadError) => {
+          console.log(`[${connectionId}] socket close${hadError ? ' due to error' : ''}`)
+          cleanup(hadError)
+        })
+
+        workerSocket.on('error', (err) => {
+          console.error(`[${connectionId}] worker socket error`, err)
+          cleanup(true)
+        })
+
+        workerSocket.on('close', (hadError) => {
+          console.log(`[${connectionId}] worker socket close${hadError ? ' due to error' : ''}`)
+          cleanup(hadError)
+        })
+
         socket.on('end', () => workerSocket.end())
         workerSocket.on('end', () => socket.end())
 
         socket.on('error', async (err) => {
           console.error(`[${connectionId}] socket error`, err)
           workerSocket.destroy(err)
-          console.time(`[${connectionId}] suspending machine`)
-          await suspendMachine(machine.id)
-          console.timeEnd(`[${connectionId}] suspending machine`)
+          await destroyWorker(worker)
         })
+
+        socket.on('close', async (hadError) => {
+          console.log(`[${connectionId}] socket close${hadError ? ' due to error' : ''}`)
+          if (!hadError) {
+            workerSocket.destroy()
+            await releaseWorker(worker)
+          }
+        })
+
         workerSocket.on('error', (err) => {
           console.error(`[${connectionId}] worker socket error`, err)
           socket.destroy(err)
         })
 
-        socket.on('close', async () => {
-          console.log(`[${connectionId}] socket close`)
-          workerSocket.destroy()
-          console.time(`[${connectionId}] suspending machine`)
-          await suspendMachine(machine.id)
-          console.timeEnd(`[${connectionId}] suspending machine`)
-        })
-        workerSocket.on('close', () => {
-          console.log(`[${connectionId}] worker socket close`)
-          socket.destroy()
+        workerSocket.on('close', (hadError) => {
+          console.log(`[${connectionId}] worker socket close${hadError ? ' due to error' : ''}`)
+          if (!hadError) {
+            socket.destroy()
+          }
         })
         console.timeEnd(`[${connectionId}] pipe data between sockets`)
       } catch (err) {
         console.error(`[${connectionId}] error during onAuthenticated`, err)
-        // stop the machine as it can be in an unknown state, it will be destroyed by Fly.io
-        console.time(`[${connectionId}] stopping machine`)
-        await stopMachine(machine.id).catch((err: any) => {
-          console.error(`[${connectionId}] error stopping machine`, err)
-        })
-        console.timeEnd(`[${connectionId}] stopping machine`)
+        await destroyWorker(worker)
         throw sendFatalError(
           connection,
           PostgresErrorCode.ConnectionException,
