@@ -122,6 +122,19 @@ async function suspendMachine(machineId: string) {
   ).then((res) => res.json())) as { ok: boolean }
 }
 
+async function stopMachine(machineId: string) {
+  return (await fetch(
+    `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}/stop`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  ).then((res) => res.json())) as { ok: boolean }
+}
+
 async function createMachine() {
   return (await fetch(`http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`, {
     method: 'POST',
@@ -143,4 +156,4 @@ async function createMachine() {
   }).then((res) => res.json())) as Machine
 }
 
-export { getMachine, suspendMachine }
+export { getMachine, stopMachine, suspendMachine }

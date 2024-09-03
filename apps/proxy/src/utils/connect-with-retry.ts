@@ -8,7 +8,11 @@ export function connectWithRetry(params: { host: string; port: number }, timeout
       const socket = connect(params)
 
       socket.on('error', (err) => {
-        if ('code' in err && err.code === 'ECONNREFUSED' && Date.now() - startTime < timeout) {
+        if (
+          'code' in err &&
+          (err.code === 'ECONNREFUSED' || err.code === 'EHOSTUNREACH') &&
+          Date.now() - startTime < timeout
+        ) {
           socket.destroy()
           // retry every 50ms
           setTimeout(attemptConnection, 50)
