@@ -93,7 +93,6 @@ const server = net.createServer((socket) => {
       try {
         // Establish a TCP connection to the worker
         console.time(`[${connectionId}] connect to worker ${worker.id}`)
-        // TODO: check that it works, the worker should be listening on 5432 at this point
         const workerSocket = await connectWithRetry(
           {
             host: worker.private_ip,
