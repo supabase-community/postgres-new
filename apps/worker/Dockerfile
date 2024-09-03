@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY --link package.json ./
 COPY --link src/ ./src/
+COPY --link electric-sql-pglite-0.2.5.tgz ./
 
 RUN npm install
 
