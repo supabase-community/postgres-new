@@ -13,20 +13,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
+const legacyDomain = 'postgres.new'
+const referrerDomain =
+  typeof window !== 'undefined' ? new URL(document.referrer).hostname || undefined : undefined
+
+const isLegacyDomain = typeof window !== 'undefined' && window.location.hostname === legacyDomain
+const isLegacyDomainReferrer = referrerDomain === legacyDomain
+
 export type LayoutProps = PropsWithChildren
 
 export default function Layout({ children }: LayoutProps) {
   const { isPreview } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
-  const isLegacyDomain =
-    typeof window !== 'undefined' && window.location.hostname === 'postgres.new'
 
   return (
     <LazyMotion features={loadFramerFeatures}>
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
           {isPreview && <PreviewBanner />}
-          {isLegacyDomain && <RenameBanner />}
+          {(isLegacyDomain || isLegacyDomainReferrer) && <RenameBanner />}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
             {!isSmallBreakpoint && <Sidebar />}
