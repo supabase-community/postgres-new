@@ -18,7 +18,7 @@ export type LayoutProps = PropsWithChildren
 export default function Layout({ children }: LayoutProps) {
   const { isPreview } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
-  const isNewDomain = location.hostname === 'database.build'
+  const isNewDomain = typeof window !== 'undefined' && window.location.hostname === 'database.build'
 
   return (
     <LazyMotion features={loadFramerFeatures}>
