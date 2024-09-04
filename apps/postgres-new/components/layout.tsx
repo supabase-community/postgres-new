@@ -3,14 +3,13 @@
 import 'chart.js/auto'
 import 'chartjs-adapter-date-fns'
 
-import { DialogTrigger } from '@radix-ui/react-dialog'
 import { LazyMotion, m } from 'framer-motion'
 import { PropsWithChildren } from 'react'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { useApp } from './app-provider'
 import Sidebar from './sidebar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
