@@ -15,7 +15,9 @@ const loadFramerFeatures = () => import('./framer-features').then((res) => res.d
 
 const legacyDomain = 'postgres.new'
 const referrerDomain =
-  typeof window !== 'undefined' ? new URL(document.referrer).hostname || undefined : undefined
+  typeof window !== 'undefined' && document.referrer
+    ? new URL(document.referrer).hostname || undefined
+    : undefined
 
 const isLegacyDomain = typeof window !== 'undefined' && window.location.hostname === legacyDomain
 const isLegacyDomainReferrer = referrerDomain === legacyDomain
