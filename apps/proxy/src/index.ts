@@ -7,6 +7,7 @@ import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 import { randomBytes } from 'node:crypto'
 import { destroyWorker, getWorker, releaseWorker, type Worker } from './utils/get-worker.ts'
 import { connectWithRetry } from './utils/connect-with-retry.ts'
+import { scheduler } from 'node:timers/promises'
 
 function getDatabaseId(serverName?: string) {
   // return 'fcn7kjjf6lmhfye8'
@@ -83,8 +84,11 @@ const server = net.createServer((socket) => {
     },
     async onAuthenticated({ tlsInfo }) {
       console.timeEnd(`[${connectionId}] new connection to authenticated`)
+
       const databaseId = getDatabaseId(tlsInfo?.sniServerName)
+
       let workerSocket: net.Socket | undefined
+      let workerSyncSocket: net.Socket | undefined
 
       let isCleanup = false
       async function cleanup(worker: Worker, action: 'destroy' | 'release') {
@@ -101,12 +105,34 @@ const server = net.createServer((socket) => {
           })
           console.timeEnd(`[${connectionId}] destroy worker ${worker.id}`)
         } else {
+          console.time(`[${connectionId}] wait for worker ${worker.id} to be done`)
+          await Promise.race([
+            await new Promise<void>((res) => {
+              workerSyncSocket?.once('data', (data) => {
+                if (data.toString('utf-8') === 'done') {
+                  console.log(`[${connectionId}] worker ${worker.id} done`)
+                  res()
+                } else {
+                  console.error(`[${connectionId}] unknown message from worker sync socket`, data)
+                }
+              })
+            }),
+            async () => {
+              await scheduler.wait(5_000)
+              console.log(`[${connectionId}] worker ${worker.id} timeout on done`)
+            },
+          ])
+          console.timeEnd(`[${connectionId}] wait for worker ${worker.id} to be done`)
+
+          workerSyncSocket?.destroy()
+
           console.time(`[${connectionId}] release worker ${worker.id}`)
           await releaseWorker(worker).catch((err) => {
             console.error(`[${connectionId}] error releasing worker ${worker.id}`, err)
           })
           console.timeEnd(`[${connectionId}] release worker ${worker.id}`)
         }
+        workerSyncSocket?.destroy()
       }
 
       // Get a worker
@@ -115,8 +141,8 @@ const server = net.createServer((socket) => {
       console.timeEnd(`[${connectionId}] get worker`)
 
       try {
-        // Establish a TCP connection to the worker
-        console.time(`[${connectionId}] connect to worker ${worker.id}`)
+        // Establish a TCP connection to the worker main socket
+        console.time(`[${connectionId}] connect to worker ${worker.id} main socket`)
         workerSocket = await connectWithRetry(
           {
             host: worker.private_ip,
@@ -124,23 +150,42 @@ const server = net.createServer((socket) => {
           },
           10_000
         )
-        console.timeEnd(`[${connectionId}] connect to worker ${worker.id}`)
+        console.timeEnd(`[${connectionId}] connect to worker ${worker.id} main socket`)
 
-        // send the databaseId to the worker
-        workerSocket.write(databaseId!, 'utf-8')
+        // Establish a TCP connection to the worker sync socket
+        console.time(`[${connectionId}] connect to worker ${worker.id} sync socket`)
+        workerSyncSocket = await connectWithRetry(
+          {
+            host: worker.private_ip,
+            port: 2345,
+          },
+          10_000
+        )
+        console.timeEnd(`[${connectionId}] connect to worker ${worker.id} sync socket`)
 
-        // wait for the worker to ack
-        console.time(`[${connectionId}] wait for worker ack`)
-        await new Promise<void>((res, rej) =>
-          workerSocket!.once('data', (data) => {
-            if (data.toString('utf-8') === 'ACK') {
+        const readyPromise = new Promise<void>((res, rej) =>
+          workerSyncSocket!.once('data', (data) => {
+            if (data.toString('utf-8') === 'ready') {
               res()
             } else {
-              rej(new Error('Worker did not ACK'))
+              rej(new Error(`[${connectionId}] unknown message from worker sync socket: ${data}`))
             }
           })
         )
-        console.timeEnd(`[${connectionId}] wait for worker ack`)
+
+        // send the databaseId to the worker
+        workerSyncSocket.write(databaseId!, 'utf-8')
+
+        // wait for the worker to be ready
+        console.time(`[${connectionId}] wait for worker ${worker.id} to be ready`)
+        await Promise.race([
+          readyPromise,
+          async () => {
+            scheduler.wait(5_000)
+            throw new Error(`[${connectionId}] worker ${worker.id} timeout on ready`)
+          },
+        ])
+        console.timeEnd(`[${connectionId}] wait for worker ${worker.id} to be ready`)
 
         // Detach from the `PostgresConnection` to prevent further buffering/processing
         const socket = connection.detach()

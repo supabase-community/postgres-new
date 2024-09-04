@@ -3,12 +3,26 @@ import { PGlite, type PGliteInterface } from '@electric-sql/pglite'
 import { vector } from '@electric-sql/pglite/vector'
 import { getPgData } from './get-pgdata.ts'
 import { MessageBuffer } from './message-buffer.ts'
+import { DelayNodeFS } from './node-delay-fs.ts'
 
 const server = net.createServer()
 
-server.on('connection', async (socket) => {
-  let database: PGliteInterface | undefined
+async function makePGlite() {
+  const fs = new DelayNodeFS('./dummy')
+  const databasePromise = PGlite.create({ fs, extensions: { vector } })
+  await fs.paused
+  return {
+    databasePromise,
+    fs,
+  }
+}
 
+let pglite = await makePGlite()
+let database: PGliteInterface | undefined
+let databaseId: string | undefined
+let syncSocket: net.Socket | undefined
+
+server.on('connection', async (socket) => {
   const messageBuffer = new MessageBuffer()
 
   socket.on('error', async (err) => {
@@ -17,42 +31,46 @@ server.on('connection', async (socket) => {
 
   socket.on('close', async (hadError) => {
     console.log(`socket closed${hadError ? ' due to error' : ''}`)
+
     console.time('close database')
     await database?.close()
     database = undefined
     console.timeEnd('close database')
-    // TODO: notify proxy that we are done
+
+    console.time('prepare next pglite instance')
+    pglite = await makePGlite()
+    console.timeEnd('prepare next pglite instance')
+
+    console.time('send done to proxy')
+    syncSocket?.write('done', 'utf-8')
+    console.timeEnd('send done to proxy')
   })
 
-  // the first message contains the databaseId
-  console.time(`read databaseId`)
-  const databaseId = await new Promise<string>((res) =>
-    socket.once('data', (data) => res(data.toString('utf-8')))
-  )
-  console.timeEnd(`read databaseId`)
+  // // the first message contains the databaseId
+  // console.time(`read databaseId`)
+  // const databaseId = await new Promise<string>((res) =>
+  //   socket.once('data', (data) => res(data.toString('utf-8')))
+  // )
+  // console.timeEnd(`read databaseId`)
 
   socket.on('data', async (socketData) => {
-    console.log('Received raw data:', socketData.toString('hex'))
+    // console.log('Received raw data:', socketData.toString('hex'))
     await messageBuffer.handleData(socketData, async (data) => {
-      console.log('Processing buffered message:', data.toString('hex'))
+      // console.log('Processing buffered message:', data.toString('hex'))
       try {
         if (!database) {
           console.time(`get pgdata for database ${databaseId}`)
-          const pgData = await getPgData(databaseId)
+          const pgData = await getPgData(databaseId!)
           console.timeEnd(`get pgdata for database ${databaseId}`)
 
           console.time(`init database ${databaseId}`)
-          database = await PGlite.create({
-            dataDir: pgData,
-            extensions: {
-              vector,
-            },
-          })
+          pglite.fs.resume(pgData)
+          database = await pglite.databasePromise
           console.timeEnd(`init database ${databaseId}`)
         }
 
         const response = Buffer.from(await database.execProtocolRaw(data))
-        console.log('Sending response:', response.toString('hex'))
+        // console.log('Sending response:', response.toString('hex'))
         socket.write(response)
       } catch (error) {
         console.error('Error processing message:', error)
@@ -61,12 +79,29 @@ server.on('connection', async (socket) => {
     })
   })
 
-  // send ack to proxy that we are ready
-  console.time(`send ack to proxy`)
-  socket.write('ACK', 'utf-8')
-  console.timeEnd(`send ack to proxy`)
+  // tell the proxy that we are ready
+  console.time(`send ready to proxy`)
+  syncSocket?.write('ready', 'utf-8')
+  console.timeEnd(`send ready to proxy`)
 })
 
 server.listen(5432, () => {
   console.log('Server is running on port 5432')
+})
+
+const syncServer = net.createServer()
+
+syncServer.on('connection', (socket) => {
+  syncSocket = socket
+  socket.on('data', (data) => {
+    databaseId = data.toString('utf-8')
+  })
+  socket.on('close', () => {
+    syncSocket = undefined
+    databaseId = undefined
+  })
+})
+
+syncServer.listen(2345, () => {
+  console.log('Sync server is running on port 2345')
 })

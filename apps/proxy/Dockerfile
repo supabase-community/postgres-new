@@ -12,5 +12,6 @@ RUN sed -i '/"@postgres-new\/supabase": "\*"/d' package.json
 RUN npm install
 
 EXPOSE 5432
+EXPOSE 2345
 
 CMD [ "node", "--experimental-strip-types", "src/index.ts" ]
