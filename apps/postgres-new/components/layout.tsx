@@ -18,14 +18,15 @@ export type LayoutProps = PropsWithChildren
 export default function Layout({ children }: LayoutProps) {
   const { isPreview } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
-  const isNewDomain = typeof window !== 'undefined' && window.location.hostname === 'database.build'
+  const isLegacyDomain =
+    typeof window !== 'undefined' && window.location.hostname === 'postgres.new'
 
   return (
     <LazyMotion features={loadFramerFeatures}>
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
           {isPreview && <PreviewBanner />}
-          {!isNewDomain && <RenameBanner />}
+          {isLegacyDomain && <RenameBanner />}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
             {!isSmallBreakpoint && <Sidebar />}
