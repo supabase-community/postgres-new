@@ -5,7 +5,7 @@ import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 import { randomBytes } from 'node:crypto'
-import { destroyWorker, getWorker, releaseWorker } from './utils/get-worker.ts'
+import { destroyWorker, getWorker, releaseWorker, type Worker } from './utils/get-worker.ts'
 import { connectWithRetry } from './utils/connect-with-retry.ts'
 
 function getDatabaseId(serverName?: string) {
@@ -84,6 +84,30 @@ const server = net.createServer((socket) => {
     async onAuthenticated({ tlsInfo }) {
       console.timeEnd(`[${connectionId}] new connection to authenticated`)
       const databaseId = getDatabaseId(tlsInfo?.sniServerName)
+      let workerSocket: net.Socket | undefined
+
+      let isCleanup = false
+      async function cleanup(worker: Worker, action: 'destroy' | 'release') {
+        if (isCleanup) {
+          return
+        }
+        isCleanup = true
+        socket.destroy()
+        workerSocket?.destroy()
+        if (action === 'destroy') {
+          console.time(`[${connectionId}] destroy worker ${worker.id}`)
+          await destroyWorker(worker).catch((err) => {
+            console.error(`[${connectionId}] error destroying worker ${worker.id}`, err)
+          })
+          console.timeEnd(`[${connectionId}] destroy worker ${worker.id}`)
+        } else {
+          console.time(`[${connectionId}] release worker ${worker.id}`)
+          await releaseWorker(worker).catch((err) => {
+            console.error(`[${connectionId}] error releasing worker ${worker.id}`, err)
+          })
+          console.timeEnd(`[${connectionId}] release worker ${worker.id}`)
+        }
+      }
 
       // Get a worker
       console.time(`[${connectionId}] get worker`)
@@ -93,7 +117,7 @@ const server = net.createServer((socket) => {
       try {
         // Establish a TCP connection to the worker
         console.time(`[${connectionId}] connect to worker ${worker.id}`)
-        const workerSocket = await connectWithRetry(
+        workerSocket = await connectWithRetry(
           {
             host: worker.private_ip,
             port: 5432,
@@ -108,7 +132,7 @@ const server = net.createServer((socket) => {
         // wait for the worker to ack
         console.time(`[${connectionId}] wait for worker ack`)
         await new Promise<void>((res, rej) =>
-          workerSocket.once('data', (data) => {
+          workerSocket!.once('data', (data) => {
             if (data.toString('utf-8') === 'ACK') {
               res()
             } else {
@@ -121,81 +145,35 @@ const server = net.createServer((socket) => {
         // Detach from the `PostgresConnection` to prevent further buffering/processing
         const socket = connection.detach()
 
-        console.time(`[${connectionId}] pipe data between sockets`)
-        // Pipe data directly between sockets
         socket.pipe(workerSocket)
         workerSocket.pipe(socket)
 
-        let isCleanup = false
+        const handleError = async (err: Error) => {
+          console.error(`[${connectionId}] Socket error:`, err)
+          await cleanup(worker, 'destroy')
+        }
 
-        const cleanup = async (hadError: boolean) => {
-          if (isCleanup) return
-          isCleanup = true
-
-          console.log(`[${connectionId}] cleanup${hadError ? ' due to error' : ''}`)
-
-          socket.destroy()
-          workerSocket.destroy()
-
+        const handleClose = async (hadError: boolean) => {
+          console.log(`[${connectionId}] Socket closed`)
           if (hadError) {
-            await destroyWorker(worker)
+            await cleanup(worker, 'destroy')
           } else {
-            await releaseWorker(worker)
+            await cleanup(worker, 'release')
           }
         }
 
-        socket.on('error', (err) => {
-          console.error(`[${connectionId}] socket error`, err)
-          cleanup(true)
-        })
+        socket.on('error', handleError)
+        workerSocket.on('error', handleError)
 
-        socket.on('close', (hadError) => {
-          console.log(`[${connectionId}] socket close${hadError ? ' due to error' : ''}`)
-          cleanup(hadError)
-        })
-
-        workerSocket.on('error', (err) => {
-          console.error(`[${connectionId}] worker socket error`, err)
-          cleanup(true)
-        })
-
-        workerSocket.on('close', (hadError) => {
-          console.log(`[${connectionId}] worker socket close${hadError ? ' due to error' : ''}`)
-          cleanup(hadError)
-        })
-
-        socket.on('end', () => workerSocket.end())
-        workerSocket.on('end', () => socket.end())
-
-        socket.on('error', async (err) => {
-          console.error(`[${connectionId}] socket error`, err)
-          workerSocket.destroy(err)
-          await destroyWorker(worker)
-        })
-
-        socket.on('close', async (hadError) => {
-          console.log(`[${connectionId}] socket close${hadError ? ' due to error' : ''}`)
-          if (!hadError) {
-            workerSocket.destroy()
-            await releaseWorker(worker)
-          }
-        })
-
-        workerSocket.on('error', (err) => {
-          console.error(`[${connectionId}] worker socket error`, err)
-          socket.destroy(err)
-        })
-
-        workerSocket.on('close', (hadError) => {
-          console.log(`[${connectionId}] worker socket close${hadError ? ' due to error' : ''}`)
-          if (!hadError) {
-            socket.destroy()
-          }
-        })
-        console.timeEnd(`[${connectionId}] pipe data between sockets`)
+        socket.on('close', handleClose)
+        workerSocket.on('close', handleClose)
       } catch (err) {
-        console.error(`[${connectionId}] error during onAuthenticated`, err)
-        await destroyWorker(worker)
+        console.error(`[${connectionId}] error during connection`, err)
+        console.time(`[${connectionId}] destroy worker ${worker.id}`)
+        await destroyWorker(worker).catch((err) => {
+          console.error(`[${connectionId}] error destroying worker ${worker.id}`, err)
+        })
+        console.timeEnd(`[${connectionId}] destroy worker ${worker.id}`)
         throw sendFatalError(
           connection,
           PostgresErrorCode.ConnectionException,

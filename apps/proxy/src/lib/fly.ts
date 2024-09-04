@@ -30,6 +30,18 @@ export async function getMachines() {
   ).then((res) => res.json())) as Machine[]
 }
 
+export async function getMachine(machineId: string) {
+  return (await fetch(
+    `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${env.FLY_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  ).then((res) => res.json())) as Machine
+}
+
 export async function startMachine(machineId: string) {
   return (await fetch(
     `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}/start`,
