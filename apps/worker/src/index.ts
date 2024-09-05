@@ -46,17 +46,8 @@ server.on('connection', async (socket) => {
     console.timeEnd('send done to proxy')
   })
 
-  // // the first message contains the databaseId
-  // console.time(`read databaseId`)
-  // const databaseId = await new Promise<string>((res) =>
-  //   socket.once('data', (data) => res(data.toString('utf-8')))
-  // )
-  // console.timeEnd(`read databaseId`)
-
   socket.on('data', async (socketData) => {
-    // console.log('Received raw data:', socketData.toString('hex'))
     await messageBuffer.handleData(socketData, async (data) => {
-      // console.log('Processing buffered message:', data.toString('hex'))
       try {
         if (!database) {
           console.time(`get pgdata for database ${databaseId}`)
@@ -70,7 +61,6 @@ server.on('connection', async (socket) => {
         }
 
         const response = Buffer.from(await database.execProtocolRaw(data))
-        // console.log('Sending response:', response.toString('hex'))
         socket.write(response)
       } catch (error) {
         console.error('Error processing message:', error)
