@@ -2,6 +2,9 @@ app = 'postgres-new-proxy'
 
 primary_region = 'iad'
 
+[env]
+DEBUG = 'proxy*'
+
 [[services]]
 internal_port = 5432
 protocol = "tcp"

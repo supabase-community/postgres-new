@@ -1,6 +1,8 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { NodeFS } from '@electric-sql/pglite/nodefs'
+import { PGlite } from '@electric-sql/pglite'
+import { vector } from '@electric-sql/pglite/vector'
 
 // We need to export these, they are internal paths inside the VFS, not on the main FS.
 const WASM_PREFIX = '/tmp/pglite'
@@ -37,5 +39,15 @@ export class DelayNodeFS extends NodeFS {
     FS.unmount(PGDATA)
     FS.mount(FS.filesystems.NODEFS, { root: this.rootDir }, PGDATA)
     await super.initialSyncFs(FS)
+  }
+}
+
+export async function makePGlite() {
+  const fs = new DelayNodeFS('./dummy')
+  const databasePromise = PGlite.create({ fs, extensions: { vector } })
+  await fs.paused
+  return {
+    databasePromise,
+    fs,
   }
 }

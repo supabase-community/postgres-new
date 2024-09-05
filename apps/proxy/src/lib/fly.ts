@@ -15,6 +15,7 @@ export type MachineState =
 export type Machine = {
   id: string
   private_ip: string
+  instance_id: string
   state: MachineState
 }
 
@@ -121,11 +122,12 @@ export async function createMachine() {
 
 export async function waitMachineState(
   machineId: string,
+  instanceId: string,
   state: 'started' | 'stopped' | 'suspended' | 'destroyed'
 ) {
   const WAIT_TIMEOUT = 10
   return (await fetch(
-    `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}/wait?state=${state}&timeout=${WAIT_TIMEOUT}`,
+    `http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines/${machineId}/wait?instance_id=${instanceId}&state=${state}&timeout=${WAIT_TIMEOUT}`,
     {
       headers: {
         Authorization: `Bearer ${env.FLY_API_TOKEN}`,

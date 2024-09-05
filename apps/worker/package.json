@@ -7,10 +7,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.637.0",
+    "@aws-sdk/client-s3": "3.645.0",
     "@electric-sql/pglite": "file:./electric-sql-pglite-0.2.5.tgz",
-    "debug": "^4.3.6",
-    "pg-gateway": "0.3.0-alpha.6"
+    "debug": "4.3.6"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

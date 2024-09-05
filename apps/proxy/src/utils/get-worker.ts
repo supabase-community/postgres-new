@@ -1,65 +1,34 @@
 import { scheduler } from 'node:timers/promises'
 import { Mutex } from 'async-mutex'
 import {
-  createMachine,
-  destroyMachine,
   getMachine,
   getMachines,
   startMachine,
+  stopMachine,
   suspendMachine,
   waitMachineState,
+  type Machine,
 } from '../lib/fly.ts'
 import type { Debugger } from 'debug'
-const MAX_WORKERS = 50
 
 const mutex = new Mutex()
 
-const workers = new Map<string, Worker>()
+let machinesPool = new Map<string, Machine>((await getMachines()).map((m) => [m.id, m]))
 
-// sync workers state on startup
-await syncWorkers()
-
-export type Worker = {
-  id: string
-  private_ip: string
-  available: boolean
-}
-
-async function syncWorkers() {
-  const machines = await getMachines()
-  workers.clear()
-  for (const machine of machines) {
-    workers.set(machine.id, {
-      id: machine.id,
-      private_ip: machine.private_ip,
-      available: machine.state === 'suspended',
-    })
-  }
-}
-
-async function getWorker(debug: Debugger): Promise<Worker> {
+async function getWorker(debug: Debugger): Promise<Machine> {
   const MAX_WAIT_TIME = 10_000 // 10 seconds
-  const CHECK_INTERVAL = 500 // 500ms
+  const CHECK_INTERVAL = 1_000 // 1 second
   const startTime = Date.now()
 
   while (Date.now() - startTime < MAX_WAIT_TIME) {
     const result = await mutex.runExclusive(async () => {
-      const availableWorker = Array.from(workers.values()).find((w) => w.available)
+      const availableMachine = Array.from(machinesPool.values()).find(
+        (m) => m.state === 'suspended'
+      )
 
-      if (availableWorker) {
-        workers.set(availableWorker.id, { ...availableWorker, available: false })
-        return { action: 'start' as const, worker: availableWorker }
-      }
-
-      if (workers.size < MAX_WORKERS) {
-        const workerId = `${Date.now()}-${Math.random()}`
-        const worker = { available: false, id: workerId, private_ip: '' }
-        // we put the placeholder worker in the map so it accounts for the size
-        workers.set(workerId, worker)
-        return {
-          action: 'create' as const,
-          worker,
-        }
+      if (availableMachine) {
+        machinesPool.set(availableMachine.id, { ...availableMachine, state: 'starting' })
+        return { action: 'start' as const, machine: availableMachine }
       }
 
       return { action: 'wait' } as const
@@ -67,28 +36,14 @@ async function getWorker(debug: Debugger): Promise<Worker> {
 
     switch (result.action) {
       case 'start': {
-        debug(`starting machine ${result.worker.id}`)
-        await startMachine(result.worker.id)
-        // await waitMachineState(result.worker.id, 'started')
-        debug(`started machine ${result.worker.id}`)
-        return result.worker
-      }
-      case 'create': {
-        debug(`creating a new machine`)
-        const machine = await createMachine()
-        // await waitMachineState(machine.id, 'started')
-        debug(`created a new machine ${machine.id}`)
-        // replace the placeholder worker with the actual worker
-        return await mutex.runExclusive(async () => {
-          workers.delete(result.worker.id)
-          const worker = {
-            id: machine.id,
-            private_ip: machine.private_ip,
-            available: false,
-          }
-          workers.set(worker.id, worker)
-          return worker
+        debug(`starting machine ${result.machine.id}`)
+        await startMachine(result.machine.id)
+        await waitMachineState(result.machine.id, result.machine.instance_id, 'started')
+        await mutex.runExclusive(async () => {
+          machinesPool.set(result.machine.id, { ...result.machine, state: 'started' })
         })
+        debug(`started machine ${result.machine.id}`)
+        return result.machine
       }
       case 'wait': {
         await scheduler.wait(CHECK_INTERVAL)
@@ -97,31 +52,36 @@ async function getWorker(debug: Debugger): Promise<Worker> {
     }
   }
 
-  throw new Error(`No worker available after waiting ${MAX_WAIT_TIME}ms`)
+  throw new Error(`no machine available after waiting ${MAX_WAIT_TIME}ms`)
 }
 
-async function releaseWorker(worker: Worker): Promise<void> {
-  await suspendMachine(worker.id)
-  await waitMachineState(worker.id, 'suspended')
-  // workaround until Fly fixes the "wait" API
-  while (true) {
-    const machine = await getMachine(worker.id)
-    if (machine.state === 'suspended') {
-      break
-    }
-    await scheduler.wait(1_000)
-  }
+async function releaseWorker(machine: Machine): Promise<void> {
+  // we need to reboot the machine to reset the worker state
+  // this could be optimized if we could restart the worker from a snapshot
+  await stopMachine(machine.id)
   await mutex.runExclusive(async () => {
-    workers.set(worker.id, { ...worker, available: true })
+    machinesPool.set(machine.id, { ...machine, state: 'stopping' })
+  })
+  await waitMachineState(machine.id, machine.instance_id, 'stopped')
+  await mutex.runExclusive(async () => {
+    machinesPool.set(machine.id, { ...machine, state: 'stopped' })
+  })
+  await startMachine(machine.id)
+  await mutex.runExclusive(async () => {
+    machinesPool.set(machine.id, { ...machine, state: 'starting' })
+  })
+  await waitMachineState(machine.id, machine.instance_id, 'started')
+  await mutex.runExclusive(async () => {
+    machinesPool.set(machine.id, { ...machine, state: 'started' })
+  })
+  // worker is suspending itself so no need to do it here
+  await mutex.runExclusive(async () => {
+    machinesPool.set(machine.id, { ...machine, state: 'suspending' })
+  })
+  await waitMachineState(machine.id, machine.instance_id, 'suspended')
+  await mutex.runExclusive(async () => {
+    machinesPool.set(machine.id, { ...machine, state: 'suspended' })
   })
 }
 
-async function destroyWorker(worker: Worker): Promise<void> {
-  await destroyMachine(worker.id)
-  await waitMachineState(worker.id, 'destroyed')
-  await mutex.runExclusive(async () => {
-    workers.delete(worker.id)
-  })
-}
-
-export { getWorker, releaseWorker, destroyWorker }
+export { getWorker, releaseWorker }
