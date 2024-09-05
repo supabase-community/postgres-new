@@ -33,7 +33,8 @@ export default function Layout({ children }: LayoutProps) {
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
           {isPreview && <PreviewBanner />}
-          {(isLegacyDomain || isLegacyDomainReferrer) && <RenameBanner />}
+          {/* TODO: re-enable rename banner when ready */}
+          {false && (isLegacyDomain || isLegacyDomainReferrer) && <RenameBanner />}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
             {!isSmallBreakpoint && <Sidebar />}
