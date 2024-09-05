@@ -4,6 +4,7 @@ import { vector } from '@electric-sql/pglite/vector'
 import { getPgData } from './get-pgdata.ts'
 import { MessageBuffer } from './message-buffer.ts'
 import { DelayNodeFS } from './node-delay-fs.ts'
+import { debug } from './debug.ts'
 
 const server = net.createServer()
 
@@ -30,39 +31,39 @@ server.on('connection', async (socket) => {
   })
 
   socket.on('close', async (hadError) => {
-    console.log(`socket closed${hadError ? ' due to error' : ''}`)
+    debug(`socket closed${hadError ? ' due to error' : ''}`)
 
-    console.time('close database')
+    debug('closing database')
     await database?.close()
     database = undefined
-    console.timeEnd('close database')
+    debug('database closed')
 
-    console.time('prepare next pglite instance')
+    debug('preparing next pglite instance')
     pglite = await makePGlite()
-    console.timeEnd('prepare next pglite instance')
+    debug('prepared next pglite instance')
 
-    console.time('send done to proxy')
+    debug('sending done to proxy')
     syncSocket?.write('done', 'utf-8')
-    console.timeEnd('send done to proxy')
+    debug('sended done to proxy')
   })
 
   socket.on('data', async (socketData) => {
     await messageBuffer.handleData(socketData, async (data) => {
       try {
         if (!database) {
-          console.time(`get pgdata for database ${databaseId}`)
+          debug(`getting pgdata for database ${databaseId}`)
           const pgData = await getPgData(databaseId!)
-          console.timeEnd(`get pgdata for database ${databaseId}`)
+          debug(`got pgdata for database ${databaseId}`)
 
-          console.time(`init database ${databaseId}`)
+          debug(`initializing database ${databaseId}`)
           pglite.fs.resume(pgData)
           database = await pglite.databasePromise
-          console.timeEnd(`init database ${databaseId}`)
+          debug(`initialized database ${databaseId}`)
         }
-        console.log('Message:', data.toString('hex'))
+        debug('Message:', data.toString('hex'))
         const response = await database.execProtocolRaw(data)
-        console.log({ response })
-        console.log('Sending response:', Buffer.from(response).toString('hex'))
+        debug({ response })
+        debug('Sending response:', Buffer.from(response).toString('hex'))
         socket.write(response)
       } catch (error) {
         console.error('Error processing message:', error)
@@ -72,9 +73,9 @@ server.on('connection', async (socket) => {
   })
 
   // tell the proxy that we are ready
-  console.time(`send ready to proxy`)
+  debug(`sending ready to proxy`)
   syncSocket?.write('ready', 'utf-8')
-  console.timeEnd(`send ready to proxy`)
+  debug(`sent ready to proxy`)
 })
 
 server.listen(5432, () => {

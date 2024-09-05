@@ -9,7 +9,7 @@ import {
   suspendMachine,
   waitMachineState,
 } from '../lib/fly.ts'
-
+import type { Debugger } from 'debug'
 const MAX_WORKERS = 50
 
 const mutex = new Mutex()
@@ -37,7 +37,7 @@ async function syncWorkers() {
   }
 }
 
-async function getWorker(): Promise<Worker> {
+async function getWorker(debug: Debugger): Promise<Worker> {
   const MAX_WAIT_TIME = 10_000 // 10 seconds
   const CHECK_INTERVAL = 500 // 500ms
   const startTime = Date.now()
@@ -67,17 +67,17 @@ async function getWorker(): Promise<Worker> {
 
     switch (result.action) {
       case 'start': {
-        console.time(`start machine ${result.worker.id}`)
+        debug(`starting machine ${result.worker.id}`)
         await startMachine(result.worker.id)
         // await waitMachineState(result.worker.id, 'started')
-        console.timeEnd(`start machine ${result.worker.id}`)
+        debug(`started machine ${result.worker.id}`)
         return result.worker
       }
       case 'create': {
-        console.time('create a new machine')
+        debug(`creating a new machine`)
         const machine = await createMachine()
         // await waitMachineState(machine.id, 'started')
-        console.timeEnd('create a new machine')
+        debug(`created a new machine ${machine.id}`)
         // replace the placeholder worker with the actual worker
         return await mutex.runExclusive(async () => {
           workers.delete(result.worker.id)

@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto'
 import { destroyWorker, getWorker, releaseWorker, type Worker } from './utils/get-worker.ts'
 import { connectWithRetry } from './utils/connect-with-retry.ts'
 import { scheduler } from 'node:timers/promises'
+import { debug as proxyDebug } from './lib/debug.ts'
 
 function getDatabaseId(serverName?: string) {
   // return 'fcn7kjjf6lmhfye8'
@@ -16,13 +17,14 @@ function getDatabaseId(serverName?: string) {
 
 const server = net.createServer((socket) => {
   const connectionId = randomBytes(16).toString('hex')
-  console.time(`[${connectionId}] new connection to authenticated`)
+  const debug = proxyDebug.extend(connectionId)
+
   const connection = new PostgresConnection(socket, {
     tls: async () => {
       try {
-        console.time(`[${connectionId}] get tls options`)
+        debug('getting tls options')
         const tlsOptions = await getTlsOptions()
-        console.timeEnd(`[${connectionId}] get tls options`)
+        debug('got tls options')
         return tlsOptions
       } catch (err) {
         console.error('Error in tls option callback', err)
@@ -51,9 +53,9 @@ const server = net.createServer((socket) => {
       async getScramSha256Data(_, { tlsInfo }) {
         const databaseId = getDatabaseId(tlsInfo?.sniServerName)
 
-        console.time(`[${connectionId}] get deployed database infos`)
+        debug(`getting deployed database infos`)
         const { data, error } = await getDeployedDatabase(databaseId)
-        console.timeEnd(`[${connectionId}] get deployed database infos`)
+        debug(`got deployed database infos`)
 
         if (error) {
           throw sendFatalError(
@@ -83,8 +85,6 @@ const server = net.createServer((socket) => {
       },
     },
     async onAuthenticated({ tlsInfo }) {
-      console.timeEnd(`[${connectionId}] new connection to authenticated`)
-
       const databaseId = getDatabaseId(tlsInfo?.sniServerName)
 
       let workerSocket: net.Socket | undefined
@@ -105,44 +105,43 @@ const server = net.createServer((socket) => {
           })
           console.timeEnd(`[${connectionId}] destroy worker ${worker.id}`)
         } else {
-          console.time(`[${connectionId}] wait for worker ${worker.id} to be done`)
+          debug(`waiting for worker ${worker.id} to be done`)
           await Promise.race([
             await new Promise<void>((res) => {
               workerSyncSocket?.once('data', (data) => {
                 if (data.toString('utf-8') === 'done') {
-                  console.log(`[${connectionId}] worker ${worker.id} done`)
+                  debug(`worker ${worker.id} done`)
                   res()
                 } else {
-                  console.error(`[${connectionId}] unknown message from worker sync socket`, data)
+                  debug(`unknown message from worker sync socket: ${data}`)
                 }
               })
             }),
             async () => {
               await scheduler.wait(5_000)
-              console.log(`[${connectionId}] worker ${worker.id} timeout on done`)
+              debug(`worker ${worker.id} timed out`)
             },
           ])
-          console.timeEnd(`[${connectionId}] wait for worker ${worker.id} to be done`)
 
           workerSyncSocket?.destroy()
 
-          console.time(`[${connectionId}] release worker ${worker.id}`)
+          debug(`releasing worker ${worker.id}`)
           await releaseWorker(worker).catch((err) => {
-            console.error(`[${connectionId}] error releasing worker ${worker.id}`, err)
+            console.error(`error releasing worker ${worker.id}`, err)
           })
-          console.timeEnd(`[${connectionId}] release worker ${worker.id}`)
+          debug(`released worker ${worker.id}`)
         }
         workerSyncSocket?.destroy()
       }
 
       // Get a worker
-      console.time(`[${connectionId}] get worker`)
-      const worker = await getWorker()
-      console.timeEnd(`[${connectionId}] get worker`)
+      debug(`getting worker`)
+      const worker = await getWorker(debug)
+      debug(`got worker ${worker.id}`)
 
       try {
         // Establish a TCP connection to the worker main socket
-        console.time(`[${connectionId}] connect to worker ${worker.id} main socket`)
+        debug(`connecting to worker ${worker.id} main socket`)
         workerSocket = await connectWithRetry(
           {
             host: worker.private_ip,
@@ -150,10 +149,10 @@ const server = net.createServer((socket) => {
           },
           10_000
         )
-        console.timeEnd(`[${connectionId}] connect to worker ${worker.id} main socket`)
+        debug(`connected to worker ${worker.id} main socket`)
 
         // Establish a TCP connection to the worker sync socket
-        console.time(`[${connectionId}] connect to worker ${worker.id} sync socket`)
+        debug(`connecting to worker ${worker.id} sync socket`)
         workerSyncSocket = await connectWithRetry(
           {
             host: worker.private_ip,
@@ -161,7 +160,7 @@ const server = net.createServer((socket) => {
           },
           10_000
         )
-        console.timeEnd(`[${connectionId}] connect to worker ${worker.id} sync socket`)
+        debug(`connected to worker ${worker.id} sync socket`)
 
         const readyPromise = new Promise<void>((res, rej) =>
           workerSyncSocket!.once('data', (data) => {
@@ -177,7 +176,7 @@ const server = net.createServer((socket) => {
         workerSyncSocket.write(databaseId!, 'utf-8')
 
         // wait for the worker to be ready
-        console.time(`[${connectionId}] wait for worker ${worker.id} to be ready`)
+        debug(`waiting for worker ${worker.id} to be ready`)
         await Promise.race([
           readyPromise,
           async () => {
@@ -185,7 +184,7 @@ const server = net.createServer((socket) => {
             throw new Error(`[${connectionId}] worker ${worker.id} timeout on ready`)
           },
         ])
-        console.timeEnd(`[${connectionId}] wait for worker ${worker.id} to be ready`)
+        debug(`worker ${worker.id} ready`)
 
         // Detach from the `PostgresConnection` to prevent further buffering/processing
         const socket = connection.detach()
@@ -199,7 +198,7 @@ const server = net.createServer((socket) => {
         }
 
         const handleClose = async (hadError: boolean) => {
-          console.log(`[${connectionId}] Socket closed`)
+          debug(`Socket closed`)
           if (hadError) {
             await cleanup(worker, 'destroy')
           } else {
@@ -214,11 +213,11 @@ const server = net.createServer((socket) => {
         workerSocket.on('close', handleClose)
       } catch (err) {
         console.error(`[${connectionId}] error during connection`, err)
-        console.time(`[${connectionId}] destroy worker ${worker.id}`)
+        debug(`destroying worker ${worker.id}`)
         await destroyWorker(worker).catch((err) => {
           console.error(`[${connectionId}] error destroying worker ${worker.id}`, err)
         })
-        console.timeEnd(`[${connectionId}] destroy worker ${worker.id}`)
+        debug(`destroyed worker ${worker.id}`)
         throw sendFatalError(
           connection,
           PostgresErrorCode.ConnectionException,

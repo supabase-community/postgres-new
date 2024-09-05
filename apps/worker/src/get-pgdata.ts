@@ -4,6 +4,7 @@ import { exec as execCallback } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { decompressArchive } from './decompress-archive.ts'
+import { debug } from './debug.ts'
 const exec = promisify(execCallback)
 
 const s3 = new S3Client({ forcePathStyle: true })
@@ -66,22 +67,22 @@ class LRUCache {
   public async set(databaseId: string) {
     const targetPath = path.join(this.cachePath, databaseId)
 
-    console.time(`download pgdata for database ${databaseId}`)
+    debug(`downloading pgdata for database ${databaseId}`)
     const response = await s3.send(
       new GetObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET!,
         Key: `dbs/${databaseId}.tar.gz`,
       })
     )
-    console.timeEnd(`download pgdata for database ${databaseId}`)
+    debug(`downloaded pgdata for database ${databaseId}`)
 
     if (!response.Body) {
       throw new Error('No body in response')
     }
 
-    console.time(`decompress pgdata for database ${databaseId}`)
+    debug(`decompressing pgdata for database ${databaseId}`)
     await decompressArchive(response.Body.transformToWebStream(), targetPath)
-    console.timeEnd(`decompress pgdata for database ${databaseId}`)
+    debug(`decompressed pgdata for database ${databaseId}`)
 
     await this.ensureDiskUsage()
   }
