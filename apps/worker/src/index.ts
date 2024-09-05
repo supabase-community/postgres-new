@@ -59,8 +59,10 @@ server.on('connection', async (socket) => {
           database = await pglite.databasePromise
           console.timeEnd(`init database ${databaseId}`)
         }
-
-        const response = Buffer.from(await database.execProtocolRaw(data))
+        console.log('Message:', data.toString('hex'))
+        const response = await database.execProtocolRaw(data)
+        console.log({ response })
+        console.log('Sending response:', Buffer.from(response).toString('hex'))
         socket.write(response)
       } catch (error) {
         console.error('Error processing message:', error)
