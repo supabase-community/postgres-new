@@ -469,35 +469,59 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   <span>Deploy</span>
                 </DropdownMenuItem>
                 {!isSharingDatabase ? (
-                <DropdownMenuItem
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    setIsSharingDatabase(true)
-                    setIsPopoverOpen(false)
-                  }}
-                >
-                  <WifiIcon
-                    size={16}
-                    strokeWidth={2}
-                    className="flex-shrink-0 text-muted-foreground"
-                  />
+                  <DropdownMenuItem
+                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      // connect to the websocket server
+                      // <dbId>.browser.db.build
+                      if (!dbManager) {
+                        throw new Error('dbManager is not available')
+                      }
+
+                      const db = await dbManager.getDbInstance(database.id)
+
+                      const ws = new WebSocket(`ws://localhost:8080/ws?databaseId=${database.id}`)
+                      ws.onopen = () => {
+                        console.log('webSocket connection opened')
+                        setIsSharingDatabase(true)
+                      }
+                      ws.onmessage = async (event) => {
+                        const response = await db.execProtocolRaw(event.data)
+                        ws.send(response)
+                      }
+                      ws.onclose = () => {
+                        console.log('webSocket connection closed')
+                        setIsSharingDatabase(false)
+                      }
+                      ws.onerror = (error) => {
+                        console.error('webSocket error:', error)
+                        setIsSharingDatabase(false)
+                      }
+                      setIsPopoverOpen(false)
+                    }}
+                  >
+                    <WifiIcon
+                      size={16}
+                      strokeWidth={2}
+                      className="flex-shrink-0 text-muted-foreground"
+                    />
                     <span>Share</span>
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    setIsSharingDatabase(false)
-                    setIsPopoverOpen(false)
-                  }}
-                >
-                  <WifiOffIcon
-                    size={16}
-                    strokeWidth={2}
-                    className="flex-shrink-0 text-muted-foreground"
-                  />
+                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      setIsSharingDatabase(false)
+                      setIsPopoverOpen(false)
+                    }}
+                  >
+                    <WifiOffIcon
+                      size={16}
+                      strokeWidth={2}
+                      className="flex-shrink-0 text-muted-foreground"
+                    />
                     <span>Disconnect</span>
                   </DropdownMenuItem>
                 )}

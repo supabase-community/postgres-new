@@ -1,0 +1,15 @@
+{
+  "name": "@database.build/browser-proxy",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "pg-gateway": "^0.3.0-alpha.6",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "typescript": "^5.5.4"
+  }
+}

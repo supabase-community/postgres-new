@@ -1,0 +1,131 @@
+import * as net from 'node:net'
+import * as https from 'node:https'
+import * as fs from 'node:fs/promises'
+import { PostgresConnection } from 'pg-gateway'
+import { WebSocketServer, type WebSocket } from 'ws'
+import { extractDatabaseId, isValidServername } from './servername'
+
+const tcpConnections = new Map<string, net.Socket>()
+const websocketConnections = new Map<string, WebSocket>()
+
+const tls = {
+  cert: await fs.readFile('cert.pem'),
+  key: await fs.readFile('key.pem'),
+}
+
+const httpsServer = https.createServer({
+  ...tls,
+  requestCert: true,
+  SNICallback: (servername, callback) => {
+    if (isValidServername(servername)) {
+      callback(null)
+    } else {
+      callback(new Error('invalid SNI'))
+    }
+  },
+})
+
+const websocketServer = new WebSocketServer({
+  server: httpsServer,
+})
+
+websocketServer.on('connection', (socket, request) => {
+  const host = request.headers.host
+
+  if (!host) {
+    console.log('No host header present')
+    socket.close()
+    return
+  }
+
+  const databaseId = extractDatabaseId(host)
+
+  if (websocketConnections.has(databaseId)) {
+    socket.send('sorry, too many clients already')
+    socket.close()
+    return
+  }
+
+  websocketConnections.set(databaseId, socket)
+
+  socket.on('message', (message: Uint8Array) => {
+    const tcpSocket = tcpConnections.get(databaseId)
+    tcpSocket?.write(message)
+  })
+
+  socket.on('close', () => {
+    websocketConnections.delete(databaseId)
+  })
+})
+
+httpsServer.listen(443, () => {
+  console.log('https server listening on port 443')
+})
+
+const tcpServer = net.createServer()
+
+tcpServer.on('connection', (socket) => {
+  let databaseId: string | undefined
+
+  const connection = new PostgresConnection(socket, {
+    tls,
+    onTlsUpgrade(state) {
+      if (state.tlsInfo?.sniServerName) {
+        if (!isValidServername(state.tlsInfo.sniServerName)) {
+          connection.sendError({
+            code: '08006',
+            message: 'invalid SNI',
+            severity: 'FATAL',
+          })
+          socket.destroy()
+          return
+        }
+
+        databaseId = extractDatabaseId(state.tlsInfo.sniServerName)
+
+        if (tcpConnections.has(databaseId)) {
+          connection.sendError({
+            code: '53300',
+            message: 'sorry, too many clients already',
+            severity: 'FATAL',
+          })
+          socket.destroy()
+          return
+        }
+
+        tcpConnections.set(databaseId, socket)
+      }
+    },
+    onMessage(message, state) {
+      if (!state.hasStarted) {
+        return false
+      }
+
+      const websocket = websocketConnections.get(databaseId!)
+
+      if (!websocket) {
+        connection.sendError({
+          code: 'XX000',
+          message: 'no websocket connection open',
+          severity: 'FATAL',
+        })
+        socket.destroy()
+        return true
+      }
+
+      websocket.send(message)
+
+      return true
+    },
+  })
+
+  socket.on('close', () => {
+    if (databaseId) {
+      tcpConnections.delete(databaseId)
+    }
+  })
+})
+
+tcpServer.listen(5432, () => {
+  console.log('tcp server listening on port 5432')
+})
