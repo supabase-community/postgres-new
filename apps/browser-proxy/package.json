@@ -2,13 +2,17 @@
   "name": "@database.build/browser-proxy",
   "type": "module",
   "scripts": {
-    "start": "node --env-file=.env --experimental-strip-types src/index.ts"
+    "start": "node --env-file=.env --experimental-strip-types src/index.ts",
+    "dev": "node --watch --env-file=.env --experimental-strip-types src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.645.0",
+    "debug": "^4.3.7",
     "pg-gateway": "^0.3.0-alpha.6",
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/node": "^22.5.4",
     "typescript": "^5.5.4"
   }

@@ -481,7 +481,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
                       const db = await dbManager.getDbInstance(database.id)
 
-                      const ws = new WebSocket(`ws://localhost:8080/ws?databaseId=${database.id}`)
+                      const ws = new WebSocket(`wss://${database.id}.db.staging.postgres.new`)
+
                       ws.onopen = () => {
                         console.log('webSocket connection opened')
                         setIsSharingDatabase(true)
@@ -490,8 +491,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                         const response = await db.execProtocolRaw(event.data)
                         ws.send(response)
                       }
-                      ws.onclose = () => {
-                        console.log('webSocket connection closed')
+                      ws.onclose = (event) => {
+                        console.log('webSocket connection closed', event)
                         setIsSharingDatabase(false)
                       }
                       ws.onerror = (error) => {

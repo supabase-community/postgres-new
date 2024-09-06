@@ -1,35 +1,55 @@
 import * as net from 'node:net'
 import * as https from 'node:https'
-import * as fs from 'node:fs/promises'
 import { PostgresConnection } from 'pg-gateway'
 import { WebSocketServer, type WebSocket } from 'ws'
-import { extractDatabaseId, isValidServername } from './servername'
+import makeDebug from 'debug'
+import * as tls from 'node:tls'
+import { extractDatabaseId, isValidServername } from './servername.ts'
+import { getTls } from './tls.ts'
+
+const debug = makeDebug('browser-proxy')
 
 const tcpConnections = new Map<string, net.Socket>()
 const websocketConnections = new Map<string, WebSocket>()
 
-const tls = {
-  cert: await fs.readFile('cert.pem'),
-  key: await fs.readFile('key.pem'),
-}
+let tlsOptions = await getTls()
 
 const httpsServer = https.createServer({
-  ...tls,
+  ...tlsOptions,
+  key: tlsOptions.key,
   requestCert: true,
   SNICallback: (servername, callback) => {
+    debug('SNICallback', servername)
     if (isValidServername(servername)) {
-      callback(null)
+      debug('SNICallback', 'valid')
+      callback(null, tls.createSecureContext(tlsOptions))
     } else {
+      debug('SNICallback', 'invalid')
       callback(new Error('invalid SNI'))
     }
   },
 })
 
+// refresh the TLS certificate every week
+setInterval(
+  async () => {
+    tlsOptions = await getTls()
+    httpsServer.setSecureContext(tlsOptions)
+  },
+  1000 * 60 * 60 * 24 * 7
+)
+
 const websocketServer = new WebSocketServer({
   server: httpsServer,
 })
 
+websocketServer.on('error', (error) => {
+  debug('websocket server error', error)
+})
+
 websocketServer.on('connection', (socket, request) => {
+  debug('websocket connection')
+
   const host = request.headers.host
 
   if (!host) {
@@ -68,7 +88,7 @@ tcpServer.on('connection', (socket) => {
   let databaseId: string | undefined
 
   const connection = new PostgresConnection(socket, {
-    tls,
+    tls: () => tlsOptions,
     onTlsUpgrade(state) {
       if (state.tlsInfo?.sniServerName) {
         if (!isValidServername(state.tlsInfo.sniServerName)) {
