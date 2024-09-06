@@ -25,6 +25,7 @@ export type AppProps = PropsWithChildren
 const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
 
 export default function AppProvider({ children }: AppProps) {
+  const [isSharingDatabase, setIsSharingDatabase] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
@@ -110,6 +111,8 @@ export default function AppProvider({ children }: AppProps) {
       value={{
         user,
         isLoadingUser,
+        isSharingDatabase,
+        setIsSharingDatabase,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -146,6 +149,8 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
+  isSharingDatabase: boolean
+  setIsSharingDatabase: (sharing: boolean) => void
 }
 
 export const AppContext = createContext<AppContextValues | undefined>(undefined)

@@ -13,6 +13,8 @@ import {
   Pencil,
   Trash2,
   Upload,
+  WifiIcon,
+  WifiOffIcon,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -274,7 +276,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user, dbManager } = useApp()
+  const { user, dbManager, isSharingDatabase, setIsSharingDatabase } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -466,6 +468,39 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
+                {!isSharingDatabase ? (
+                <DropdownMenuItem
+                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    setIsSharingDatabase(true)
+                    setIsPopoverOpen(false)
+                  }}
+                >
+                  <WifiIcon
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
+                    <span>Share</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    setIsSharingDatabase(false)
+                    setIsPopoverOpen(false)
+                  }}
+                >
+                  <WifiOffIcon
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
+                    <span>Disconnect</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="gap-3"

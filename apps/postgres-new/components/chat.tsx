@@ -48,7 +48,15 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited } = useApp()
+  const {
+    user,
+    isLoadingUser,
+    focusRef,
+    setIsSignInDialogOpen,
+    isRateLimited,
+    isSharingDatabase,
+    setIsSharingDatabase,
+  } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -195,8 +203,10 @@ export default function Chat() {
 
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
-  const isSubmitEnabled =
-    !isLoadingMessages && !isLoadingSchema && Boolean(input.trim()) && user !== undefined
+  const isChatEnabled =
+    !isLoadingMessages && !isLoadingSchema && user !== undefined && !isSharingDatabase
+
+  const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
   // Create imperative handle that can be used to focus the input anywhere in the app
   useImperativeHandle(focusRef, () => ({
@@ -230,6 +240,22 @@ export default function Chat() {
             <Skeleton className="self-start h-56 w-3/4 rounded-3xl" />
             <Skeleton className="self-end h-10 w-1/2 rounded-3xl" />
             <Skeleton className="self-start h-20 w-3/4 rounded-3xl" />
+          </div>
+        ) : isSharingDatabase ? (
+          <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10">
+            <div className="flex items-center justify-center h-full">
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => setIsSharingDatabase(false)}
+              >
+                <span className="relative flex h-3 w-3 mr-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                </span>{' '}
+                Stop sharing
+              </Button>
+            </div>
           </div>
         ) : isConversationStarted ? (
           <div
@@ -479,7 +505,7 @@ export default function Chat() {
               // Trigger the click event on the file input element
               fileInput.click()
             }}
-            disabled={isLoading || !user}
+            disabled={!isChatEnabled}
           >
             <Paperclip size={16} strokeWidth={1.3} />
           </Button>
@@ -499,7 +525,7 @@ export default function Chat() {
               setInputFocusState(false)
             }}
             autoFocus
-            disabled={!user}
+            disabled={!isChatEnabled}
             rows={Math.min(input.split('\n').length, 10)}
             onKeyDown={(e) => {
               if (!(e.target instanceof HTMLTextAreaElement)) {
