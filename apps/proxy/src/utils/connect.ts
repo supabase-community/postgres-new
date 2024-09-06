@@ -1,13 +1,15 @@
-import { connect, type Socket } from 'node:net'
+import { createConnection, type Socket } from 'node:net'
 
-export function connectWithRetry(params: { host: string; port: number }, timeout: number) {
+export function connect(params: { host: string; port: number }) {
+  const startTime = Date.now()
+  const timeout = 1_000
+
   return new Promise<Socket>((resolve, reject) => {
-    const startTime = Date.now()
-
     const attemptConnection = () => {
-      const socket = connect(params)
-
+      let timer: NodeJS.Timeout | undefined
+      const socket = createConnection(params)
       socket.on('error', (err) => {
+        clearTimeout(timer)
         if (
           'code' in err &&
           (err.code === 'ECONNREFUSED' || err.code === 'EHOSTUNREACH') &&
@@ -22,8 +24,14 @@ export function connectWithRetry(params: { host: string; port: number }, timeout
       })
 
       socket.on('connect', () => {
+        clearTimeout(timer)
         resolve(socket)
       })
+
+      timer = setTimeout(() => {
+        socket.destroy()
+        attemptConnection()
+      }, 100)
     }
 
     attemptConnection()

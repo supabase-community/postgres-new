@@ -5,6 +5,10 @@ primary_region = 'iad'
 [env]
 DEBUG = 'worker*'
 
+[[restart]]
+policy = "always"
+retries = 1
+
 [[vm]]
 memory = '512mb'
 cpu_kind = 'shared'

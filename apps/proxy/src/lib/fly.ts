@@ -40,7 +40,7 @@ export async function getMachine(machineId: string) {
         'Content-Type': 'application/json',
       },
     }
-  ).then((res) => res.json())) as Machine
+  ).then((res) => res.json())) as Machine | { error: string }
 }
 
 export async function startMachine(machineId: string) {

@@ -3,6 +3,7 @@ import makeDebug from 'debug'
 import { getPgData } from './get-pgdata.ts'
 import { makePGlite } from './pglite.ts'
 import { MessageBuffer } from './message-buffer.ts'
+import { scheduler } from 'node:timers/promises'
 
 const debug = makeDebug('worker')
 
@@ -41,6 +42,15 @@ server.on('connection', async (socket) => {
       })
     })
 
+    socket.on('error', (err) => {
+      console.error('error on socket', err)
+      process.exit(1)
+    })
+
+    socket.on('close', () => {
+      process.exit(0)
+    })
+
     socket.write('ready', 'utf8')
     debug('worker ready')
   } catch (e) {
@@ -50,6 +60,17 @@ server.on('connection', async (socket) => {
 
 server.listen(5432, async () => {
   console.log('Server is running on port 5432')
+
+  // wait for itself to be started (we had cases where the machine was not marked as started at this point)
+  await fetch(
+    `http://_api.internal:4280/v1/apps/${process.env.FLY_APP_NAME!}/machines/${process.env.FLY_MACHINE_ID!}/wait?instance_id=${process.env.FLY_MACHINE_VERSION!}&state=started&timeout=10`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.FLY_API_TOKEN!}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  )
 
   // auto-suspend
   await fetch(

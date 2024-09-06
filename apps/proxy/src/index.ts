@@ -5,8 +5,8 @@ import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 import { randomBytes } from 'node:crypto'
-import { getWorker, releaseWorker } from './utils/get-worker.ts'
-import { connectWithRetry } from './utils/connect-with-retry.ts'
+import { getWorker } from './utils/get-worker.ts'
+import { connect } from './utils/connect.ts'
 import { debug as proxyDebug } from './lib/debug.ts'
 import type { Machine } from './lib/fly.ts'
 
@@ -86,7 +86,7 @@ const server = net.createServer((socket) => {
       let workerSyncSocket: net.Socket | undefined
 
       let isCleanup = false
-      async function cleanup(worker: Machine) {
+      async function cleanup() {
         if (isCleanup) {
           return
         }
@@ -94,29 +94,20 @@ const server = net.createServer((socket) => {
         socket.destroy()
         workerSocket?.destroy()
         workerSyncSocket?.destroy()
-
-        debug(`releasing worker ${worker.id}`)
-        await releaseWorker(worker).catch((err) => {
-          console.error(`error releasing worker ${worker.id}`, err)
-        })
-        debug(`released worker ${worker.id}`)
       }
 
-      // Get a worker
-      debug(`getting worker`)
-      const worker = await getWorker(debug)
-      debug(`got worker ${worker.id}`)
-
       try {
+        // Get a worker
+        debug(`getting worker`)
+        const worker = await getWorker(debug)
+        debug(`got worker ${worker.id}`)
+
         // Establish a TCP connection to the worker main socket
         debug(`connecting to worker ${worker.id}`)
-        workerSocket = await connectWithRetry(
-          {
-            host: worker.private_ip,
-            port: 5432,
-          },
-          10_000
-        )
+        workerSocket = await connect({
+          host: worker.private_ip,
+          port: 5432,
+        })
         debug(`connected to worker ${worker.id}`)
 
         const workerReady = new Promise<void>((res, rej) => {
@@ -124,7 +115,7 @@ const server = net.createServer((socket) => {
             if (data.toString('utf-8') === 'ready') {
               res()
             } else {
-              rej(new Error(`worker ${worker.id} not ready`))
+              rej(new Error(`worker ${worker!.id} not ready`))
             }
           })
         })
@@ -146,12 +137,12 @@ const server = net.createServer((socket) => {
 
         const handleError = async (err: Error) => {
           console.error(`[${connectionId}] Socket error:`, err)
-          await cleanup(worker)
+          await cleanup()
         }
 
         const handleClose = async () => {
           debug(`socket closed`)
-          await cleanup(worker)
+          await cleanup()
         }
 
         socket.on('error', handleError)
@@ -166,7 +157,7 @@ const server = net.createServer((socket) => {
           PostgresErrorCode.ConnectionException,
           `failed to initialize connection to the database`
         )
-        await cleanup(worker)
+        await cleanup()
       }
     },
   })
