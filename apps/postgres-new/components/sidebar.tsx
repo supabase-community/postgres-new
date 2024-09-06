@@ -481,18 +481,21 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
                       const db = await dbManager.getDbInstance(database.id)
 
-                      const ws = new WebSocket(`wss://${database.id}.db.staging.postgres.new`)
+                      const ws = new WebSocket(
+                        `wss://${database.id}.${process.env.NEXT_PUBLIC_WS_DOMAIN}`
+                      )
+
+                      ws.binaryType = 'arraybuffer'
 
                       ws.onopen = () => {
-                        console.log('webSocket connection opened')
                         setIsSharingDatabase(true)
                       }
                       ws.onmessage = async (event) => {
-                        const response = await db.execProtocolRaw(event.data)
+                        const message = new Uint8Array(await event.data)
+                        const response = await db.execProtocolRaw(message)
                         ws.send(response)
                       }
                       ws.onclose = (event) => {
-                        console.log('webSocket connection closed', event)
                         setIsSharingDatabase(false)
                       }
                       ws.onerror = (error) => {

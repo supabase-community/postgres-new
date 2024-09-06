@@ -16,8 +16,6 @@ let tlsOptions = await getTls()
 
 const httpsServer = https.createServer({
   ...tlsOptions,
-  key: tlsOptions.key,
-  requestCert: true,
   SNICallback: (servername, callback) => {
     debug('SNICallback', servername)
     if (isValidServername(servername)) {
@@ -68,9 +66,10 @@ websocketServer.on('connection', (socket, request) => {
 
   websocketConnections.set(databaseId, socket)
 
-  socket.on('message', (message: Uint8Array) => {
+  socket.on('message', (data: Buffer) => {
+    debug('websocket message', data.toString('hex'))
     const tcpSocket = tcpConnections.get(databaseId)
-    tcpSocket?.write(message)
+    tcpSocket?.write(data)
   })
 
   socket.on('close', () => {
@@ -113,7 +112,7 @@ tcpServer.on('connection', (socket) => {
           return
         }
 
-        tcpConnections.set(databaseId, socket)
+        tcpConnections.set(databaseId!, connection.socket)
       }
     },
     onMessage(message, state) {
@@ -133,6 +132,7 @@ tcpServer.on('connection', (socket) => {
         return true
       }
 
+      debug('tcp message', { message })
       websocket.send(message)
 
       return true
