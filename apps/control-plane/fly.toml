@@ -1,0 +1,15 @@
+app = 'postgres-new-control-plane'
+
+primary_region = 'iad'
+
+[env]
+DEBUG = 'control-plane*'
+
+[[restart]]
+policy = "always"
+retries = 10
+
+[[vm]]
+memory = '512mb'
+cpu_kind = 'shared'
+cpus = 1

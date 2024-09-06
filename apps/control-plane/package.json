@@ -1,0 +1,22 @@
+{
+  "name": "@postgres-new/control-plane",
+  "type": "module",
+  "scripts": {
+    "deploy:image": "fly deploy --build-only --push --image-label latest",
+    "dev": "node --env-file=.env --experimental-strip-types src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.12.2",
+    "async-mutex": "^0.5.0",
+    "debug": "4.3.6",
+    "hono": "4.5.11",
+    "wait-port": "^1.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^20.14.11",
+    "typescript": "^5.5.3"
+  }
+}

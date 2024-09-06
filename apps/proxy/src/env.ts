@@ -8,11 +8,8 @@ export const env = z
     AWS_ACCESS_KEY_ID: z.string(),
     AWS_SECRET_ACCESS_KEY: z.string(),
     AWS_REGION: z.string(),
-    FLY_API_TOKEN: z.string(),
-    FLY_REGION: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     SUPABASE_URL: z.string(),
     WILDCARD_DOMAIN: z.string(),
-    WORKER_APP_NAME: z.string(),
   })
   .parse(process.env)

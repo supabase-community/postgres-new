@@ -2,6 +2,7 @@ import type { PostgresConnection } from 'pg-gateway'
 
 export const PostgresErrorCode = {
   ConnectionException: '08000',
+  TooManyClients: '53300',
 } as const
 
 export function sendFatalError(connection: PostgresConnection, code: string, message: string) {

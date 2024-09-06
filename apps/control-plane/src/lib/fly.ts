@@ -99,24 +99,14 @@ export async function destroyMachine(machineId: string) {
   ).then((res) => res.json())) as { ok: boolean }
 }
 
-export async function createMachine() {
+export async function createMachine(config: Record<string, unknown>) {
   return (await fetch(`http://_api.internal:4280/v1/apps/${env.WORKER_APP_NAME}/machines`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.FLY_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      config: {
-        image: `registry.fly.io/${env.WORKER_APP_NAME}:latest`,
-        guest: {
-          cpu_kind: 'shared',
-          cpus: 1,
-          memory_mb: 512,
-        },
-        auto_destroy: true,
-      },
-    }),
+    body: JSON.stringify(config),
   }).then((res) => res.json())) as Machine
 }
 

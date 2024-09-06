@@ -1,14 +1,15 @@
-import net from 'node:net'
+import net, { createConnection } from 'node:net'
 import { PostgresConnection, type ScramSha256Data } from 'pg-gateway'
 import { env } from './env.ts'
 import { getTlsOptions } from './utils/get-tls-options.ts'
 import { getDeployedDatabase } from './utils/get-deployed-database.ts'
 import { PostgresErrorCode, sendFatalError } from './utils/send-fatal-error.ts'
 import { randomBytes } from 'node:crypto'
-import { getWorker } from './utils/get-worker.ts'
-import { connect } from './utils/connect.ts'
+import { getWorker } from './lib/control-plane.ts'
 import { debug as proxyDebug } from './lib/debug.ts'
-import type { Machine } from './lib/fly.ts'
+import { ConnectionStore } from './utils/connection-store.ts'
+
+const connectionStore = new ConnectionStore({ maxConnections: 1 })
 
 const server = net.createServer((socket) => {
   const connectionId = randomBytes(16).toString('hex')
@@ -82,6 +83,21 @@ const server = net.createServer((socket) => {
     async onAuthenticated({ tlsInfo }) {
       const databaseId = getDatabaseId(tlsInfo?.sniServerName)
 
+      const { success } = await connectionStore.increment(databaseId)
+
+      if (!success) {
+        sendFatalError(
+          connection,
+          PostgresErrorCode.TooManyClients,
+          `sorry, too many clients already`
+        )
+        return
+      }
+
+      socket.on('close', async () => {
+        await connectionStore.decrement(databaseId)
+      })
+
       let workerSocket: net.Socket | undefined
       let workerSyncSocket: net.Socket | undefined
 
@@ -99,19 +115,24 @@ const server = net.createServer((socket) => {
       try {
         // Get a worker
         debug(`getting worker`)
-        const worker = await getWorker(debug)
+        const worker = await getWorker()
         debug(`got worker ${worker.id}`)
 
         // Establish a TCP connection to the worker main socket
         debug(`connecting to worker ${worker.id}`)
-        workerSocket = await connect({
+        workerSocket = createConnection({
           host: worker.private_ip,
           port: 5432,
         })
         debug(`connected to worker ${worker.id}`)
 
         const workerReady = new Promise<void>((res, rej) => {
+          const timeoutId = setTimeout(() => {
+            rej(new Error(`worker ${worker!.id} did not respond in time`))
+          }, 10_000)
+
           workerSocket!.once('data', (data) => {
+            clearTimeout(timeoutId)
             if (data.toString('utf-8') === 'ready') {
               res()
             } else {

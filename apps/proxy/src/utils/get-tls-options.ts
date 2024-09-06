@@ -26,3 +26,6 @@ export const getTlsOptions = memoize(_getTlsOptions, {
   // cache for 1 week
   cache: new QuickLRU({ maxSize: 1, maxAge: 1000 * 60 * 60 * 24 * 7 }),
 })
+
+// warm the cache
+await getTlsOptions()
