@@ -235,33 +235,35 @@ export default function Chat() {
             <Skeleton className="self-end h-10 w-1/2 rounded-3xl" />
             <Skeleton className="self-start h-20 w-3/4 rounded-3xl" />
           </div>
-        ) : shareDatabase.isSharing ? (
-          <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10">
-            <div className="flex items-center justify-center h-full flex-col gap-y-5">
-              <CopyableField label="Database URL" value={shareDatabase.databaseUrl!} />
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  shareDatabase.stop()
-                }}
-              >
-                <span className="relative flex h-3 w-3 mr-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                </span>{' '}
-                Stop sharing
-              </Button>
-            </div>
-          </div>
         ) : isConversationStarted ? (
           <div
             className={cn(
               'h-full flex flex-col items-center overflow-y-auto',
-              !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined
+              !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
+              shareDatabase.isSharing ? 'overflow-y-hidden' : undefined
             )}
             ref={scrollRef}
           >
+            {shareDatabase.isSharing && (
+              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90">
+                <div className="flex items-center justify-center h-full flex-col gap-y-5">
+                  <CopyableField label="Database URL" value={shareDatabase.databaseUrl!} />
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                      shareDatabase.stop()
+                    }}
+                  >
+                    <span className="relative flex h-3 w-3 mr-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                    </span>{' '}
+                    Stop sharing
+                  </Button>
+                </div>
+              </div>
+            )}
             <m.div
               key={databaseId}
               className="flex flex-col gap-4 w-full max-w-4xl p-10"
