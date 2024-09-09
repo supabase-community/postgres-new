@@ -25,6 +25,7 @@ import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
+import { CopyableField } from './copyable-field'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -236,7 +237,8 @@ export default function Chat() {
           </div>
         ) : shareDatabase.isSharing ? (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10">
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full flex-col gap-y-5">
+              <CopyableField label="Database URL" value={shareDatabase.databaseUrl!} />
               <Button
                 className="w-full"
                 variant="outline"

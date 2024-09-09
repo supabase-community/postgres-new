@@ -120,7 +120,7 @@ export default function AppProvider({ children }: AppProps) {
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        const databaseUrl = `postgres://postgres@${databaseId}.${process.env.NEXT_PUBLIC_DB_DOMAIN}/postgres`
+        const databaseUrl = `postgres://postgres@${databaseId}.${process.env.NEXT_PUBLIC_WS_DOMAIN}/postgres`
         setDatabaseUrl(databaseUrl)
       }
       ws.onmessage = async (event) => {
