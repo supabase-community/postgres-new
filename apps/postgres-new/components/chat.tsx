@@ -48,15 +48,8 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const {
-    user,
-    isLoadingUser,
-    focusRef,
-    setIsSignInDialogOpen,
-    isRateLimited,
-    isSharingDatabase,
-    setIsSharingDatabase,
-  } = useApp()
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, shareDatabase } =
+    useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -204,7 +197,7 @@ export default function Chat() {
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
   const isChatEnabled =
-    !isLoadingMessages && !isLoadingSchema && user !== undefined && !isSharingDatabase
+    !isLoadingMessages && !isLoadingSchema && user !== undefined && !shareDatabase.isSharing
 
   const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
@@ -241,13 +234,15 @@ export default function Chat() {
             <Skeleton className="self-end h-10 w-1/2 rounded-3xl" />
             <Skeleton className="self-start h-20 w-3/4 rounded-3xl" />
           </div>
-        ) : isSharingDatabase ? (
+        ) : shareDatabase.isSharing ? (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10">
             <div className="flex items-center justify-center h-full">
               <Button
                 className="w-full"
                 variant="outline"
-                onClick={() => setIsSharingDatabase(false)}
+                onClick={() => {
+                  shareDatabase.stop()
+                }}
               >
                 <span className="relative flex h-3 w-3 mr-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>

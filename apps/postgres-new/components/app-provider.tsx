@@ -25,7 +25,6 @@ export type AppProps = PropsWithChildren
 const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
 
 export default function AppProvider({ children }: AppProps) {
-  const [isSharingDatabase, setIsSharingDatabase] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
@@ -106,13 +105,56 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
+  const [isSharingDatabase, setIsSharingDatabase] = useState(false)
+  const [ws, setWs] = useState<WebSocket | null>(null)
+  const startSharingDatabase = useCallback(
+    async (databaseId: string) => {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
+      const db = await dbManager.getDbInstance(databaseId)
+
+      const ws = new WebSocket(`wss://${databaseId}.${process.env.NEXT_PUBLIC_WS_DOMAIN}`)
+
+      ws.binaryType = 'arraybuffer'
+
+      ws.onopen = () => {
+        setIsSharingDatabase(true)
+      }
+      ws.onmessage = async (event) => {
+        const message = new Uint8Array(await event.data)
+        const response = await db.execProtocolRaw(message)
+        ws.send(response)
+      }
+      ws.onclose = (event) => {
+        setIsSharingDatabase(false)
+      }
+      ws.onerror = (error) => {
+        console.error('webSocket error:', error)
+        setIsSharingDatabase(false)
+      }
+
+      setWs(ws)
+    },
+    [dbManager]
+  )
+  const stopSharingDatabase = useCallback(() => {
+    ws?.close()
+    setWs(null)
+  }, [ws])
+  const shareDatabase = {
+    start: startSharingDatabase,
+    stop: stopSharingDatabase,
+    isSharing: isSharingDatabase,
+  }
+
   return (
     <AppContext.Provider
       value={{
         user,
         isLoadingUser,
-        isSharingDatabase,
-        setIsSharingDatabase,
+        shareDatabase,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -149,8 +191,11 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
-  isSharingDatabase: boolean
-  setIsSharingDatabase: (sharing: boolean) => void
+  shareDatabase: {
+    start: (databaseId: string) => Promise<void>
+    stop: () => void
+    isSharing: boolean
+  }
 }
 
 export const AppContext = createContext<AppContextValues | undefined>(undefined)

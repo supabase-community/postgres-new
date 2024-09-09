@@ -276,7 +276,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user, dbManager, isSharingDatabase, setIsSharingDatabase } = useApp()
+  const { user, dbManager, shareDatabase } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -468,40 +468,12 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
-                {!isSharingDatabase ? (
+                {!shareDatabase.isSharing ? (
                   <DropdownMenuItem
                     className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                     onClick={async (e) => {
                       e.preventDefault()
-                      // connect to the websocket server
-                      // <dbId>.browser.db.build
-                      if (!dbManager) {
-                        throw new Error('dbManager is not available')
-                      }
-
-                      const db = await dbManager.getDbInstance(database.id)
-
-                      const ws = new WebSocket(
-                        `wss://${database.id}.${process.env.NEXT_PUBLIC_WS_DOMAIN}`
-                      )
-
-                      ws.binaryType = 'arraybuffer'
-
-                      ws.onopen = () => {
-                        setIsSharingDatabase(true)
-                      }
-                      ws.onmessage = async (event) => {
-                        const message = new Uint8Array(await event.data)
-                        const response = await db.execProtocolRaw(message)
-                        ws.send(response)
-                      }
-                      ws.onclose = (event) => {
-                        setIsSharingDatabase(false)
-                      }
-                      ws.onerror = (error) => {
-                        console.error('webSocket error:', error)
-                        setIsSharingDatabase(false)
-                      }
+                      shareDatabase.start(database.id)
                       setIsPopoverOpen(false)
                     }}
                   >
@@ -517,7 +489,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                     onClick={async (e) => {
                       e.preventDefault()
-                      setIsSharingDatabase(false)
+                      shareDatabase.stop()
                       setIsPopoverOpen(false)
                     }}
                   >

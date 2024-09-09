@@ -96,11 +96,21 @@ tcpServer.on('connection', (socket) => {
             message: 'invalid SNI',
             severity: 'FATAL',
           })
-          socket.destroy()
+          socket.end()
           return
         }
 
         databaseId = extractDatabaseId(state.tlsInfo.sniServerName)
+
+        if (!websocketConnections.has(databaseId!)) {
+          connection.sendError({
+            code: 'XX000',
+            message: 'no websocket connection open',
+            severity: 'FATAL',
+          })
+          socket.end()
+          return
+        }
 
         if (tcpConnections.has(databaseId)) {
           connection.sendError({
@@ -108,7 +118,7 @@ tcpServer.on('connection', (socket) => {
             message: 'sorry, too many clients already',
             severity: 'FATAL',
           })
-          socket.destroy()
+          socket.end()
           return
         }
 
@@ -128,7 +138,7 @@ tcpServer.on('connection', (socket) => {
           message: 'no websocket connection open',
           severity: 'FATAL',
         })
-        socket.destroy()
+        socket.end()
         return true
       }
 
