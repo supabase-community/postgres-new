@@ -1,0 +1,24 @@
+app = "postgres-new-browser-proxy"
+
+primary_region = 'iad'
+
+[[services]]
+internal_port = 5432
+protocol = "tcp"
+[[services.ports]]
+port = 5432
+
+[[services]]
+internal_port = 443
+protocol = "tcp"
+[[services.ports]]
+port = 443
+
+[[restart]]
+policy = "always"
+retries = 10
+
+[[vm]]
+memory = '512mb'
+cpu_kind = 'shared'
+cpus = 1
