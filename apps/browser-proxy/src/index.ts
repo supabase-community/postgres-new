@@ -14,6 +14,15 @@ const websocketConnections = new Map<string, WebSocket>()
 
 let tlsOptions = await getTls()
 
+// refresh the TLS certificate every week
+setInterval(
+  async () => {
+    tlsOptions = await getTls()
+    httpsServer.setSecureContext(tlsOptions)
+  },
+  1000 * 60 * 60 * 24 * 7
+)
+
 const httpsServer = https.createServer({
   ...tlsOptions,
   SNICallback: (servername, callback) => {
@@ -27,15 +36,6 @@ const httpsServer = https.createServer({
     }
   },
 })
-
-// refresh the TLS certificate every week
-setInterval(
-  async () => {
-    tlsOptions = await getTls()
-    httpsServer.setSecureContext(tlsOptions)
-  },
-  1000 * 60 * 60 * 24 * 7
-)
 
 const websocketServer = new WebSocketServer({
   server: httpsServer,
@@ -77,17 +77,13 @@ websocketServer.on('connection', (socket, request) => {
   })
 })
 
-httpsServer.listen(443, () => {
-  console.log('https server listening on port 443')
-})
-
 const tcpServer = net.createServer()
 
 tcpServer.on('connection', (socket) => {
   let databaseId: string | undefined
 
   const connection = new PostgresConnection(socket, {
-    tls: () => tlsOptions,
+    tls: tlsOptions,
     onTlsUpgrade(state) {
       if (state.tlsInfo?.sniServerName) {
         if (!isValidServername(state.tlsInfo.sniServerName)) {
@@ -154,6 +150,10 @@ tcpServer.on('connection', (socket) => {
       tcpConnections.delete(databaseId)
     }
   })
+})
+
+httpsServer.listen(443, () => {
+  console.log('websocket server listening on port 443')
 })
 
 tcpServer.listen(5432, () => {
