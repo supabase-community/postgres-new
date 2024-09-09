@@ -1,15 +1,15 @@
 import './globals.css'
 import 'katex/dist/katex.min.css'
 import type { Metadata } from 'next'
-import { Inter as FontSans } from 'next/font/google'
+// import { Inter as FontSans } from 'next/font/google'
 import Layout from '~/components/layout'
 import Providers from '~/components/providers'
-import { cn } from '~/lib/utils'
+// import { cn } from '~/lib/utils'
 
-const fontSans = FontSans({
-  subsets: ['latin'],
-  variable: '--font-sans',
-})
+// const fontSans = FontSans({
+//   subsets: ['latin'],
+//   variable: '--font-sans',
+// })
 
 export const metadata: Metadata = {
   title: 'Postgres Sandbox',
@@ -23,7 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn('bg-background font-sans antialiased', fontSans.variable)}>
+      <body>
+        {/* <body className={cn('bg-background font-sans antialiased', fontSans.variable)}> */}
         <Providers>
           <Layout>{children}</Layout>
         </Providers>

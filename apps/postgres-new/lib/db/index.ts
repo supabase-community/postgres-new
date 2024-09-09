@@ -38,7 +38,7 @@ export class DbManager {
       new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
       {
         // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
-        id: dataDir ?? nanoid(),
+        id: nanoid(),
         dataDir,
         ...options,
       }

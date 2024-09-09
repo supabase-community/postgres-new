@@ -7,6 +7,21 @@ import { useApp } from '~/components/app-provider'
 import Workspace from '~/components/workspace'
 import { useDatabaseCreateMutation } from '~/data/databases/database-create-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
+import { getSenderModule, saveObjectStore } from '~/lib/transfer/receiver'
+
+async function main() {
+  const { getDatabases, getObjectStore } = await getSenderModule('http://localhost:3000/transfer')
+  const databases = await getDatabases()
+  console.log(databases)
+  const [db] = databases.filter((info) => info.name !== '/pglite/meta')
+  console.log('in main', db)
+
+  const files = await getObjectStore(db.name!, db.version!, 'FILE_DATA')
+  await saveObjectStore(db.name!, db.version!, 'FILE_DATA', files)
+  console.log('in main files', files)
+}
+
+main()
 
 // Use a DNS safe alphabet
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16)
@@ -18,6 +33,10 @@ function uniqueId() {
 export default function Page() {
   const { dbManager } = useApp()
   const router = useRouter()
+
+  // useEffect(() => {
+  //   main()
+  // }, [])
 
   const { mutateAsync: createDatabase } = useDatabaseCreateMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
