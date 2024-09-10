@@ -85,45 +85,48 @@ tcpServer.on('connection', (socket) => {
   const connection = new PostgresConnection(socket, {
     tls: tlsOptions,
     onTlsUpgrade(state) {
-      if (state.tlsInfo?.sniServerName) {
-        if (!isValidServername(state.tlsInfo.sniServerName)) {
-          connection.sendError({
-            code: '08006',
-            message: 'invalid SNI',
-            severity: 'FATAL',
-          })
-          socket.end()
-          return
-        }
-
-        databaseId = extractDatabaseId(state.tlsInfo.sniServerName)
-
-        if (!websocketConnections.has(databaseId!)) {
-          connection.sendError({
-            code: 'XX000',
-            message: 'no websocket connection open',
-            severity: 'FATAL',
-          })
-          socket.end()
-          return
-        }
-
-        if (tcpConnections.has(databaseId)) {
-          connection.sendError({
-            code: '53300',
-            message: 'sorry, too many clients already',
-            severity: 'FATAL',
-          })
-          socket.end()
-          return
-        }
-
-        tcpConnections.set(databaseId!, connection.socket)
+      if (!state.tlsInfo?.sniServerName || !isValidServername(state.tlsInfo.sniServerName)) {
+        // connection.detach()
+        connection.sendError({
+          code: '08006',
+          message: 'invalid SNI',
+          severity: 'FATAL',
+        })
+        connection.end()
+        return
       }
+
+      const _databaseId = extractDatabaseId(state.tlsInfo.sniServerName!)
+
+      if (!websocketConnections.has(_databaseId!)) {
+        // connection.detach()
+        connection.sendError({
+          code: 'XX000',
+          message: 'the browser is not sharing the database',
+          severity: 'FATAL',
+        })
+        connection.end()
+        return
+      }
+
+      if (tcpConnections.has(_databaseId)) {
+        // connection.detach()
+        connection.sendError({
+          code: '53300',
+          message: 'sorry, too many clients already',
+          severity: 'FATAL',
+        })
+        connection.end()
+        return
+      }
+
+      // only set the databaseId after we've verified the connection
+      databaseId = _databaseId
+      tcpConnections.set(databaseId!, connection.socket)
     },
     onMessage(message, state) {
-      if (!state.hasStarted) {
-        return false
+      if (!state.isAuthenticated) {
+        return
       }
 
       const websocket = websocketConnections.get(databaseId!)
@@ -131,17 +134,18 @@ tcpServer.on('connection', (socket) => {
       if (!websocket) {
         connection.sendError({
           code: 'XX000',
-          message: 'no websocket connection open',
+          message: 'the browser is not sharing the database',
           severity: 'FATAL',
         })
-        socket.end()
-        return true
+        connection.end()
+        return
       }
 
       debug('tcp message', { message })
       websocket.send(message)
 
-      return true
+      // return an empty buffer to indicate that the message has been handled
+      return new Uint8Array()
     },
   })
 

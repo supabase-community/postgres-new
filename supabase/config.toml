@@ -74,10 +74,9 @@ file_size_limit = "50MiB"
 enabled = true
 
 # Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
+[storage.buckets.postgres-new-storage]
+public = false
+file_size_limit = "200MiB"
 
 [auth]
 enabled = true

@@ -8,7 +8,7 @@ export async function getTls() {
     .send(
       new GetObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET,
-        Key: 'tls/cert.pem',
+        Key: `tls/${process.env.WILDCARD_DOMAIN}/cert.pem`,
       })
     )
     .then(({ Body }) => Body?.transformToByteArray())
@@ -17,7 +17,7 @@ export async function getTls() {
     .send(
       new GetObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET,
-        Key: 'tls/key.pem',
+        Key: `tls/${process.env.WILDCARD_DOMAIN}/key.pem`,
       })
     )
     .then(({ Body }) => Body?.transformToByteArray())

@@ -115,12 +115,14 @@ export default function AppProvider({ children }: AppProps) {
 
       const db = await dbManager.getDbInstance(databaseId)
 
-      const ws = new WebSocket(`wss://${databaseId}.${process.env.NEXT_PUBLIC_WS_DOMAIN}`)
+      const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
+
+      const ws = new WebSocket(`wss://${databaseHostname}`)
 
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        const databaseUrl = `postgres://postgres@${databaseId}.${process.env.NEXT_PUBLIC_WS_DOMAIN}/postgres`
+        const databaseUrl = `postgres://postgres@${databaseHostname}/postgres`
         setDatabaseUrl(databaseUrl)
       }
       ws.onmessage = async (event) => {

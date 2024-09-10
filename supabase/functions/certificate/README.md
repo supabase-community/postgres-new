@@ -31,7 +31,7 @@ select cron.schedule (
   select net.http_post(
     url:=(select supabase_url() || '/functions/v1/certificate'),
     headers:=('{"Content-Type": "application/json", "Authorization": "Bearer ' || (select supabase_functions_certificate_secret()) || '"}')::jsonb,
-    body:='{"domainName": "db.browser.db.build"}'::jsonb
+    body:='{"domainName": "browser.db.build"}'::jsonb
   ) as request_id
   $$
 );
@@ -43,6 +43,6 @@ If you immediately want a certificate, you can call the Edge Function manually:
 select net.http_post(
   url:=(select supabase_url() || '/functions/v1/certificate'),
   headers:=('{"Content-Type": "application/json", "Authorization": "Bearer ' || (select supabase_functions_certificate_secret()) || '"}')::jsonb,
-  body:='{"domainName": "db.browser.db.build"}'::jsonb
+  body:='{"domainName": "browser.db.build"}'::jsonb
 ) as request_id;
 ```
