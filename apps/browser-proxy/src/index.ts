@@ -124,6 +124,9 @@ tcpServer.on('connection', (socket) => {
       databaseId = _databaseId
       tcpConnections.set(databaseId!, connection.socket)
     },
+    serverVersion() {
+      return '16.3'
+    },
     onMessage(message, state) {
       if (!state.isAuthenticated) {
         return
