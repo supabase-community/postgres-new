@@ -247,7 +247,10 @@ export default function Chat() {
             {shareDatabase.isSharing && (
               <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90">
                 <div className="flex items-center justify-center h-full flex-col gap-y-5">
-                  <CopyableField label="Database URL" value={shareDatabase.databaseUrl!} />
+                  <CopyableField
+                    label="Database URL"
+                    value={`postgres://postgres@${shareDatabase.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+                  />
                   <Button
                     className="w-full"
                     variant="outline"

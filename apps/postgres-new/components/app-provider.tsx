@@ -105,7 +105,7 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
-  const [databaseUrl, setDatabaseUrl] = useState<string | null>(null)
+  const [sharedDatabaseId, setSharedDatabaseId] = useState<string | null>(null)
   const [ws, setWs] = useState<WebSocket | null>(null)
   const startSharingDatabase = useCallback(
     async (databaseId: string) => {
@@ -122,8 +122,7 @@ export default function AppProvider({ children }: AppProps) {
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        const databaseUrl = `postgres://postgres@${databaseHostname}/postgres`
-        setDatabaseUrl(databaseUrl)
+        setSharedDatabaseId(databaseId)
       }
       ws.onmessage = async (event) => {
         const message = new Uint8Array(await event.data)
@@ -131,11 +130,11 @@ export default function AppProvider({ children }: AppProps) {
         ws.send(response)
       }
       ws.onclose = (event) => {
-        setDatabaseUrl(null)
+        setSharedDatabaseId(null)
       }
       ws.onerror = (error) => {
         console.error('webSocket error:', error)
-        setDatabaseUrl(null)
+        setSharedDatabaseId(null)
       }
 
       setWs(ws)
@@ -145,13 +144,13 @@ export default function AppProvider({ children }: AppProps) {
   const stopSharingDatabase = useCallback(() => {
     ws?.close()
     setWs(null)
-    setDatabaseUrl(null)
+    setSharedDatabaseId(null)
   }, [ws])
   const shareDatabase = {
     start: startSharingDatabase,
     stop: stopSharingDatabase,
-    databaseUrl,
-    isSharing: Boolean(databaseUrl),
+    databaseId: sharedDatabaseId,
+    isSharing: Boolean(sharedDatabaseId),
   }
 
   return (
@@ -199,7 +198,7 @@ export type AppContextValues = {
   shareDatabase: {
     start: (databaseId: string) => Promise<void>
     stop: () => void
-    databaseUrl: string | null
+    databaseId: string | null
     isSharing: boolean
   }
 }

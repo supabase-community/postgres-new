@@ -468,39 +468,11 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
-                {!shareDatabase.isSharing ? (
-                  <DropdownMenuItem
-                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                    onClick={async (e) => {
-                      e.preventDefault()
-                      shareDatabase.start(database.id)
-                      setIsPopoverOpen(false)
-                    }}
-                  >
-                    <WifiIcon
-                      size={16}
-                      strokeWidth={2}
-                      className="flex-shrink-0 text-muted-foreground"
-                    />
-                    <span>Share</span>
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                    onClick={async (e) => {
-                      e.preventDefault()
-                      shareDatabase.stop()
-                      setIsPopoverOpen(false)
-                    }}
-                  >
-                    <WifiOffIcon
-                      size={16}
-                      strokeWidth={2}
-                      className="flex-shrink-0 text-muted-foreground"
-                    />
-                    <span>Disconnect</span>
-                  </DropdownMenuItem>
-                )}
+                <ShareMenuItem
+                  databaseId={database.id}
+                  isActive={isActive}
+                  setIsPopoverOpen={setIsPopoverOpen}
+                />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="gap-3"
@@ -527,5 +499,51 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         </DropdownMenu>
       </Link>
     </>
+  )
+}
+
+type ShareMenuItemProps = {
+  databaseId: string
+  isActive: boolean
+  setIsPopoverOpen: (open: boolean) => void
+}
+
+function ShareMenuItem(props: ShareMenuItemProps) {
+  const { shareDatabase } = useApp()
+
+  // Only show the share menu item on fully loaded dashboard
+  if (!props.isActive) {
+    return null
+  }
+
+  if (!shareDatabase.isSharing) {
+    return (
+      <DropdownMenuItem
+        disabled={shareDatabase.isSharing}
+        className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+        onClick={async (e) => {
+          e.preventDefault()
+          shareDatabase.start(props.databaseId)
+          props.setIsPopoverOpen(false)
+        }}
+      >
+        <WifiIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+        <span>Share</span>
+      </DropdownMenuItem>
+    )
+  }
+
+  return (
+    <DropdownMenuItem
+      className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+      onClick={async (e) => {
+        e.preventDefault()
+        shareDatabase.stop()
+        props.setIsPopoverOpen(false)
+      }}
+    >
+      <WifiOffIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      <span>Disconnect</span>
+    </DropdownMenuItem>
   )
 }
