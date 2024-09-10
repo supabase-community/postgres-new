@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { X509Certificate } from 'node:crypto'
-import { NoSuchKey, S3 } from 'npm:@aws-sdk/client-s3'
+import { NoSuchKey, S3 } from 'npm:@aws-sdk/client-s3@3.645.0'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import * as ACME from 'https://deno.land/x/acme@v0.4.1/acme.ts'
 import { env } from './env.ts'
