@@ -53,7 +53,7 @@ websocketServer.on('connection', (socket, request) => {
   const host = request.headers.host
 
   if (!host) {
-    console.log('No host header present')
+    debug('No host header present')
     socket.close()
     return
   }
