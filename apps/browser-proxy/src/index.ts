@@ -81,7 +81,7 @@ websocketServer.on('connection', (socket, request) => {
 
 // we need to use proxywrap to make our tcp server to enable the PROXY protocol support
 const net = (
-  process.env.FLY_APP_NAME ? (await import('findhit-proxywrap')).default.proxy(nodeNet) : nodeNet
+  process.env.PROXIED ? (await import('findhit-proxywrap')).default.proxy(nodeNet) : nodeNet
 ) as typeof nodeNet
 
 const tcpServer = net.createServer()
