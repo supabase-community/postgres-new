@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Flame, Paperclip, Square, WifiOff } from 'lucide-react'
+import { ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
 import {
   ChangeEvent,
   FormEventHandler,
@@ -49,7 +49,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, connectedDatabase } =
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, liveShare } =
     useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
@@ -198,7 +198,7 @@ export default function Chat() {
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
   const isChatEnabled =
-    !isLoadingMessages && !isLoadingSchema && user !== undefined && !connectedDatabase.isConnected
+    !isLoadingMessages && !isLoadingSchema && user !== undefined && !liveShare.isLiveSharing
 
   const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
@@ -240,31 +240,34 @@ export default function Chat() {
             className={cn(
               'h-full flex flex-col items-center overflow-y-auto',
               !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
-              connectedDatabase.isConnected ? 'overflow-y-hidden' : undefined
+              liveShare.isLiveSharing ? 'overflow-y-hidden' : undefined
             )}
             ref={scrollRef}
           >
-            {connectedDatabase.isConnected && (
+            {liveShare.isLiveSharing && (
               <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90">
                 <div className="flex items-center justify-center h-full flex-col gap-y-5">
                   <div className="w-full text-left">
                     <p className="text-lg">Access your in-browser database</p>
                     <p className="text-xs text-muted-foreground">
-                      Closing the window will disconnect your database
+                      Closing the window will stop the Live Share session
                     </p>
                   </div>
                   <CopyableField
-                    value={`postgres://postgres@${connectedDatabase.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+                    value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
                   />
+                  <p className="text-sm text-muted-foreground">
+                    {liveShare.clientIp ? `Connected from ${liveShare.clientIp}` : 'Not connected'}
+                  </p>
                   <Button
                     className="w-full gap-2"
                     variant="outline"
                     onClick={() => {
-                      connectedDatabase.disconnect()
+                      liveShare.stop()
                     }}
                   >
-                    <WifiOff className="h-[1.2rem] w-[1.2rem]" />
-                    <span>Disconnect database</span>
+                    <PlugIcon size={16} />
+                    <span>Stop sharing database</span>
                   </Button>
                 </div>
               </div>

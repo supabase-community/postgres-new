@@ -8,7 +8,7 @@ import Workspace from '~/components/workspace'
 export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
   const router = useRouter()
-  const { dbManager, connectedDatabase } = useApp()
+  const { dbManager, liveShare } = useApp()
 
   useEffect(() => {
     async function run() {
@@ -25,12 +25,12 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [dbManager, databaseId, router])
 
-  // Cleanup connected database when switching databases
+  // Cleanup live shared database when switching databases
   useEffect(() => {
-    if (connectedDatabase.isConnected && connectedDatabase.databaseId !== databaseId) {
-      connectedDatabase.disconnect()
+    if (liveShare.isLiveSharing && liveShare.databaseId !== databaseId) {
+      liveShare.stop()
     }
-  }, [connectedDatabase, databaseId])
+  }, [liveShare, databaseId])
 
   return <Workspace databaseId={databaseId} visibility="local" />
 }

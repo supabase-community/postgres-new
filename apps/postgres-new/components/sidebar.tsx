@@ -11,10 +11,10 @@ import {
   MoreVertical,
   PackagePlus,
   Pencil,
+  PlugIcon,
+  RadioIcon,
   Trash2,
   Upload,
-  WifiIcon,
-  WifiOffIcon,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { TooltipPortal } from '@radix-ui/react-tooltip'
+import { LiveShareIcon } from './live-share-icon'
 
 export default function Sidebar() {
   const { user, signOut, focusRef, isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
@@ -277,7 +278,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user, dbManager, connectedDatabase } = useApp()
+  const { user, dbManager, liveShare } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -351,17 +352,14 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         )}
         href={`/db/${database.id}`}
       >
-        {isActive && connectedDatabase.isConnected && (
+        {isActive && liveShare.isLiveSharing && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
-              </span>
+              <RadioIcon size={18} />
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipContent side="bottom">
-                <p>Connected</p>
+                <p>Shared</p>
               </TooltipContent>
             </TooltipPortal>
           </Tooltip>
@@ -484,7 +482,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
-                <ConnectMenuItem
+                <LiveShareMenuItem
                   databaseId={database.id}
                   isActive={isActive}
                   setIsPopoverOpen={setIsPopoverOpen}
@@ -524,27 +522,27 @@ type ConnectMenuItemProps = {
   setIsPopoverOpen: (open: boolean) => void
 }
 
-function ConnectMenuItem(props: ConnectMenuItemProps) {
-  const { connectedDatabase } = useApp()
+function LiveShareMenuItem(props: ConnectMenuItemProps) {
+  const { liveShare } = useApp()
 
   // Only show the connect menu item on fully loaded dashboard
   if (!props.isActive) {
     return null
   }
 
-  if (!connectedDatabase.isConnected) {
+  if (!liveShare.isLiveSharing) {
     return (
       <DropdownMenuItem
-        disabled={connectedDatabase.isConnected}
+        disabled={liveShare.isLiveSharing}
         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
         onClick={async (e) => {
           e.preventDefault()
-          connectedDatabase.connect(props.databaseId)
+          liveShare.start(props.databaseId)
           props.setIsPopoverOpen(false)
         }}
       >
-        <WifiIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
-        <span>Connect</span>
+        <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
+        <span>Live Share</span>
       </DropdownMenuItem>
     )
   }
@@ -554,12 +552,12 @@ function ConnectMenuItem(props: ConnectMenuItemProps) {
       className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
       onClick={async (e) => {
         e.preventDefault()
-        connectedDatabase.disconnect()
+        liveShare.stop()
         props.setIsPopoverOpen(false)
       }}
     >
-      <WifiOffIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
-      <span>Disconnect</span>
+      <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      <span>Stop sharing</span>
     </DropdownMenuItem>
   )
 }

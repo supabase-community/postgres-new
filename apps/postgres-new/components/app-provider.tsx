@@ -17,6 +17,7 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
+import { parseParameterStatus } from '~/lib/pg-wire-util'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -105,9 +106,15 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
-  const [connectedDatabaseId, setConnectedDatabaseId] = useState<string | null>(null)
-  const [ws, setWs] = useState<WebSocket | null>(null)
-  const connectDatabase = useCallback(
+  const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
+  const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
+  const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
+  const cleanUp = useCallback(() => {
+    setLiveShareWebsocket(null)
+    setLiveSharedDatabaseId(null)
+    setConnectedClientIp(null)
+  }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
+  const startLiveShare = useCallback(
     async (databaseId: string) => {
       if (!dbManager) {
         throw new Error('dbManager is not available')
@@ -122,35 +129,45 @@ export default function AppProvider({ children }: AppProps) {
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        setConnectedDatabaseId(databaseId)
+        setLiveSharedDatabaseId(databaseId)
       }
       ws.onmessage = async (event) => {
         const message = new Uint8Array(await event.data)
+
+        const messageType = String.fromCharCode(message[0])
+        if (messageType === 'S') {
+          const { name, value } = parseParameterStatus(message)
+          if (name === 'client_ip') {
+            setConnectedClientIp(value === '' ? null : value)
+            return
+          }
+        }
+
         const response = await db.execProtocolRaw(message)
         ws.send(response)
       }
       ws.onclose = (event) => {
-        setConnectedDatabaseId(null)
+        cleanUp()
       }
       ws.onerror = (error) => {
         console.error('webSocket error:', error)
-        setConnectedDatabaseId(null)
+        cleanUp()
       }
 
-      setWs(ws)
+      setLiveShareWebsocket(ws)
     },
-    [dbManager]
+    [dbManager, cleanUp]
   )
-  const disconnectDatabase = useCallback(() => {
-    ws?.close()
-    setWs(null)
-    setConnectedDatabaseId(null)
-  }, [ws])
-  const connectedDatabase = {
-    connect: connectDatabase,
-    disconnect: disconnectDatabase,
-    databaseId: connectedDatabaseId,
-    isConnected: Boolean(connectedDatabaseId),
+  const stopLiveShare = useCallback(() => {
+    liveShareWebsocket?.close()
+    cleanUp()
+  }, [cleanUp, liveShareWebsocket])
+  const liveShare = {
+    start: startLiveShare,
+    stop: stopLiveShare,
+    databaseId: liveSharedDatabaseId,
+    clientIp: connectedClientIp,
+    isLiveSharing: Boolean(liveSharedDatabaseId),
   }
 
   return (
@@ -158,7 +175,7 @@ export default function AppProvider({ children }: AppProps) {
       value={{
         user,
         isLoadingUser,
-        connectedDatabase,
+        liveShare,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -195,11 +212,12 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
-  connectedDatabase: {
-    connect: (databaseId: string) => Promise<void>
-    disconnect: () => void
+  liveShare: {
+    start: (databaseId: string) => Promise<void>
+    stop: () => void
     databaseId: string | null
-    isConnected: boolean
+    clientIp: string | null
+    isLiveSharing: boolean
   }
 }
 

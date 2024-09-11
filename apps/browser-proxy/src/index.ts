@@ -6,6 +6,8 @@ import makeDebug from 'debug'
 import * as tls from 'node:tls'
 import { extractDatabaseId, isValidServername } from './servername.ts'
 import { getTls } from './tls.ts'
+import { createParameterStatusMessage } from './create-message.ts'
+import { extractIP } from './extract-ip.ts'
 
 const debug = makeDebug('browser-proxy')
 
@@ -127,6 +129,25 @@ tcpServer.on('connection', (socket) => {
     serverVersion() {
       return '16.3'
     },
+    onAuthenticated() {
+      const websocket = websocketConnections.get(databaseId!)
+
+      if (!websocket) {
+        connection.sendError({
+          code: 'XX000',
+          message: 'the browser is not sharing the database',
+          severity: 'FATAL',
+        })
+        connection.end()
+        return
+      }
+
+      const clientIpMessage = createParameterStatusMessage(
+        'client_ip',
+        extractIP(connection.socket.remoteAddress!)
+      )
+      websocket.send(clientIpMessage)
+    },
     onMessage(message, state) {
       if (!state.isAuthenticated) {
         return
@@ -155,6 +176,8 @@ tcpServer.on('connection', (socket) => {
   socket.on('close', () => {
     if (databaseId) {
       tcpConnections.delete(databaseId)
+      const websocket = websocketConnections.get(databaseId)
+      websocket?.send(createParameterStatusMessage('client_ip', ''))
     }
   })
 })
