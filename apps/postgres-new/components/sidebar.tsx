@@ -41,6 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { TooltipPortal } from '@radix-ui/react-tooltip'
 
 export default function Sidebar() {
   const { user, signOut, focusRef, isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
@@ -276,7 +277,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user, dbManager, shareDatabase } = useApp()
+  const { user, dbManager, connectedDatabase } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -350,6 +351,21 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         )}
         href={`/db/${database.id}`}
       >
+        {isActive && connectedDatabase.isConnected && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+              </span>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent side="bottom">
+                <p>Connected</p>
+              </TooltipContent>
+            </TooltipPortal>
+          </Tooltip>
+        )}
         <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
         <DropdownMenu
           modal={false}
@@ -468,7 +484,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
-                <ShareMenuItem
+                <ConnectMenuItem
                   databaseId={database.id}
                   isActive={isActive}
                   setIsPopoverOpen={setIsPopoverOpen}
@@ -502,33 +518,33 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   )
 }
 
-type ShareMenuItemProps = {
+type ConnectMenuItemProps = {
   databaseId: string
   isActive: boolean
   setIsPopoverOpen: (open: boolean) => void
 }
 
-function ShareMenuItem(props: ShareMenuItemProps) {
-  const { shareDatabase } = useApp()
+function ConnectMenuItem(props: ConnectMenuItemProps) {
+  const { connectedDatabase } = useApp()
 
-  // Only show the share menu item on fully loaded dashboard
+  // Only show the connect menu item on fully loaded dashboard
   if (!props.isActive) {
     return null
   }
 
-  if (!shareDatabase.isSharing) {
+  if (!connectedDatabase.isConnected) {
     return (
       <DropdownMenuItem
-        disabled={shareDatabase.isSharing}
+        disabled={connectedDatabase.isConnected}
         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
         onClick={async (e) => {
           e.preventDefault()
-          shareDatabase.start(props.databaseId)
+          connectedDatabase.connect(props.databaseId)
           props.setIsPopoverOpen(false)
         }}
       >
         <WifiIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
-        <span>Share</span>
+        <span>Connect</span>
       </DropdownMenuItem>
     )
   }
@@ -538,7 +554,7 @@ function ShareMenuItem(props: ShareMenuItemProps) {
       className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
       onClick={async (e) => {
         e.preventDefault()
-        shareDatabase.stop()
+        connectedDatabase.disconnect()
         props.setIsPopoverOpen(false)
       }}
     >

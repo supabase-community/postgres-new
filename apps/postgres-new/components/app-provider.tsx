@@ -105,9 +105,9 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
-  const [sharedDatabaseId, setSharedDatabaseId] = useState<string | null>(null)
+  const [connectedDatabaseId, setConnectedDatabaseId] = useState<string | null>(null)
   const [ws, setWs] = useState<WebSocket | null>(null)
-  const startSharingDatabase = useCallback(
+  const connectDatabase = useCallback(
     async (databaseId: string) => {
       if (!dbManager) {
         throw new Error('dbManager is not available')
@@ -122,7 +122,7 @@ export default function AppProvider({ children }: AppProps) {
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        setSharedDatabaseId(databaseId)
+        setConnectedDatabaseId(databaseId)
       }
       ws.onmessage = async (event) => {
         const message = new Uint8Array(await event.data)
@@ -130,27 +130,27 @@ export default function AppProvider({ children }: AppProps) {
         ws.send(response)
       }
       ws.onclose = (event) => {
-        setSharedDatabaseId(null)
+        setConnectedDatabaseId(null)
       }
       ws.onerror = (error) => {
         console.error('webSocket error:', error)
-        setSharedDatabaseId(null)
+        setConnectedDatabaseId(null)
       }
 
       setWs(ws)
     },
     [dbManager]
   )
-  const stopSharingDatabase = useCallback(() => {
+  const disconnectDatabase = useCallback(() => {
     ws?.close()
     setWs(null)
-    setSharedDatabaseId(null)
+    setConnectedDatabaseId(null)
   }, [ws])
-  const shareDatabase = {
-    start: startSharingDatabase,
-    stop: stopSharingDatabase,
-    databaseId: sharedDatabaseId,
-    isSharing: Boolean(sharedDatabaseId),
+  const connectedDatabase = {
+    connect: connectDatabase,
+    disconnect: disconnectDatabase,
+    databaseId: connectedDatabaseId,
+    isConnected: Boolean(connectedDatabaseId),
   }
 
   return (
@@ -158,7 +158,7 @@ export default function AppProvider({ children }: AppProps) {
       value={{
         user,
         isLoadingUser,
-        shareDatabase,
+        connectedDatabase,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -195,11 +195,11 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
-  shareDatabase: {
-    start: (databaseId: string) => Promise<void>
-    stop: () => void
+  connectedDatabase: {
+    connect: (databaseId: string) => Promise<void>
+    disconnect: () => void
     databaseId: string | null
-    isSharing: boolean
+    isConnected: boolean
   }
 }
 

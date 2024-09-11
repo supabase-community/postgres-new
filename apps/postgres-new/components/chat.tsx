@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Flame, Paperclip, Square } from 'lucide-react'
+import { ArrowDown, ArrowUp, Flame, Paperclip, Square, WifiOff } from 'lucide-react'
 import {
   ChangeEvent,
   FormEventHandler,
@@ -49,7 +49,7 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, shareDatabase } =
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, connectedDatabase } =
     useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
@@ -198,7 +198,7 @@ export default function Chat() {
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
   const isChatEnabled =
-    !isLoadingMessages && !isLoadingSchema && user !== undefined && !shareDatabase.isSharing
+    !isLoadingMessages && !isLoadingSchema && user !== undefined && !connectedDatabase.isConnected
 
   const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
@@ -240,29 +240,31 @@ export default function Chat() {
             className={cn(
               'h-full flex flex-col items-center overflow-y-auto',
               !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
-              shareDatabase.isSharing ? 'overflow-y-hidden' : undefined
+              connectedDatabase.isConnected ? 'overflow-y-hidden' : undefined
             )}
             ref={scrollRef}
           >
-            {shareDatabase.isSharing && (
+            {connectedDatabase.isConnected && (
               <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90">
                 <div className="flex items-center justify-center h-full flex-col gap-y-5">
+                  <div className="w-full text-left">
+                    <p className="text-lg">Access your in-browser database</p>
+                    <p className="text-xs text-muted-foreground">
+                      Closing the window will disconnect your database
+                    </p>
+                  </div>
                   <CopyableField
-                    label="Database URL"
-                    value={`postgres://postgres@${shareDatabase.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+                    value={`postgres://postgres@${connectedDatabase.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
                   />
                   <Button
-                    className="w-full"
+                    className="w-full gap-2"
                     variant="outline"
                     onClick={() => {
-                      shareDatabase.stop()
+                      connectedDatabase.disconnect()
                     }}
                   >
-                    <span className="relative flex h-3 w-3 mr-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                    </span>{' '}
-                    Stop sharing
+                    <WifiOff className="h-[1.2rem] w-[1.2rem]" />
+                    <span>Disconnect database</span>
                   </Button>
                 </div>
               </div>

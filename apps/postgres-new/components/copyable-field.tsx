@@ -4,16 +4,16 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
-export function CopyableField(props: { label: string; value: string; disableCopy?: boolean }) {
+export function CopyableField(props: { label?: string; value: string; disableCopy?: boolean }) {
   return (
     <div className="flex flex-col space-y-2 w-full">
-      <Label className="whitespace-nowrap">{props.label}</Label>
+      {props.label && <Label className="whitespace-nowrap">{props.label}</Label>}
       <CopyableInput value={props.value} disableCopy={props.disableCopy} />
     </div>
   )
 }
 
-function CopyableInput(props: { value: string; disableCopy?: boolean }) {
+export function CopyableInput(props: { value: string; disableCopy?: boolean }) {
   const [isCopying, setIsCopying] = useState(false)
 
   function handleCopy(value: string) {
