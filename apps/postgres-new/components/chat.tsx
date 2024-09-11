@@ -256,9 +256,24 @@ export default function Chat() {
                   <CopyableField
                     value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    {liveShare.clientIp ? `Connected from ${liveShare.clientIp}` : 'Not connected'}
-                  </p>
+
+                  {liveShare.clientIp ? (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                      </span>
+                      <span>
+                        Connected from{' '}
+                        <span className="text-card-foreground">{liveShare.clientIp}</span>
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
+                      <span>Not connected</span>
+                    </p>
+                  )}
                   <Button
                     className="w-full gap-2"
                     variant="outline"
