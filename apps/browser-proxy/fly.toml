@@ -6,6 +6,7 @@ primary_region = 'iad'
 internal_port = 5432
 protocol = "tcp"
 [[services.ports]]
+handlers = ["proxy_proto"]
 port = 5432
 
 [[services]]

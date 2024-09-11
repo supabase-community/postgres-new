@@ -1,4 +1,4 @@
-import * as net from 'node:net'
+import * as nodeNet from 'node:net'
 import * as https from 'node:https'
 import { PostgresConnection } from 'pg-gateway'
 import { WebSocketServer, type WebSocket } from 'ws'
@@ -11,7 +11,7 @@ import { extractIP } from './extract-ip.ts'
 
 const debug = makeDebug('browser-proxy')
 
-const tcpConnections = new Map<string, net.Socket>()
+const tcpConnections = new Map<string, nodeNet.Socket>()
 const websocketConnections = new Map<string, WebSocket>()
 
 let tlsOptions = await getTls()
@@ -79,6 +79,11 @@ websocketServer.on('connection', (socket, request) => {
   })
 })
 
+// we need to use proxywrap to make our tcp server to enable the PROXY protocol support
+const net = (
+  process.env.FLY_APP_NAME ? (await import('findhit-proxywrap')).default.proxy(nodeNet) : nodeNet
+) as typeof nodeNet
+
 const tcpServer = net.createServer()
 
 tcpServer.on('connection', (socket) => {
@@ -144,7 +149,7 @@ tcpServer.on('connection', (socket) => {
 
       const clientIpMessage = createParameterStatusMessage(
         'client_ip',
-        extractIP(connection.socket.remoteAddress!)
+        extractIP(socket.remoteAddress!)
       )
       websocket.send(clientIpMessage)
     },
