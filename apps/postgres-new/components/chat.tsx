@@ -245,7 +245,7 @@ export default function Chat() {
             ref={scrollRef}
           >
             {liveShare.isLiveSharing && (
-              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90">
+              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90 z-10">
                 <div className="flex items-center justify-center h-full flex-col gap-y-5">
                   <div className="w-full text-left">
                     <p className="text-lg">Access your in-browser database</p>
