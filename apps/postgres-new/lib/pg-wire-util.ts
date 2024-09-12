@@ -37,6 +37,7 @@ export function parseStartupMessage(message: Uint8Array): {
 } {
   const view = new DataView(message.buffer, message.byteOffset, message.byteLength)
   const decoder = new TextDecoder()
+  // @ts-expect-error we check at runtime that user and database are present
   const params: {
     user: string
     database: string
