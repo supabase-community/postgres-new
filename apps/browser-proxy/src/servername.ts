@@ -8,7 +8,7 @@ const regexPattern = new RegExp(`^([^.]+)\\.${escapedDomain}$`)
 
 export function extractDatabaseId(servername: string): string {
   const match = servername.match(regexPattern)
-  return match![1]
+  return match![1]!
 }
 
 export function isValidServername(servername: string): boolean {
