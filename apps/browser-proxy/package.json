@@ -10,7 +10,7 @@
     "@aws-sdk/client-s3": "^3.645.0",
     "debug": "^4.3.7",
     "findhit-proxywrap": "^0.3.13",
-    "pg-gateway": "^0.3.0-alpha.7",
+    "pg-gateway": "0.3.0-alpha.7",
     "ws": "^8.18.0"
   },
   "devDependencies": {
