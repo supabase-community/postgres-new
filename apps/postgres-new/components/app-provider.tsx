@@ -5,6 +5,7 @@
  */
 
 import { User } from '@supabase/supabase-js'
+import { Mutex } from 'async-mutex'
 import {
   createContext,
   PropsWithChildren,
@@ -131,20 +132,36 @@ export default function AppProvider({ children }: AppProps) {
       ws.onopen = () => {
         setLiveSharedDatabaseId(databaseId)
       }
+
+      function toHex(uint8Array: Uint8Array) {
+        return Array.from(uint8Array)
+          .map((byte) => byte.toString(16).padStart(2, '0'))
+          .join('')
+      }
+
+      const mutex = new Mutex()
+
       ws.onmessage = async (event) => {
-        const message = new Uint8Array(await event.data)
+        await db._runExclusiveTransaction(async () => {
+          await db._runExclusiveQuery(async () => {
+            const message = new Uint8Array(await event.data)
 
-        const messageType = String.fromCharCode(message[0])
-        if (messageType === 'S') {
-          const { name, value } = parseParameterStatus(message)
-          if (name === 'client_ip') {
-            setConnectedClientIp(value === '' ? null : value)
-            return
-          }
-        }
-
-        const response = await db.execProtocolRaw(message)
-        ws.send(response)
+            const messageType = String.fromCharCode(message[0])
+            if (messageType === 'S') {
+              const { name, value } = parseParameterStatus(message)
+              if (name === 'client_ip') {
+                setConnectedClientIp(value === '' ? null : value)
+                return
+              }
+            }
+            console.log('client message', message)
+            console.log('client message hex', toHex(message))
+            const response = await db.execProtocolRaw(message)
+            console.log('server response', response)
+            console.log('server response hex', toHex(response))
+            ws.send(response)
+          })
+        })
       }
       ws.onclose = (event) => {
         cleanUp()
