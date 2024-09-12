@@ -6,7 +6,7 @@ import makeDebug from 'debug'
 import * as tls from 'node:tls'
 import { extractDatabaseId, isValidServername } from './servername.ts'
 import { getTls } from './tls.ts'
-import { createParameterStatusMessage } from './create-message.ts'
+import { createStartupMessage } from './create-message.ts'
 import { extractIP } from './extract-ip.ts'
 
 const debug = makeDebug('browser-proxy')
@@ -147,10 +147,9 @@ tcpServer.on('connection', (socket) => {
         return
       }
 
-      const clientIpMessage = createParameterStatusMessage(
-        'client_ip',
-        extractIP(socket.remoteAddress!)
-      )
+      const clientIpMessage = createStartupMessage('postgres', 'postgres', {
+        client_ip: extractIP(connection.socket.remoteAddress!),
+      })
       websocket.send(clientIpMessage)
     },
     onMessage(message, state) {
@@ -182,7 +181,7 @@ tcpServer.on('connection', (socket) => {
     if (databaseId) {
       tcpConnections.delete(databaseId)
       const websocket = websocketConnections.get(databaseId)
-      websocket?.send(createParameterStatusMessage('client_ip', ''))
+      websocket?.send(createStartupMessage('postgres', 'postgres', { client_ip: '' }))
     }
   })
 })

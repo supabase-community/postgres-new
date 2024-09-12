@@ -17,7 +17,7 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
-import { parseParameterStatus } from '~/lib/pg-wire-util'
+import { isStartupMessage, parseStartupMessage } from '~/lib/pg-wire-util'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -131,19 +131,20 @@ export default function AppProvider({ children }: AppProps) {
       ws.onopen = () => {
         setLiveSharedDatabaseId(databaseId)
       }
+
       ws.onmessage = async (event) => {
         const message = new Uint8Array(await event.data)
 
-        const messageType = String.fromCharCode(message[0])
-        if (messageType === 'S') {
-          const { name, value } = parseParameterStatus(message)
-          if (name === 'client_ip') {
-            setConnectedClientIp(value === '' ? null : value)
-            return
+        if (isStartupMessage(message)) {
+          const parameters = parseStartupMessage(message)
+          if ('client_ip' in parameters) {
+            setConnectedClientIp(parameters.client_ip === '' ? null : parameters.client_ip)
           }
+          return
         }
 
         const response = await db.execProtocolRaw(message)
+
         ws.send(response)
       }
       ws.onclose = (event) => {
