@@ -148,7 +148,7 @@ tcpServer.on('connection', (socket) => {
       }
 
       const clientIpMessage = createStartupMessage('postgres', 'postgres', {
-        client_ip: extractIP(connection.socket.remoteAddress!),
+        client_ip: extractIP(socket.remoteAddress!),
       })
       websocket.send(clientIpMessage)
     },
