@@ -138,7 +138,17 @@ export default function AppProvider({ children }: AppProps) {
         if (isStartupMessage(message)) {
           const parameters = parseStartupMessage(message)
           if ('client_ip' in parameters) {
-            setConnectedClientIp(parameters.client_ip === '' ? null : parameters.client_ip)
+            // client disconnected
+            if (parameters.client_ip === '') {
+              setConnectedClientIp(null)
+              // we ensure we're not in a transaction block first
+              await db.sql`rollback;`.catch()
+              // we clean the session state, see: https://www.pgbouncer.org/faq.html#how-to-use-prepared-statements-with-session-pooling
+              // we do this to avoid having old prepared statements in the session
+              await db.sql`discard all;`
+            } else {
+              setConnectedClientIp(parameters.client_ip)
+            }
           }
           return
         }
