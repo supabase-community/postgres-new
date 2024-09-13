@@ -1,43 +1,35 @@
 import * as nodeNet from 'node:net'
 import * as https from 'node:https'
-import { PostgresConnection } from 'pg-gateway'
+import { BackendError, PostgresConnection } from 'pg-gateway'
+import { fromNodeSocket } from 'pg-gateway/node'
 import { WebSocketServer, type WebSocket } from 'ws'
 import makeDebug from 'debug'
 import * as tls from 'node:tls'
 import { extractDatabaseId, isValidServername } from './servername.ts'
-import { getTls } from './tls.ts'
+import { getTls, setSecureContext } from './tls.ts'
 import { createStartupMessage } from './create-message.ts'
 import { extractIP } from './extract-ip.ts'
 
 const debug = makeDebug('browser-proxy')
 
-const tcpConnections = new Map<string, nodeNet.Socket>()
+const tcpConnections = new Map<string, PostgresConnection>()
 const websocketConnections = new Map<string, WebSocket>()
 
-let tlsOptions = await getTls()
-
-// refresh the TLS certificate every week
-setInterval(
-  async () => {
-    tlsOptions = await getTls()
-    httpsServer.setSecureContext(tlsOptions)
-  },
-  1000 * 60 * 60 * 24 * 7
-)
-
 const httpsServer = https.createServer({
-  ...tlsOptions,
   SNICallback: (servername, callback) => {
     debug('SNICallback', servername)
     if (isValidServername(servername)) {
       debug('SNICallback', 'valid')
-      callback(null, tls.createSecureContext(tlsOptions))
+      callback(null)
     } else {
       debug('SNICallback', 'invalid')
       callback(new Error('invalid SNI'))
     }
   },
 })
+await setSecureContext(httpsServer)
+// reset the secure context every week to pick up any new TLS certificates
+setInterval(() => setSecureContext(httpsServer), 1000 * 60 * 60 * 24 * 7)
 
 const websocketServer = new WebSocketServer({
   server: httpsServer,
@@ -70,8 +62,8 @@ websocketServer.on('connection', (socket, request) => {
 
   socket.on('message', (data: Buffer) => {
     debug('websocket message', data.toString('hex'))
-    const tcpSocket = tcpConnections.get(databaseId)
-    tcpSocket?.write(data)
+    const tcpConnection = tcpConnections.get(databaseId)
+    tcpConnection?.streamWriter?.write(data)
   })
 
   socket.on('close', () => {
@@ -86,50 +78,41 @@ const net = (
 
 const tcpServer = net.createServer()
 
-tcpServer.on('connection', (socket) => {
+tcpServer.on('connection', async (socket) => {
   let databaseId: string | undefined
 
-  const connection = new PostgresConnection(socket, {
-    tls: tlsOptions,
+  const connection = await fromNodeSocket(socket, {
+    tls: getTls,
     onTlsUpgrade(state) {
-      if (!state.tlsInfo?.sniServerName || !isValidServername(state.tlsInfo.sniServerName)) {
-        // connection.detach()
-        connection.sendError({
+      if (!state.tlsInfo?.serverName || !isValidServername(state.tlsInfo.serverName)) {
+        throw BackendError.create({
           code: '08006',
           message: 'invalid SNI',
           severity: 'FATAL',
         })
-        connection.end()
-        return
       }
 
-      const _databaseId = extractDatabaseId(state.tlsInfo.sniServerName!)
+      const _databaseId = extractDatabaseId(state.tlsInfo.serverName!)
 
       if (!websocketConnections.has(_databaseId!)) {
-        // connection.detach()
-        connection.sendError({
+        throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
           severity: 'FATAL',
         })
-        connection.end()
-        return
       }
 
       if (tcpConnections.has(_databaseId)) {
-        // connection.detach()
-        connection.sendError({
+        throw BackendError.create({
           code: '53300',
           message: 'sorry, too many clients already',
           severity: 'FATAL',
         })
-        connection.end()
-        return
       }
 
       // only set the databaseId after we've verified the connection
       databaseId = _databaseId
-      tcpConnections.set(databaseId!, connection.socket)
+      tcpConnections.set(databaseId!, connection)
     },
     serverVersion() {
       return '16.3'
@@ -138,13 +121,11 @@ tcpServer.on('connection', (socket) => {
       const websocket = websocketConnections.get(databaseId!)
 
       if (!websocket) {
-        connection.sendError({
+        throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
           severity: 'FATAL',
         })
-        connection.end()
-        return
       }
 
       const clientIpMessage = createStartupMessage('postgres', 'postgres', {
@@ -160,13 +141,11 @@ tcpServer.on('connection', (socket) => {
       const websocket = websocketConnections.get(databaseId!)
 
       if (!websocket) {
-        connection.sendError({
+        throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
           severity: 'FATAL',
         })
-        connection.end()
-        return
       }
 
       debug('tcp message', { message })
