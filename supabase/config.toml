@@ -74,7 +74,7 @@ file_size_limit = "50MiB"
 enabled = true
 
 # Uncomment to configure local storage buckets
-[storage.buckets.postgres-new-storage]
+[storage.buckets.storage]
 public = false
 file_size_limit = "200MiB"
 
