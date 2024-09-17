@@ -1,5 +1,3 @@
-app = "postgres-new-browser-proxy"
-
 primary_region = 'iad'
 
 [[services]]
