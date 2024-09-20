@@ -26,6 +26,27 @@ const nextConfig = {
     return config
   },
   swcMinify: false,
+  async redirects() {
+    /** @type {import('next/dist/lib/load-custom-routes.').Redirect[]} */
+    const redirects = []
+
+    // All postgres.new/* redirect to database.build/*, except postgres.new/export
+    if (process.env.LEGACY_DOMAIN && process.env.CURRENT_DOMAIN) {
+      redirects.push({
+        source: '/:path((?!export$).*)',
+        has: [
+          {
+            type: 'host',
+            value: process.env.LEGACY_DOMAIN,
+          },
+        ],
+        destination: `http://${process.env.CURRENT_DOMAIN}/:path`,
+        permanent: false,
+      })
+    }
+
+    return redirects
+  },
 }
 
 export default nextConfig

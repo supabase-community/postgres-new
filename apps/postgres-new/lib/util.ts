@@ -1,4 +1,5 @@
 import { CreateMessage, generateId, Message } from 'ai'
+import { ChangeEvent } from 'react'
 
 /**
  * Programmatically download a `File`.
@@ -11,6 +12,34 @@ export function downloadFile(file: File) {
   document.body.appendChild(a)
   a.click()
   a.remove()
+}
+
+export async function requestFileUpload() {
+  return new Promise<File>((resolve, reject) => {
+    // Create a temporary file input element
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.className = 'hidden'
+
+    // Add an event listener to handle the file selection
+    fileInput.addEventListener('change', async (event) => {
+      const changeEvent = event as unknown as ChangeEvent<HTMLInputElement>
+      const [file] = Array.from(changeEvent.target?.files ?? [])
+      fileInput.remove()
+
+      if (file) {
+        resolve(file)
+      } else {
+        reject(new Error('No file selected'))
+      }
+    })
+
+    // Add the file input to the body (required for some browsers)
+    document.body.appendChild(fileInput)
+
+    // Trigger the click event on the file input element
+    fileInput.click()
+  })
 }
 
 /**
@@ -67,6 +96,9 @@ export function isAutomatedUserMessage(message: Message) {
   )
 }
 
+/**
+ * Converts a string from `Title Case` to `kebab-case`.
+ */
 export function titleToKebabCase(str: string): string {
   return str
     .toLowerCase()
@@ -74,4 +106,11 @@ export function titleToKebabCase(str: string): string {
     .replace(/[^a-z0-9-]/g, '') // Remove any non-alphanumeric characters except dashes
     .replace(/-+/g, '-') // Replace multiple dashes with a single dash
     .replace(/^-|-$/g, '') // Remove leading and trailing dashes
+}
+
+/**
+ * Strips a suffix from a string.
+ */
+export function stripSuffix(value: string, suffix: string): string {
+  return value.endsWith(suffix) ? value.slice(0, -suffix.length) : value
 }

@@ -1,61 +1,68 @@
-export function saveFile(id: string, file: File) {
-  return new Promise<void>((resolve, reject) => {
-    const request = indexedDB.open('/supabase/files', 1)
+import { countObjects, getObject, hasObject, listObjects, openDB, putObject } from './indexed-db'
 
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains('files')) {
-        db.createObjectStore('files')
-      }
-    }
-
-    request.onsuccess = () => {
-      const db = request.result
-      const transaction = db.transaction('files', 'readwrite')
-      const store = transaction.objectStore('files')
-      store.put(file, id)
-
-      transaction.oncomplete = () => {
-        resolve()
-      }
-
-      transaction.onerror = () => {
-        console.error('File storage failed')
-        reject(transaction.error)
-      }
-    }
-
-    request.onerror = function () {
-      console.error('IndexedDB error')
-      reject(request.error)
-    }
-  })
+/**
+ * Stores a file by ID.
+ */
+export async function saveFile(id: string, file: File) {
+  const db = await openFileDB()
+  const transaction = db.transaction('files', 'readwrite')
+  const store = transaction.objectStore('files')
+  return await putObject(store, id, file)
 }
 
-export function loadFile(id: string) {
-  return new Promise<File>((resolve, reject) => {
-    const request = indexedDB.open('/supabase/files', 1)
+/**
+ * Checks if a file with ID exists.
+ */
+export async function hasFile(id: string) {
+  const db = await openFileDB()
+  const transaction = db.transaction('files', 'readonly')
+  const store = transaction.objectStore('files')
+  return await hasObject(store, id)
+}
 
-    request.onsuccess = () => {
-      const db = request.result
-      const transaction = db.transaction('files', 'readonly')
-      const store = transaction.objectStore('files')
-      const getRequest = store.get(id)
+/**
+ * Retrieves a file by ID.
+ */
+export async function loadFile(id: string) {
+  const db = await openFileDB()
+  const transaction = db.transaction('files', 'readonly')
+  const store = transaction.objectStore('files')
+  return await getObject<File>(store, id)
+}
 
-      getRequest.onsuccess = () => {
-        const file = getRequest.result
-        resolve(file)
-      }
+/**
+ * Counts all files.
+ */
+export async function countFiles() {
+  const db = await openFileDB()
+  return await countObjects<File>(db, 'files')
+}
 
-      getRequest.onerror = () => {
-        console.error('File retrieval failed')
-        reject(transaction.error)
-      }
+/**
+ * Lists all files via an `AsyncIterable` stream.
+ */
+export async function* listFiles() {
+  const db = await openFileDB()
+
+  for await (const { key, value } of listObjects<File>(db, 'files')) {
+    if (typeof key !== 'string') {
+      throw new Error('Expected file in IndexedDB to have a string key')
     }
+    yield {
+      id: key,
+      file: value,
+    }
+  }
+}
 
-    request.onerror = () => {
-      console.error('IndexedDB error')
-      reject(request.error)
+/**
+ * Opens the file `IndexedDB` database and creates the
+ * `file` object store if it doesn't exist.
+ */
+export async function openFileDB() {
+  return await openDB('/supabase/files', 1, (db) => {
+    if (!db.objectStoreNames.contains('files')) {
+      db.createObjectStore('files')
     }
   })
 }
