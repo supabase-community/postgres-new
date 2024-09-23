@@ -4,7 +4,9 @@
  * Holds global app data like user.
  */
 
+import { PGliteInterface } from '@electric-sql/pglite'
 import { User } from '@supabase/supabase-js'
+import { Mutex } from 'async-mutex'
 import {
   createContext,
   PropsWithChildren,
@@ -120,8 +122,6 @@ export default function AppProvider({ children }: AppProps) {
         throw new Error('dbManager is not available')
       }
 
-      const db = await dbManager.getDbInstance(databaseId)
-
       const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
 
       const ws = new WebSocket(`wss://${databaseHostname}`)
@@ -132,30 +132,32 @@ export default function AppProvider({ children }: AppProps) {
         setLiveSharedDatabaseId(databaseId)
       }
 
-      ws.onmessage = async (event) => {
-        const message = new Uint8Array(await event.data)
+      const mutex = new Mutex()
+      let db: PGliteInterface
 
-        if (isStartupMessage(message)) {
-          const parameters = parseStartupMessage(message)
-          if ('client_ip' in parameters) {
-            // client disconnected
-            if (parameters.client_ip === '') {
-              setConnectedClientIp(null)
-              // we ensure we're not in a transaction block first
-              await db.sql`rollback;`.catch()
-              // we clean the session state, see: https://www.pgbouncer.org/faq.html#how-to-use-prepared-statements-with-session-pooling
-              // we do this to avoid having old prepared statements in the session
-              await db.sql`discard all;`
-            } else {
-              setConnectedClientIp(parameters.client_ip)
+      ws.onmessage = (event) => {
+        mutex.runExclusive(async () => {
+          const message = new Uint8Array(await event.data)
+
+          if (isStartupMessage(message)) {
+            const parameters = parseStartupMessage(message)
+            if ('client_ip' in parameters) {
+              // client disconnected
+              if (parameters.client_ip === '') {
+                setConnectedClientIp(null)
+                await dbManager.closeDbInstance(databaseId)
+              } else {
+                db = await dbManager.getDbInstance(databaseId)
+                setConnectedClientIp(parameters.client_ip)
+              }
             }
+            return
           }
-          return
-        }
 
-        const response = await db.execProtocolRaw(message)
+          const response = await db.execProtocolRaw(message)
 
-        ws.send(response)
+          ws.send(response)
+        })
       }
       ws.onclose = (event) => {
         cleanUp()
