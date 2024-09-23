@@ -8,6 +8,13 @@ import { extractDatabaseId, isValidServername } from './servername.ts'
 import { getTls, setSecureContext } from './tls.ts'
 import { createStartupMessage } from './create-message.ts'
 import { extractIP } from './extract-ip.ts'
+import {
+  DatabaseShared,
+  DatabaseUnshared,
+  logEvent,
+  UserConnected,
+  UserDisconnected,
+} from './telemetry.ts'
 
 const debug = makeDebug('browser-proxy')
 
@@ -59,6 +66,8 @@ websocketServer.on('connection', (socket, request) => {
 
   websocketConnections.set(databaseId, socket)
 
+  logEvent(new DatabaseShared({ databaseId }))
+
   socket.on('message', (data: Buffer) => {
     debug('websocket message', data.toString('hex'))
     const tcpConnection = tcpConnections.get(databaseId)
@@ -67,6 +76,7 @@ websocketServer.on('connection', (socket, request) => {
 
   socket.on('close', () => {
     websocketConnections.delete(databaseId)
+    logEvent(new DatabaseUnshared({ databaseId }))
   })
 })
 
@@ -112,6 +122,7 @@ tcpServer.on('connection', async (socket) => {
       // only set the databaseId after we've verified the connection
       databaseId = _databaseId
       tcpConnections.set(databaseId!, connection)
+      logEvent(new UserConnected({ databaseId }))
     },
     serverVersion() {
       return '16.3'
@@ -158,6 +169,7 @@ tcpServer.on('connection', async (socket) => {
   socket.on('close', () => {
     if (databaseId) {
       tcpConnections.delete(databaseId)
+      logEvent(new UserDisconnected({ databaseId }))
       const websocket = websocketConnections.get(databaseId)
       websocket?.send(createStartupMessage('postgres', 'postgres', { client_ip: '' }))
     }
