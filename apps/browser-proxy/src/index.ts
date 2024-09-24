@@ -16,6 +16,14 @@ import {
   UserDisconnected,
 } from './telemetry.ts'
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error({ location: 'unhandledRejection', reason, promise })
+})
+
+process.on('uncaughtException', (error) => {
+  console.error({ location: 'uncaughtException', error })
+})
+
 const debug = makeDebug('browser-proxy')
 try {
   type DatabaseId = string
