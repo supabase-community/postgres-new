@@ -2,7 +2,7 @@ export function createStartupMessage(
   user: string,
   database: string,
   additionalParams: Record<string, string> = {}
-): ArrayBuffer {
+): Uint8Array {
   const encoder = new TextEncoder()
 
   // Protocol version number (3.0)
@@ -22,9 +22,8 @@ export function createStartupMessage(
   }
   messageLength += 1 // Null terminator
 
-  const message = new ArrayBuffer(4 + messageLength)
-  const view = new DataView(message)
-  const uint8Array = new Uint8Array(message)
+  const uint8Array = new Uint8Array(4 + messageLength)
+  const view = new DataView(uint8Array.buffer)
 
   let offset = 0
   view.setInt32(offset, messageLength + 4, false) // Total message length (including itself)
@@ -44,5 +43,5 @@ export function createStartupMessage(
 
   uint8Array.set([0], offset) // Final null terminator
 
-  return message
+  return uint8Array
 }

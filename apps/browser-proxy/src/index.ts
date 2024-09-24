@@ -29,7 +29,7 @@ const debug = makeDebug('browser-proxy')
 type DatabaseId = string
 type ConnectionId = string
 const tcpConnections = new Map<ConnectionId, PostgresConnection>()
-const tcpConnectionsByDatabaseId = new Map<DatabaseId, number>()
+const tcpConnectionsByDatabaseId = new Set<DatabaseId>()
 const websocketConnections = new Map<DatabaseId, WebSocket>()
 
 const httpsServer = https.createServer({
@@ -84,8 +84,8 @@ websocketServer.on('connection', (socket, request) => {
       return
     }
 
-    const connectionId = data.slice(0, 8)
-    const message = data.slice(8)
+    const connectionId = data.subarray(0, 8)
+    const message = data.subarray(8)
     const tcpConnection = tcpConnections.get(Buffer.from(connectionId).toString('hex'))
     if (tcpConnection) {
       debug('websocket message', message.toString('hex'))
@@ -133,9 +133,7 @@ tcpServer.on('connection', async (socket) => {
         })
       }
 
-      const tcpConnectionCount = tcpConnectionsByDatabaseId.get(_databaseId) ?? 0
-
-      if (tcpConnectionCount === 1) {
+      if (tcpConnectionsByDatabaseId.has(_databaseId)) {
         throw BackendError.create({
           code: '53300',
           message: 'sorry, too many clients already',
@@ -143,7 +141,7 @@ tcpServer.on('connection', async (socket) => {
         })
       }
 
-      tcpConnectionsByDatabaseId.set(_databaseId, 1)
+      tcpConnectionsByDatabaseId.add(_databaseId)
 
       // only set the databaseId after we've verified the connection
       databaseId = _databaseId
@@ -227,16 +225,13 @@ tcpServer.listen(5432, () => {
   console.log('tcp server listening on port 5432')
 })
 
-function wrapMessage(connectionId: Uint8Array, message: ArrayBuffer | Uint8Array): Uint8Array {
-  // Convert message to Uint8Array if it's an ArrayBuffer
-  const messageArray = message instanceof ArrayBuffer ? new Uint8Array(message) : message
-
+function wrapMessage(connectionId: Uint8Array, message: Uint8Array): Uint8Array {
   // Create a new Uint8Array to hold the connectionId and the message
-  const wrappedMessage = new Uint8Array(connectionId.length + messageArray.length)
+  const wrappedMessage = new Uint8Array(connectionId.length + message.length)
 
   // Copy the connectionId and the message into the new Uint8Array
   wrappedMessage.set(connectionId, 0)
-  wrappedMessage.set(messageArray, connectionId.length)
+  wrappedMessage.set(message, connectionId.length)
 
   return wrappedMessage
 }
