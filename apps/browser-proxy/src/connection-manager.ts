@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws'
 import { PostgresConnection } from 'pg-gateway'
 import makeDebug from 'debug'
+import { Mutex } from 'async-mutex'
 
 const debug = makeDebug('browser-proxy')
 
@@ -8,6 +9,20 @@ export class ConnectionManager {
   private tcpConnections = new Map<string, PostgresConnection>()
   private websocketConnections = new Map<string, WebSocket>()
   private activeConnectionIds = new Map<string, string>()
+  private mutexes: Map<string, Mutex> = new Map()
+
+  async processMessage(databaseId: string, connectionId: string, message: Uint8Array) {
+    const key = `${databaseId}:${connectionId}`
+    if (!this.mutexes.has(key)) {
+      this.mutexes.set(key, new Mutex())
+    }
+    const mutex = this.mutexes.get(key)!
+
+    await mutex.runExclusive(async () => {
+      // Process the message
+      this.sendMessageToWebSocket(databaseId, message)
+    })
+  }
 
   addTcpConnection(databaseId: string, connection: PostgresConnection): string | null {
     if (this.tcpConnections.has(databaseId)) {
@@ -21,6 +36,10 @@ export class ConnectionManager {
   }
 
   removeTcpConnection(databaseId: string) {
+    const connectionId = this.activeConnectionIds.get(databaseId)
+    if (connectionId) {
+      this.mutexes.delete(`${databaseId}:${connectionId}`)
+    }
     this.tcpConnections.delete(databaseId)
     this.activeConnectionIds.delete(databaseId)
   }

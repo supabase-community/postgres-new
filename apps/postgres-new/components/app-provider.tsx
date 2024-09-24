@@ -145,6 +145,7 @@ export default function AppProvider({ children }: AppProps) {
               // client disconnected
               if (parameters.client_ip === '') {
                 setConnectedClientIp(null)
+                await db.query('discard all')
                 await dbManager.closeDbInstance(databaseId)
               } else {
                 db = await dbManager.getDbInstance(databaseId)

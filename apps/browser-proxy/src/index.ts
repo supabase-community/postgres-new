@@ -165,7 +165,7 @@ tcpServer.on('connection', async (socket) => {
       }
 
       debug('tcp message', { message })
-      connectionManager.sendMessageToWebSocket(databaseId, message)
+      connectionManager.processMessage(databaseId, connectionId, message)
 
       return new Uint8Array()
     },

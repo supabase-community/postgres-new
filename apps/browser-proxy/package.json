@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.645.0",
+    "async-mutex": "^0.5.0",
     "debug": "^4.3.7",
     "expiry-map": "^2.0.0",
     "findhit-proxywrap": "^0.3.13",
@@ -19,6 +20,7 @@
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/debug": "^4.1.12",
     "@types/node": "^22.5.4",
+    "prisma": "^5.19.1",
     "typescript": "^5.5.4"
   }
 }
