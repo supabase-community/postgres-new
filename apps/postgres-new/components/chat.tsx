@@ -25,6 +25,7 @@ import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
+import { TextArea } from './ui/textarea'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -206,6 +207,19 @@ export default function Chat() {
       }
     },
   }))
+
+  // dynamically resize the input textarea
+  useEffect(() => {
+    if (inputRef) {
+      if (inputRef.current && !input) {
+        inputRef.current.style.height = '26px'
+      } else if (inputRef && inputRef.current) {
+        inputRef.current.style.height = 'auto'
+        const newHeight = inputRef.current.scrollHeight + 'px'
+        inputRef.current.style.height = newHeight
+      }
+    }
+  }, [input, inputRef])
 
   return (
     <div ref={dropZoneRef} className="h-full flex flex-col items-stretch relative">
@@ -483,12 +497,13 @@ export default function Chat() {
           >
             <Paperclip size={16} strokeWidth={1.3} />
           </Button>
+
           <textarea
             ref={inputRef}
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none"
+            className="flex-grow border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-muted-foreground/50 bg-transparent outline-none max-h-48"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
@@ -499,7 +514,7 @@ export default function Chat() {
               setInputFocusState(false)
             }}
             autoFocus
-            disabled={!user}
+            // disabled={!user}
             rows={Math.min(input.split('\n').length, 10)}
             onKeyDown={(e) => {
               if (!(e.target instanceof HTMLTextAreaElement)) {
