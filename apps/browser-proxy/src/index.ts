@@ -15,11 +15,11 @@ import {
   UserConnected,
   UserDisconnected,
 } from './telemetry.ts'
+import { ConnectionManager } from './connection-manager.ts'
+
+const connectionManager = new ConnectionManager()
 
 const debug = makeDebug('browser-proxy')
-
-const tcpConnections = new Map<string, PostgresConnection>()
-const websocketConnections = new Map<string, WebSocket>()
 
 const httpsServer = https.createServer({
   SNICallback: (servername, callback) => {
@@ -45,37 +45,43 @@ websocketServer.on('error', (error) => {
   debug('websocket server error', error)
 })
 
-websocketServer.on('connection', (socket, request) => {
+websocketServer.on('connection', (websocket, request) => {
   debug('websocket connection')
 
   const host = request.headers.host
 
   if (!host) {
     debug('No host header present')
-    socket.close()
+    websocket.close()
     return
   }
 
   const databaseId = extractDatabaseId(host)
 
-  if (websocketConnections.has(databaseId)) {
-    socket.send('sorry, too many clients already')
-    socket.close()
+  if (!connectionManager.addWebSocketConnection(databaseId, websocket)) {
+    websocket.send('sorry, too many clients already')
+    websocket.close()
     return
   }
 
-  websocketConnections.set(databaseId, socket)
-
   logEvent(new DatabaseShared({ databaseId }))
 
-  socket.on('message', (data: Buffer) => {
-    debug('websocket message', data.toString('hex'))
-    const tcpConnection = tcpConnections.get(databaseId)
-    tcpConnection?.streamWriter?.write(data)
+  websocket.on('message', (data: Buffer) => {
+    if (data.length === 0) {
+      return
+    }
+
+    const activeConnectionId = connectionManager.getActiveConnectionId(databaseId)
+    if (!activeConnectionId) {
+      debug('Ignoring message: No active connection for database', databaseId)
+      return
+    }
+
+    connectionManager.sendMessageToTcp(databaseId, activeConnectionId, data)
   })
 
-  socket.on('close', () => {
-    websocketConnections.delete(databaseId)
+  websocket.on('close', () => {
+    connectionManager.removeWebSocketConnection(databaseId)
     logEvent(new DatabaseUnshared({ databaseId }))
   })
 })
@@ -89,6 +95,7 @@ const tcpServer = net.createServer()
 
 tcpServer.on('connection', async (socket) => {
   let databaseId: string | undefined
+  let connectionId: string | null = null
 
   const connection = await fromNodeSocket(socket, {
     tls: getTls,
@@ -103,7 +110,7 @@ tcpServer.on('connection', async (socket) => {
 
       const _databaseId = extractDatabaseId(state.tlsInfo.serverName!)
 
-      if (!websocketConnections.has(_databaseId!)) {
+      if (!connectionManager.hasWebSocketConnection(_databaseId!)) {
         throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
@@ -111,7 +118,7 @@ tcpServer.on('connection', async (socket) => {
         })
       }
 
-      if (tcpConnections.has(_databaseId)) {
+      if (connectionManager.hasTcpConnection(_databaseId)) {
         throw BackendError.create({
           code: '53300',
           message: 'sorry, too many clients already',
@@ -119,16 +126,20 @@ tcpServer.on('connection', async (socket) => {
         })
       }
 
-      // only set the databaseId after we've verified the connection
       databaseId = _databaseId
-      tcpConnections.set(databaseId!, connection)
+      connectionId = connectionManager.addTcpConnection(databaseId, connection)
+      if (!connectionId) {
+        debug('Rejecting new TCP connection: already exists for database', databaseId)
+        socket.destroy()
+        return
+      }
       logEvent(new UserConnected({ databaseId }))
     },
     serverVersion() {
       return '16.3'
     },
     onAuthenticated() {
-      const websocket = websocketConnections.get(databaseId!)
+      const websocket = connectionManager.getWebSocketConnection(databaseId!)
 
       if (!websocket) {
         throw BackendError.create({
@@ -144,34 +155,31 @@ tcpServer.on('connection', async (socket) => {
       websocket.send(clientIpMessage)
     },
     onMessage(message, state) {
-      if (!state.isAuthenticated) {
+      if (!state.isAuthenticated || !databaseId || !connectionId) {
         return
       }
 
-      const websocket = websocketConnections.get(databaseId!)
-
-      if (!websocket) {
-        throw BackendError.create({
-          code: 'XX000',
-          message: 'the browser is not sharing the database',
-          severity: 'FATAL',
-        })
+      if (!connectionManager.isActiveConnection(databaseId, connectionId)) {
+        debug('Ignoring message for inactive connection', { databaseId, connectionId })
+        return new Uint8Array()
       }
 
       debug('tcp message', { message })
-      websocket.send(message)
+      connectionManager.sendMessageToWebSocket(databaseId, message)
 
-      // return an empty buffer to indicate that the message has been handled
       return new Uint8Array()
     },
   })
 
   socket.on('close', () => {
     if (databaseId) {
-      tcpConnections.delete(databaseId)
+      connectionManager.removeTcpConnection(databaseId)
       logEvent(new UserDisconnected({ databaseId }))
-      const websocket = websocketConnections.get(databaseId)
-      websocket?.send(createStartupMessage('postgres', 'postgres', { client_ip: '' }))
+      connectionManager.sendMessageToWebSocket(
+        databaseId,
+        createStartupMessage('postgres', 'postgres', { client_ip: '' }),
+        true
+      )
     }
   })
 })
