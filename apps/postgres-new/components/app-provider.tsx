@@ -134,10 +134,22 @@ export default function AppProvider({ children }: AppProps) {
 
       const mutex = new Mutex()
       let db: PGliteInterface
+      let connectionId: Uint8Array | undefined
 
       ws.onmessage = (event) => {
         mutex.runExclusive(async () => {
-          const message = new Uint8Array(await event.data)
+          const data = new Uint8Array(await event.data)
+
+          const _connectionId = data.slice(0, 8)
+          if (!connectionId) {
+            connectionId = _connectionId
+          }
+          if (Array.from(connectionId).join('') !== Array.from(_connectionId).join('')) {
+            console.log('connectionId mismatch', connectionId, _connectionId)
+            return
+          }
+
+          const message = data.slice(8)
 
           if (isStartupMessage(message)) {
             const parameters = parseStartupMessage(message)
@@ -145,6 +157,7 @@ export default function AppProvider({ children }: AppProps) {
               // client disconnected
               if (parameters.client_ip === '') {
                 setConnectedClientIp(null)
+                connectionId = undefined
                 await dbManager.closeDbInstance(databaseId)
               } else {
                 db = await dbManager.getDbInstance(databaseId)
@@ -156,7 +169,11 @@ export default function AppProvider({ children }: AppProps) {
 
           const response = await db.execProtocolRaw(message)
 
-          ws.send(response)
+          const wrappedResponse = new Uint8Array(connectionId.length + response.length)
+          wrappedResponse.set(connectionId, 0)
+          wrappedResponse.set(response, connectionId.length)
+
+          ws.send(wrappedResponse)
         })
       }
       ws.onclose = (event) => {
