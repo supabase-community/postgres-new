@@ -2,8 +2,12 @@ import * as nodeNet from 'node:net'
 import * as https from 'node:https'
 import { BackendError, PostgresConnection } from 'pg-gateway'
 import { fromNodeSocket } from 'pg-gateway/node'
-import { WebSocketServer, type WebSocket } from 'ws'
+import { WebSocket, WebSocketServer, createWebSocketStream } from 'ws'
 import makeDebug from 'debug'
+import { yamux } from '@chainsafe/libp2p-yamux'
+import { pipe } from 'it-pipe'
+import { prefixLogger } from '@libp2p/logger'
+import * as toIterable from 'stream-to-it'
 import { extractDatabaseId, isValidServername } from './servername.ts'
 import { getTls, setSecureContext } from './tls.ts'
 import { createStartupMessage } from './create-message.ts'
@@ -20,6 +24,24 @@ const debug = makeDebug('browser-proxy')
 
 const tcpConnections = new Map<string, PostgresConnection>()
 const websocketConnections = new Map<string, WebSocket>()
+
+type StreamMuxer = ReturnType<ReturnType<ReturnType<typeof yamux>>['createStreamMuxer']>
+type Extract<T> = T extends Promise<infer U> ? U : T
+type Stream = Extract<ReturnType<StreamMuxer['newStream']>>
+
+const muxers = new Map<string, StreamMuxer>()
+
+const serverMuxer = yamux({
+  direction: 'inbound',
+  onIncomingStream(stream) {},
+  onStreamEnd(stream) {},
+})({ logger: prefixLogger('yamux-ws') })
+
+const clientMuxer = yamux({
+  direction: 'outbound',
+  onIncomingStream(stream) {},
+  onStreamEnd(stream) {},
+})({ logger: prefixLogger('yamux-tcp') })
 
 const httpsServer = https.createServer({
   SNICallback: (servername, callback) => {
@@ -45,7 +67,7 @@ websocketServer.on('error', (error) => {
   debug('websocket server error', error)
 })
 
-websocketServer.on('connection', (socket, request) => {
+websocketServer.on('connection', async (socket, request) => {
   debug('websocket connection')
 
   const host = request.headers.host
@@ -64,18 +86,28 @@ websocketServer.on('connection', (socket, request) => {
     return
   }
 
-  websocketConnections.set(databaseId, socket)
+  const muxer = serverMuxer.createStreamMuxer({
+    onIncomingStream(stream) {},
+    onStreamEnd(stream) {},
+  })
+
+  const websocketStream = createWebSocketStream(socket)
+  const websocketDuplex = toIterable.duplex(websocketStream)
+  void pipe(websocketDuplex, muxer, websocketDuplex)
+
+  muxers.set(databaseId, muxer)
+  // websocketConnections.set(databaseId, socket)
 
   logEvent(new DatabaseShared({ databaseId }))
 
-  socket.on('message', (data: Buffer) => {
-    debug('websocket message', data.toString('hex'))
-    const tcpConnection = tcpConnections.get(databaseId)
-    tcpConnection?.streamWriter?.write(data)
-  })
+  // socket.on('message', (data: Buffer) => {
+  //   debug('websocket message', data.toString('hex'))
+  //   const tcpConnection = tcpConnections.get(databaseId)
+  //   tcpConnection?.streamWriter?.write(data)
+  // })
 
   socket.on('close', () => {
-    websocketConnections.delete(databaseId)
+    muxers.delete(databaseId)
     logEvent(new DatabaseUnshared({ databaseId }))
   })
 })
@@ -89,10 +121,11 @@ const tcpServer = net.createServer()
 
 tcpServer.on('connection', async (socket) => {
   let databaseId: string | undefined
+  let stream: Stream | undefined
 
   const connection = await fromNodeSocket(socket, {
     tls: getTls,
-    onTlsUpgrade(state) {
+    async onTlsUpgrade(state) {
       if (!state.tlsInfo?.serverName || !isValidServername(state.tlsInfo.serverName)) {
         throw BackendError.create({
           code: '08006',
@@ -103,7 +136,7 @@ tcpServer.on('connection', async (socket) => {
 
       const _databaseId = extractDatabaseId(state.tlsInfo.serverName!)
 
-      if (!websocketConnections.has(_databaseId!)) {
+      if (!muxers.has(_databaseId!)) {
         throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
@@ -121,16 +154,29 @@ tcpServer.on('connection', async (socket) => {
 
       // only set the databaseId after we've verified the connection
       databaseId = _databaseId
+
+      const muxer = muxers.get(databaseId!)
+      if (!muxer) {
+        throw BackendError.create({
+          code: 'XX000',
+          message: 'the browser is not sharing the database',
+          severity: 'FATAL',
+        })
+      }
+
+      stream = await muxer.newStream()
+
       tcpConnections.set(databaseId!, connection)
+
       logEvent(new UserConnected({ databaseId }))
     },
     serverVersion() {
       return '16.3'
     },
-    onAuthenticated() {
-      const websocket = websocketConnections.get(databaseId!)
+    async onAuthenticated() {
+      const muxer = muxers.get(databaseId!)
 
-      if (!websocket) {
+      if (!muxer) {
         throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
@@ -141,16 +187,16 @@ tcpServer.on('connection', async (socket) => {
       const clientIpMessage = createStartupMessage('postgres', 'postgres', {
         client_ip: extractIP(socket.remoteAddress!),
       })
-      websocket.send(clientIpMessage)
+      await pipe(clientIpMessage, stream)
     },
-    onMessage(message, state) {
+    async onMessage(message, state) {
       if (!state.isAuthenticated) {
         return
       }
 
-      const websocket = websocketConnections.get(databaseId!)
+      const muxer = muxers.get(databaseId!)
 
-      if (!websocket) {
+      if (!muxer) {
         throw BackendError.create({
           code: 'XX000',
           message: 'the browser is not sharing the database',
@@ -159,14 +205,21 @@ tcpServer.on('connection', async (socket) => {
       }
 
       debug('tcp message', { message })
-      websocket.send(message)
+
+      // @ts-expect-error
+      await pipe(message, stream)
+
+      // await stream.sink([message])
+
+      // websocket.send(message)
 
       // return an empty buffer to indicate that the message has been handled
       return new Uint8Array()
     },
   })
 
-  socket.on('close', () => {
+  socket.on('close', async () => {
+    await stream?.close()
     if (databaseId) {
       tcpConnections.delete(databaseId)
       logEvent(new UserDisconnected({ databaseId }))

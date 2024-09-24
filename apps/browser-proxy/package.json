@@ -8,11 +8,15 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.645.0",
+    "@chainsafe/libp2p-yamux": "^7.0.0",
+    "@libp2p/logger": "^5.0.2",
     "debug": "^4.3.7",
     "expiry-map": "^2.0.0",
     "findhit-proxywrap": "^0.3.13",
+    "it-pipe": "^3.0.1",
     "p-memoize": "^7.1.1",
     "pg-gateway": "^0.3.0-beta.3",
+    "stream-to-it": "^1.0.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
