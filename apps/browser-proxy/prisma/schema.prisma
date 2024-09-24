@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,55 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model comments {
+  id         BigInt    @id @default(autoincrement())
+  post_id    BigInt?
+  user_id    BigInt?
+  content    String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model friendships {
+  id                                 BigInt    @id @default(autoincrement())
+  user_id                            BigInt?
+  friend_id                          BigInt?
+  created_at                         DateTime? @default(now()) @db.Timestamptz(6)
+  users_friendships_friend_idTousers users?    @relation("friendships_friend_idTousers", fields: [friend_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_friendships_user_idTousers   users?    @relation("friendships_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model likes {
+  id         BigInt    @id @default(autoincrement())
+  post_id    BigInt?
+  user_id    BigInt?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model posts {
+  id         BigInt     @id @default(autoincrement())
+  user_id    BigInt?
+  content    String
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  comments   comments[]
+  likes      likes[]
+  users      users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id                                       BigInt        @id @default(autoincrement())
+  username                                 String
+  email                                    String        @unique
+  password                                 String
+  created_at                               DateTime?     @default(now()) @db.Timestamptz(6)
+  comments                                 comments[]
+  friendships_friendships_friend_idTousers friendships[] @relation("friendships_friend_idTousers")
+  friendships_friendships_user_idTousers   friendships[] @relation("friendships_user_idTousers")
+  likes                                    likes[]
+  posts                                    posts[]
 }
