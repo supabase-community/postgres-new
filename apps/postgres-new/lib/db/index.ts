@@ -85,13 +85,7 @@ export class DbManager {
     if (message.toolInvocations) {
       await metaDb.query(
         'insert into messages (id, database_id, role, content, tool_invocations) values ($1, $2, $3, $4, $5)',
-        [
-          message.id,
-          databaseId,
-          message.role,
-          message.content,
-          JSON.stringify(message.toolInvocations),
-        ]
+        [message.id, databaseId, message.role, message.content, message.toolInvocations]
       )
     } else {
       await metaDb.query(
