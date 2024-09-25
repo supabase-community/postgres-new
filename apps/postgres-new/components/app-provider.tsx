@@ -144,7 +144,6 @@ export default function AppProvider({ children }: AppProps) {
       }
 
       const db = await dbManager.getDbInstance(databaseId)
-
       const mutex = new Mutex()
       let activeConnectionId: string | null = null
 
@@ -167,6 +166,7 @@ export default function AppProvider({ children }: AppProps) {
             activeConnectionId = null
             setConnectedClientIp(null)
             // reset session state
+            await db.query('rollback').catch(() => {})
             await db.query('discard all')
             await db.query('set search_path to public')
             return
