@@ -79,3 +79,24 @@ export function parseStartupMessage(message: Uint8Array): {
 
   return params
 }
+
+export function isTerminateMessage(message: Uint8Array): boolean {
+  // A valid Terminate message should be exactly 5 bytes long
+  if (message.length !== 5) {
+    return false
+  }
+
+  const view = new DataView(message.buffer, message.byteOffset, message.byteLength)
+
+  if (message[0] !== 'X'.charCodeAt(0)) {
+    return false
+  }
+
+  // Check if the length field (next 4 bytes) is equal to 4
+  const length = view.getInt32(1, false)
+  if (length !== 4) {
+    return false
+  }
+
+  return true
+}

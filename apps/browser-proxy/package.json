@@ -12,6 +12,7 @@
     "debug": "^4.3.7",
     "expiry-map": "^2.0.0",
     "findhit-proxywrap": "^0.3.13",
+    "nanoid": "^5.0.7",
     "p-memoize": "^7.1.1",
     "pg-gateway": "^0.3.0-beta.3",
     "ws": "^8.18.0"

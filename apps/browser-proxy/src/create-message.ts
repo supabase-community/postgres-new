@@ -45,3 +45,11 @@ export function createStartupMessage(
 
   return uint8Array
 }
+
+export function createTerminateMessage(): Uint8Array {
+  const uint8Array = new Uint8Array(5)
+  const view = new DataView(uint8Array.buffer)
+  view.setUint8(0, 'X'.charCodeAt(0))
+  view.setUint32(1, 4, false)
+  return uint8Array
+}

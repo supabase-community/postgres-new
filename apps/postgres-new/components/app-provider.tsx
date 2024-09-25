@@ -19,7 +19,8 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
-import { isStartupMessage, parseStartupMessage } from '~/lib/pg-wire-util'
+import { isStartupMessage, isTerminateMessage, parseStartupMessage } from '~/lib/pg-wire-util'
+import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -144,46 +145,28 @@ export default function AppProvider({ children }: AppProps) {
 
       const mutex = new Mutex()
       let db: PGliteInterface
-      let connectionId: Uint8Array | undefined
 
       ws.onmessage = (event) => {
         mutex.runExclusive(async () => {
           const data = new Uint8Array(await event.data)
 
-          const _connectionId = data.slice(0, 8)
-          if (!connectionId) {
-            connectionId = _connectionId
-          }
-          if (Array.from(connectionId).join('') !== Array.from(_connectionId).join('')) {
-            console.log('connectionId mismatch', connectionId, _connectionId)
-            return
-          }
-
-          const message = data.slice(8)
+          const { connectionId, message } = parse(data)
 
           if (isStartupMessage(message)) {
             const parameters = parseStartupMessage(message)
             if ('client_ip' in parameters) {
-              // client disconnected
-              if (parameters.client_ip === '') {
-                setConnectedClientIp(null)
-                connectionId = undefined
-                await dbManager.closeDbInstance(databaseId)
-              } else {
-                db = await dbManager.getDbInstance(databaseId)
-                setConnectedClientIp(parameters.client_ip)
-              }
+              db = await dbManager.getDbInstance(databaseId)
+              setConnectedClientIp(parameters.client_ip)
             }
+            return
+          } else if (isTerminateMessage(message)) {
+            // TODO: normally a `await db.query('discard all')` would be enough here
+            await dbManager.closeDbInstance(databaseId)
             return
           }
 
           const response = await db.execProtocolRaw(message)
-
-          const wrappedResponse = new Uint8Array(connectionId.length + response.length)
-          wrappedResponse.set(connectionId, 0)
-          wrappedResponse.set(response, connectionId.length)
-
-          ws.send(wrappedResponse)
+          ws.send(serialize(connectionId, response))
         })
       }
       ws.onclose = (event) => {
@@ -196,7 +179,7 @@ export default function AppProvider({ children }: AppProps) {
 
       setLiveShareWebsocket(ws)
     },
-    [dbManager, cleanUp]
+    [cleanUp, supabase.auth]
   )
   const stopLiveShare = useCallback(() => {
     liveShareWebsocket?.close()
