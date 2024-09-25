@@ -1,3 +1,5 @@
-import makeDebug from 'debug'
+import createDebug from 'debug'
 
-export const debug = makeDebug('browser-proxy')
+createDebug.formatters.e = (fn) => fn()
+
+export const debug = createDebug('browser-proxy')

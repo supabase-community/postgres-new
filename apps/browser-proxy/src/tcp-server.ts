@@ -88,7 +88,7 @@ tcpServer.on('connection', async (socket) => {
         })
       }
 
-      debug('tcp message', { message })
+      debug('tcp message: %e', () => Buffer.from(message).toString('hex'))
       websocket.send(serialize(connectionState!.connectionId, message))
 
       // return an empty buffer to indicate that the message has been handled

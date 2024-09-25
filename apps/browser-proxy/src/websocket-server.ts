@@ -87,7 +87,7 @@ websocketServer.on('connection', async (websocket, request) => {
     const { connectionId, message } = parse(data)
     const tcpConnection = connectionManager.getSocket(connectionId)
     if (tcpConnection) {
-      debug('websocket message', message.toString('hex'))
+      debug('websocket message: %e', () => message.toString('hex'))
       tcpConnection.streamWriter?.write(message)
     }
   })
