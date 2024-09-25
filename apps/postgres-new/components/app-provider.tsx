@@ -124,7 +124,17 @@ export default function AppProvider({ children }: AppProps) {
 
       const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
 
-      const ws = new WebSocket(`wss://${databaseHostname}`)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('You must be signed in to live share')
+      }
+
+      const ws = new WebSocket(
+        `wss://${databaseHostname}?token=${encodeURIComponent(session.access_token)}`
+      )
 
       ws.binaryType = 'arraybuffer'
 

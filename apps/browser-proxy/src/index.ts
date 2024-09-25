@@ -4,6 +4,7 @@ import { BackendError, PostgresConnection } from 'pg-gateway'
 import { fromNodeSocket } from 'pg-gateway/node'
 import { WebSocketServer, type WebSocket } from 'ws'
 import makeDebug from 'debug'
+import { createClient } from '@supabase/supabase-js'
 import { extractDatabaseId, isValidServername } from './servername.ts'
 import { getTls, setSecureContext } from './tls.ts'
 import { createStartupMessage } from './create-message.ts'
@@ -15,6 +16,14 @@ import {
   UserConnected,
   UserDisconnected,
 } from './telemetry.ts'
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
+})
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error({ location: 'unhandledRejection', reason, promise })
@@ -56,7 +65,7 @@ websocketServer.on('error', (error) => {
   debug('websocket server error', error)
 })
 
-websocketServer.on('connection', (socket, request) => {
+websocketServer.on('connection', async (socket, request) => {
   debug('websocket connection')
 
   const host = request.headers.host
@@ -66,6 +75,23 @@ websocketServer.on('connection', (socket, request) => {
     socket.close()
     return
   }
+
+  // authenticate the user
+  const url = new URL(request.url!, `https://${host}`)
+  const token = url.searchParams.get('token')
+  if (!token) {
+    debug('No token present in URL query parameters')
+    socket.close()
+    return
+  }
+  const { data, error } = await supabase.auth.getUser(token)
+  if (error) {
+    debug('Error authenticating user', error)
+    socket.close()
+    return
+  }
+
+  const { user } = data
 
   const databaseId = extractDatabaseId(host)
 
@@ -77,7 +103,7 @@ websocketServer.on('connection', (socket, request) => {
 
   websocketConnections.set(databaseId, socket)
 
-  logEvent(new DatabaseShared({ databaseId }))
+  logEvent(new DatabaseShared({ databaseId, userId: user.id }))
 
   socket.on('message', (data: Buffer) => {
     if (data.length === 0) {
@@ -95,7 +121,7 @@ websocketServer.on('connection', (socket, request) => {
 
   socket.on('close', () => {
     websocketConnections.delete(databaseId)
-    logEvent(new DatabaseUnshared({ databaseId }))
+    logEvent(new DatabaseUnshared({ databaseId, userId: user.id }))
   })
 })
 
@@ -166,7 +192,7 @@ tcpServer.on('connection', async (socket) => {
       connectionId = Buffer.from(_connectionId).toString('hex')
       tcpConnections.set(connectionId, connection)
 
-      logEvent(new UserConnected({ databaseId: databaseId! }))
+      logEvent(new UserConnected({ databaseId: databaseId!, connectionId }))
 
       const clientIpMessage = createStartupMessage('postgres', 'postgres', {
         client_ip: extractIP(socket.remoteAddress!),
@@ -205,7 +231,7 @@ tcpServer.on('connection', async (socket) => {
     if (databaseId) {
       tcpConnections.delete(connectionId!)
       tcpConnectionsByDatabaseId.delete(databaseId)
-      logEvent(new UserDisconnected({ databaseId }))
+      logEvent(new UserDisconnected({ databaseId, connectionId: connectionId! }))
       const websocket = websocketConnections.get(databaseId)
       websocket?.send(
         wrapMessage(

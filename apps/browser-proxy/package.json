@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.645.0",
+    "@supabase/supabase-js": "^2.45.4",
     "debug": "^4.3.7",
     "expiry-map": "^2.0.0",
     "findhit-proxywrap": "^0.3.13",
