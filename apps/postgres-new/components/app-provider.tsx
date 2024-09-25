@@ -143,8 +143,9 @@ export default function AppProvider({ children }: AppProps) {
         setLiveSharedDatabaseId(databaseId)
       }
 
+      const db = await dbManager.getDbInstance(databaseId)
       const mutex = new Mutex()
-      let db: PGliteInterface
+      let activeConnectionId: string | null = null
 
       ws.onmessage = (event) => {
         mutex.runExclusive(async () => {
@@ -153,15 +154,27 @@ export default function AppProvider({ children }: AppProps) {
           const { connectionId, message } = parse(data)
 
           if (isStartupMessage(message)) {
+            activeConnectionId = connectionId
             const parameters = parseStartupMessage(message)
             if ('client_ip' in parameters) {
-              db = await dbManager.getDbInstance(databaseId)
               setConnectedClientIp(parameters.client_ip)
             }
             return
-          } else if (isTerminateMessage(message)) {
-            // TODO: normally a `await db.query('discard all')` would be enough here
-            await dbManager.closeDbInstance(databaseId)
+          }
+
+          if (isTerminateMessage(message)) {
+            activeConnectionId = null
+            setConnectedClientIp(null)
+            // reset session state
+            await db.exec('discard all; set search_path to public;')
+            return
+          }
+
+          if (activeConnectionId !== connectionId) {
+            console.error('received message from inactive connection', {
+              activeConnectionId,
+              connectionId,
+            })
             return
           }
 
