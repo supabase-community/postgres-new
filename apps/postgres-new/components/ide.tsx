@@ -2,7 +2,7 @@
 
 import { Editor } from '@monaco-editor/react'
 import { ParseResult } from 'libpg-query/wasm'
-import { FileCode, MessageSquareMore, Sprout, Workflow } from 'lucide-react'
+import { Check, CheckCheck, Copy, FileCode, MessageSquareMore, Sprout, Workflow } from 'lucide-react'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import { format } from 'sql-formatter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
@@ -16,7 +16,8 @@ import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
 import { useWorkspace } from './workspace'
-import { buttonVariants } from './ui/button'
+import { Button, buttonVariants } from './ui/button'
+import ButtonCopyCode from './button-copy-code'
 
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
@@ -171,6 +172,11 @@ export default function IDE({ children, className }: IDEProps) {
         </TabsContent>
         <TabsContent value="migrations" className="h-full">
           <div className="h-full flex flex-col gap-3">
+
+            <div className="relative">
+              <ButtonCopyCode code={migrationsSql} />
+            </div>
+
             <Editor
               className=" py-4 rounded-md bg-[#1e1e1e]"
               language="pgsql"
