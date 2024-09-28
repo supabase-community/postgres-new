@@ -17,7 +17,7 @@ import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
 import { useWorkspace } from './workspace'
 import { Button, buttonVariants } from './ui/button'
-import ButtonCopyCode from './button-copy-code'
+import CopyButton from './copy-button'
 
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
@@ -174,7 +174,7 @@ export default function IDE({ children, className }: IDEProps) {
           <div className="h-full flex flex-col gap-3">
 
             <div className="relative">
-              <ButtonCopyCode code={migrationsSql} />
+              <CopyButton value={migrationsSql} className="absolute top-4 right-4 z-10" />
             </div>
 
             <Editor
