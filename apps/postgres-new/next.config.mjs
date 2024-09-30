@@ -27,20 +27,26 @@ const nextConfig = {
   },
   swcMinify: false,
   async redirects() {
-    /** @type {import('next/dist/lib/load-custom-routes.').Redirect[]} */
+    /** @type {import('next/dist/lib/load-custom-routes').Redirect[]} */
     const redirects = []
 
     // All postgres.new/* redirect to database.build/*, except postgres.new/export
-    if (process.env.LEGACY_DOMAIN && process.env.CURRENT_DOMAIN) {
+    if (
+      process.env.REDIRECT_LEGACY_DOMAIN === 'true' &&
+      process.env.NEXT_PUBLIC_LEGACY_DOMAIN &&
+      process.env.NEXT_PUBLIC_CURRENT_DOMAIN
+    ) {
+      const legacyHostname = new URL(process.env.NEXT_PUBLIC_LEGACY_DOMAIN).hostname
+
       redirects.push({
         source: '/:path((?!export$).*)',
         has: [
           {
             type: 'host',
-            value: process.env.LEGACY_DOMAIN,
+            value: legacyHostname,
           },
         ],
-        destination: `http://${process.env.CURRENT_DOMAIN}/:path`,
+        destination: `${process.env.NEXT_PUBLIC_CURRENT_DOMAIN}/:path?from=${legacyHostname}`,
         permanent: false,
       })
     }

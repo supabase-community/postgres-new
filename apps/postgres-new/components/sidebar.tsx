@@ -41,7 +41,15 @@ import {
 } from './ui/dropdown-menu'
 
 export default function Sidebar() {
-  const { user, signOut, focusRef, isSignInDialogOpen, setIsSignInDialogOpen } = useApp()
+  const {
+    user,
+    signOut,
+    focusRef,
+    isSignInDialogOpen,
+    setIsSignInDialogOpen,
+    setIsRenameDialogOpen,
+    isLegacyDomain,
+  } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
@@ -161,6 +169,14 @@ export default function Sidebar() {
                   <>
                     <DbIcon size={48} strokeWidth={0.75} />
                     <span>No databases</span>
+                    {!isLegacyDomain && (
+                      <a
+                        className="mt-2 underline cursor-pointer text-xs text-primary/50"
+                        onClick={() => setIsRenameDialogOpen(true)}
+                      >
+                        Where did my databases go?
+                      </a>
+                    )}
                   </>
                 )}
               </div>

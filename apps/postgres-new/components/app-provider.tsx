@@ -17,6 +17,7 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
+import { legacyDomainHostname } from '~/lib/util'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -28,6 +29,7 @@ export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [user, setUser] = useState<User>()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [isRateLimited, setIsRateLimited] = useState(false)
 
   const focusRef = useRef<FocusHandle>(null)
@@ -105,6 +107,20 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
+  const [isLegacyDomain, setIsLegacyDomain] = useState(false)
+  const [isLegacyDomainRedirect, setIsLegacyDomainRedirect] = useState(false)
+
+  useEffect(() => {
+    const isLegacyDomain = window.location.hostname === legacyDomainHostname
+    const urlParams = new URLSearchParams(window.location.search)
+    const isLegacyDomainRedirect = urlParams.get('from') === legacyDomainHostname
+
+    // Set via useEffect() to prevent SSR hydration issues
+    setIsLegacyDomain(isLegacyDomain)
+    setIsLegacyDomainRedirect(isLegacyDomainRedirect)
+    setIsRenameDialogOpen(isLegacyDomain || isLegacyDomainRedirect)
+  }, [])
+
   return (
     <AppContext.Provider
       value={{
@@ -114,6 +130,8 @@ export default function AppProvider({ children }: AppProps) {
         signOut,
         isSignInDialogOpen,
         setIsSignInDialogOpen,
+        isRenameDialogOpen,
+        setIsRenameDialogOpen,
         isRateLimited,
         setIsRateLimited,
         focusRef,
@@ -121,6 +139,8 @@ export default function AppProvider({ children }: AppProps) {
         dbManager,
         pgliteVersion,
         pgVersion,
+        isLegacyDomain,
+        isLegacyDomainRedirect,
       }}
     >
       {children}
@@ -139,6 +159,8 @@ export type AppContextValues = {
   signOut: () => Promise<void>
   isSignInDialogOpen: boolean
   setIsSignInDialogOpen: (open: boolean) => void
+  isRenameDialogOpen: boolean
+  setIsRenameDialogOpen: (open: boolean) => void
   isRateLimited: boolean
   setIsRateLimited: (limited: boolean) => void
   focusRef: RefObject<FocusHandle>
@@ -146,6 +168,8 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
+  isLegacyDomain: boolean
+  isLegacyDomainRedirect: boolean
 }
 
 export const AppContext = createContext<AppContextValues | undefined>(undefined)

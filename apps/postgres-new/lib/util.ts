@@ -1,6 +1,11 @@
 import { CreateMessage, generateId, Message } from 'ai'
 import { ChangeEvent } from 'react'
 
+export const legacyDomainUrl = process.env.NEXT_PUBLIC_LEGACY_DOMAIN!
+export const legacyDomainHostname = new URL(legacyDomainUrl).hostname
+export const currentDomainUrl = process.env.NEXT_PUBLIC_CURRENT_DOMAIN!
+export const currentDomainHostname = new URL(currentDomainUrl).hostname
+
 /**
  * Programmatically download a `File`.
  */

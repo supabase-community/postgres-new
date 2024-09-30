@@ -2,6 +2,7 @@
 
 import { TarStream, TarStreamInput } from '@std/tar/tar-stream'
 import { chunk } from 'lodash'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useApp } from '~/components/app-provider'
 import {
@@ -22,7 +23,12 @@ import {
   readableStreamFromIterable,
   transformStreamFromFn,
 } from '~/lib/streams'
-import { downloadFile } from '~/lib/util'
+import {
+  currentDomainHostname,
+  currentDomainUrl,
+  downloadFile,
+  legacyDomainHostname,
+} from '~/lib/util'
 
 export default function Page() {
   const { dbManager } = useApp()
@@ -31,30 +37,32 @@ export default function Page() {
   return (
     <>
       <Dialog open>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Export your databases</DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
           <p>
-            postgres.new is renaming to database.build, which means you need to transfer your
-            databases if you wish to continue using them.
+            {legacyDomainHostname} is renaming to {currentDomainHostname}, which means you need to
+            transfer your databases if you wish to continue using them.
           </p>
 
           <Accordion type="single" collapsible>
             <AccordionItem value="item-1" className="border rounded-md">
               <AccordionTrigger className="p-0 gap-2 px-3 py-2">
                 <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>Why is postgres.new renaming to database.build?</span>
+                  <span>
+                    Why is {legacyDomainHostname} renaming to {currentDomainHostname}?
+                  </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-3 prose prose-sm">
-                We are renaming postgres.new due to a trademark conflict on the name
+                We are renaming {legacyDomainHostname} due to a trademark conflict on the name
                 &quot;Postgres&quot;. To respect intellectual property rights, we are transitioning
                 to our new name,{' '}
-                <a href="https://database.build" className="underline">
-                  database.build
-                </a>
+                <Link href={currentDomainUrl} className="underline">
+                  {currentDomainHostname}
+                </Link>
                 .
               </AccordionContent>
             </AccordionItem>
@@ -70,17 +78,17 @@ export default function Page() {
                 <p>
                   Since PGlite databases are stored in your browser&apos;s IndexedDB storage, other
                   domains like{' '}
-                  <a href="https://database.build" className="underline">
-                    database.build
-                  </a>{' '}
+                  <Link href={currentDomainUrl} className="underline">
+                    {currentDomainHostname}
+                  </Link>{' '}
                   cannot access them directly (this is a security restriction built into every
                   browser).
                 </p>
                 <p>
                   If you&apos;d like to continue using your previous databases and conversations:
                   <ol>
-                    <li>Export them from postgres.new</li>
-                    <li>Import them to database.build</li>
+                    <li>Export them from {legacyDomainHostname}</li>
+                    <li>Import them to {currentDomainHostname}</li>
                   </ol>
                 </p>
               </AccordionContent>
@@ -88,7 +96,7 @@ export default function Page() {
           </Accordion>
           <div className="my-2 border-b" />
           <div className="prose">
-            <h4 className="mb-4">How to transfer your databases to database.build</h4>
+            <h4 className="mb-4">How to transfer your databases to {currentDomainHostname}</h4>
             <ol>
               <li>
                 Click <strong>Export</strong> to download all of your databases into a single
@@ -149,10 +157,12 @@ export default function Page() {
                   </div>
                 )}
                 <br />
-                This tarball will contain every PGlite database&apos;s <code>pgdata</code> dump.
+                This tarball will contain every PGlite database&apos;s <code>pgdata</code> dump
+                along with any files you imported or exported from {legacyDomainHostname}.
               </li>
               <li>
-                Navigate to <a href="https://database.build/import">database.build/import</a> and
+                Navigate to{' '}
+                <Link href={`${currentDomainUrl}/import`}>{currentDomainHostname}/import</Link> and
                 click <strong>Import</strong>.
               </li>
             </ol>
@@ -164,7 +174,7 @@ export default function Page() {
 }
 
 /**
- * Generates a stream of PGlite dump files for all the databases.
+ * Generates a stream of PGlite dumps for all the databases as tar file/directory entries.
  */
 async function* createDumpStream(
   dbManager: DbManager,
@@ -198,6 +208,9 @@ async function* createDumpStream(
   }
 }
 
+/**
+ * Creates a stream of storage files (eg. CSVs) as tar file/directory entires.
+ */
 async function* createStorageStream(): AsyncIterable<TarStreamInput> {
   yield { type: 'directory', path: '/files' }
 

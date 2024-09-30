@@ -132,6 +132,10 @@ export class DbManager {
   }
 
   async importMessages(messages: MetaMessage[]) {
+    if (messages.length === 0) {
+      return
+    }
+
     const metaDb = await this.getMetaDb()
 
     const values = messages.map(
@@ -248,6 +252,10 @@ export class DbManager {
   }
 
   async importDatabases(databases: Database[]) {
+    if (databases.length === 0) {
+      return
+    }
+
     const metaDb = await this.getMetaDb()
 
     const values = databases.map(
