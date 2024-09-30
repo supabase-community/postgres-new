@@ -7,6 +7,7 @@ import { setSecureContext } from './tls.ts'
 import { connectionManager } from './connection-manager.ts'
 import { DatabaseShared, DatabaseUnshared, logEvent } from './telemetry.ts'
 import { parse } from './protocol.ts'
+import { pgDumpMiddleware } from './pg-dump-middleware/pg-dump-middleware.ts'
 
 const debug = mainDebug.extend('websocket-server')
 
@@ -84,10 +85,18 @@ websocketServer.on('connection', async (websocket, request) => {
   logEvent(new DatabaseShared({ databaseId, userId: user.id }))
 
   websocket.on('message', (data: Buffer) => {
-    const { connectionId, message } = parse(data)
+    let { connectionId, message } = parse(data)
     const tcpConnection = connectionManager.getSocket(connectionId)
     if (tcpConnection) {
       debug('websocket message: %e', () => message.toString('hex'))
+      message = Buffer.from(
+        pgDumpMiddleware(
+          connectionId,
+          'server',
+          tcpConnection.state,
+          new Uint8Array(message.buffer, message.byteOffset, message.byteLength)
+        )
+      )
       tcpConnection.streamWriter?.write(message)
     }
   })

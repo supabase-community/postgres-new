@@ -9,6 +9,7 @@ import { logEvent, UserConnected, UserDisconnected } from './telemetry.ts'
 import { connectionManager } from './connection-manager.ts'
 import { debug as mainDebug } from './debug.ts'
 import { getConnectionId, serialize } from './protocol.ts'
+import { pgDumpMiddleware } from './pg-dump-middleware/pg-dump-middleware.ts'
 
 const debug = mainDebug.extend('tcp-server')
 
@@ -89,6 +90,12 @@ tcpServer.on('connection', async (socket) => {
       }
 
       debug('tcp message: %e', () => Buffer.from(message).toString('hex'))
+      message = pgDumpMiddleware(
+        connectionState!.connectionId,
+        'client',
+        connection.state,
+        Buffer.from(message)
+      )
       websocket.send(serialize(connectionState!.connectionId, message))
 
       // return an empty buffer to indicate that the message has been handled
