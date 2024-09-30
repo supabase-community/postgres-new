@@ -101,7 +101,7 @@ function patchDependencyRow(message: Uint8Array, refobjidIndex: number): Uint8Ar
   const encoder = new TextEncoder()
 
   // Write the new OID value
-  const newRefobjidBytes = encoder.encode(VECTOR_OID.padStart(refobjidLength, '0'))
+  const newRefobjidBytes = encoder.encode(VECTOR_OID.toString().padStart(refobjidLength, '0'))
   newArray.set(newRefobjidBytes, offset)
 
   return newArray

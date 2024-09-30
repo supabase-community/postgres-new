@@ -5,6 +5,7 @@ import {
   isGetExtensionMembershipQuery,
   patchGetExtensionMembershipResult,
 } from './get-extension-membership-query.ts'
+import { FIRST_NORMAL_OID } from './constants.ts'
 
 type ConnectionId = string
 
@@ -48,10 +49,16 @@ export function pgDumpMiddleware(
       }
       const patched = patchGetExtensionsResult(message)
       if (patched.vectorOid) {
-        state.set(connectionId, {
-          step: 'wait-for-get-extension-membership-query',
-          vectorOid: patched.vectorOid,
-        })
+        if (parseInt(patched.vectorOid) >= FIRST_NORMAL_OID) {
+          state.set(connectionId, {
+            step: 'complete',
+          })
+        } else {
+          state.set(connectionId, {
+            step: 'wait-for-get-extension-membership-query',
+            vectorOid: patched.vectorOid,
+          })
+        }
       }
       return patched.message
     case 'wait-for-get-extension-membership-query':

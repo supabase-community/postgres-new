@@ -89,7 +89,7 @@ function patchOidField(
   fields: { value: string | null; length: number }[]
 ): Uint8Array {
   const oldOidField = fields[oidIndex]!
-  const newOid = VECTOR_OID.padStart(oldOidField.length, '0')
+  const newOid = VECTOR_OID.toString().padStart(oldOidField.length, '0')
 
   const newArray = new Uint8Array(message)
 
