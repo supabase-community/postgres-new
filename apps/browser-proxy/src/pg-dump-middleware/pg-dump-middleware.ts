@@ -16,6 +16,12 @@ type State =
   | { step: 'get-extension-membership-query-received'; vectorOid: string }
   | { step: 'complete' }
 
+/**
+ * Middleware to patch pg_dump results for PGlite < v0.2.8
+ * PGlite < v0.2.8 has a bug in which userland extensions are not dumped because their oid is lower than FIRST_NORMAL_OID
+ * This middleware patches the results of the get_extensions and get_extension_membership queries to increase the oid of the `vector` extension so it can be dumped
+ * For more context, see: https://github.com/electric-sql/pglite/issues/352
+ */
 class PgDumpMiddleware {
   private state: Map<ConnectionId, State> = new Map()
 
