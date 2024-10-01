@@ -19,7 +19,8 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
-import { isStartupMessage, parseStartupMessage } from '~/lib/pg-wire-util'
+import { isStartupMessage, isTerminateMessage, parseStartupMessage } from '~/lib/pg-wire-util'
+import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -124,7 +125,17 @@ export default function AppProvider({ children }: AppProps) {
 
       const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
 
-      const ws = new WebSocket(`wss://${databaseHostname}`)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('You must be signed in to live share')
+      }
+
+      const ws = new WebSocket(
+        `wss://${databaseHostname}?token=${encodeURIComponent(session.access_token)}`
+      )
 
       ws.binaryType = 'arraybuffer'
 
@@ -132,31 +143,45 @@ export default function AppProvider({ children }: AppProps) {
         setLiveSharedDatabaseId(databaseId)
       }
 
+      const db = await dbManager.getDbInstance(databaseId)
       const mutex = new Mutex()
-      let db: PGliteInterface
+      let activeConnectionId: string | null = null
 
       ws.onmessage = (event) => {
         mutex.runExclusive(async () => {
-          const message = new Uint8Array(await event.data)
+          const data = new Uint8Array(await event.data)
+
+          const { connectionId, message } = parse(data)
 
           if (isStartupMessage(message)) {
+            activeConnectionId = connectionId
             const parameters = parseStartupMessage(message)
             if ('client_ip' in parameters) {
-              // client disconnected
-              if (parameters.client_ip === '') {
-                setConnectedClientIp(null)
-                await dbManager.closeDbInstance(databaseId)
-              } else {
-                db = await dbManager.getDbInstance(databaseId)
-                setConnectedClientIp(parameters.client_ip)
-              }
+              setConnectedClientIp(parameters.client_ip)
             }
             return
           }
 
-          const response = await db.execProtocolRaw(message)
+          if (isTerminateMessage(message)) {
+            activeConnectionId = null
+            setConnectedClientIp(null)
+            // reset session state
+            await db.query('rollback').catch(() => {})
+            await db.query('discard all')
+            await db.query('set search_path to public')
+            return
+          }
 
-          ws.send(response)
+          if (activeConnectionId !== connectionId) {
+            console.error('received message from inactive connection', {
+              activeConnectionId,
+              connectionId,
+            })
+            return
+          }
+
+          const response = await db.execProtocolRaw(message)
+          ws.send(serialize(connectionId, response))
         })
       }
       ws.onclose = (event) => {
@@ -169,7 +194,7 @@ export default function AppProvider({ children }: AppProps) {
 
       setLiveShareWebsocket(ws)
     },
-    [dbManager, cleanUp]
+    [cleanUp, supabase.auth]
   )
   const stopLiveShare = useCallback(() => {
     liveShareWebsocket?.close()

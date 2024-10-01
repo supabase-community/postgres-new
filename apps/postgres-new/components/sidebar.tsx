@@ -523,7 +523,7 @@ type ConnectMenuItemProps = {
 }
 
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
-  const { liveShare } = useApp()
+  const { liveShare, user } = useApp()
 
   // Only show the connect menu item on fully loaded dashboard
   if (!props.isActive) {
@@ -533,7 +533,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
   if (!liveShare.isLiveSharing) {
     return (
       <DropdownMenuItem
-        disabled={liveShare.isLiveSharing}
+        disabled={!user}
         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
         onClick={async (e) => {
           e.preventDefault()
