@@ -16,3 +16,22 @@ httpsServer.listen(443, () => {
 tcpServer.listen(5432, () => {
   console.log('tcp server listening on port 5432')
 })
+
+const shutdown = async () => {
+  await Promise.allSettled([
+    new Promise<void>((res) =>
+      httpsServer.close(() => {
+        res()
+      })
+    ),
+    new Promise<void>((res) =>
+      tcpServer.close(() => {
+        res()
+      })
+    ),
+  ])
+  process.exit(0)
+}
+
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
