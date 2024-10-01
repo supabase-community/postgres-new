@@ -12,7 +12,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^0.0.21",
     "@dagrejs/dagre": "^1.1.2",
-    "@electric-sql/pglite": "0.2.8",
+    "@electric-sql/pglite": "^0.2.9",
     "@gregnr/postgres-meta": "^0.82.0-dev.2",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-accordion": "^1.2.0",
