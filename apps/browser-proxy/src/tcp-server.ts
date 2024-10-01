@@ -90,9 +90,9 @@ tcpServer.on('connection', async (socket) => {
       }
 
       debug('tcp message: %e', () => Buffer.from(message).toString('hex'))
-      message = pgDumpMiddleware(
+      message = pgDumpMiddleware.client(
+        socket,
         connectionState!.connectionId,
-        'client',
         connection.state,
         Buffer.from(message)
       )

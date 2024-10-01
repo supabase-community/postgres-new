@@ -90,9 +90,8 @@ websocketServer.on('connection', async (websocket, request) => {
     if (tcpConnection) {
       debug('websocket message: %e', () => message.toString('hex'))
       message = Buffer.from(
-        pgDumpMiddleware(
+        pgDumpMiddleware.server(
           connectionId,
-          'server',
           tcpConnection.state,
           new Uint8Array(message.buffer, message.byteOffset, message.byteLength)
         )
