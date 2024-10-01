@@ -119,20 +119,14 @@ export default function Page() {
 
                         const file = await requestFileUpload()
 
-                        console.log('here?')
-
                         setProgress(0)
 
                         const metaDb = await dbManager.getMetaDb()
-
-                        console.log('metadb', metaDb)
 
                         const fileStream = file
                           .stream()
                           .pipeThrough(new DecompressionStream('gzip'))
                           .pipeThrough(new UntarStream())
-
-                        console.log('file stream')
 
                         // Ensure that we load the meta DB first
                         const [metaDumpEntry, restEntryStream] = await waitForChunk(
@@ -155,11 +149,8 @@ export default function Page() {
                         // (so that migrations and other checks run)
                         const externalDbManager = new DbManager(externalMetaDb)
 
-                        console.log('got here 1')
-
                         const databases = await externalDbManager.exportDatabases()
                         const messages = await externalDbManager.exportMessages()
-                        console.log('got here 2')
 
                         try {
                           await metaDb.sql`begin`
@@ -170,8 +161,6 @@ export default function Page() {
                           await metaDb.sql`rollback`
                           throw err
                         }
-
-                        console.log('got here 3')
 
                         const existingIDBDatabases = await indexedDB.databases()
                         const dbLoadSemaphore = new Semaphore(5)
