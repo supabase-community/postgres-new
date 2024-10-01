@@ -204,12 +204,11 @@ async function* createDumpStream(
         return fileToTarStreamFile(file, '/dbs')
       })
     )
-    await new Promise((r) => setTimeout(r, 500))
   }
 }
 
 /**
- * Creates a stream of storage files (eg. CSVs) as tar file/directory entires.
+ * Creates a stream of storage files (eg. CSVs) as tar file/directory entries.
  */
 async function* createStorageStream(): AsyncIterable<TarStreamInput> {
   yield { type: 'directory', path: '/files' }
