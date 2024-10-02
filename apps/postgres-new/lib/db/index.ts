@@ -247,7 +247,7 @@ export class DbManager {
       where is_hidden = false
     `
     const [{ count }] = messages ?? []
-    if (!count) {
+    if (count === undefined) {
       throw new Error('Failed to count databases')
     }
     return count

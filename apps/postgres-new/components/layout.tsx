@@ -4,9 +4,11 @@ import 'chart.js/auto'
 import 'chartjs-adapter-date-fns'
 
 import { LazyMotion, m } from 'framer-motion'
+import { Loader } from 'lucide-react'
 import Link from 'next/link'
 import { PropsWithChildren } from 'react'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import {
   currentDomainHostname,
@@ -73,7 +75,9 @@ function RenameBanner() {
 }
 
 function RenameDialog() {
-  const { isRenameDialogOpen, setIsRenameDialogOpen } = useApp()
+  const { isRenameDialogOpen, setIsRenameDialogOpen, dbManager, isLegacyDomain } = useApp()
+  const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
+
   return (
     <Dialog open={isRenameDialogOpen} onOpenChange={(open) => setIsRenameDialogOpen(open)}>
       <DialogContent className="max-w-2xl">
@@ -96,70 +100,141 @@ function RenameDialog() {
           .
         </p>
 
-        <h3 className="font-bold">Action required</h3>
+        <div className="my-2 border-b" />
 
-        <p>
-          You will need to{' '}
-          <Link
-            className="underline"
-            href={`${legacyDomainUrl}/export`}
-            rel="noopener noreferrer"
-            target="_blank"
+        {isLegacyDomain && isLoadingDatabases ? (
+          <div className="self-stretch flex justify-center items-center">
+            <Loader className="animate-spin" size={36} strokeWidth={0.75} />
+          </div>
+        ) : (
+          <m.div
+            className="flex flex-col gap-4"
+            variants={{
+              hidden: { opacity: 0, y: -10 },
+              show: { opacity: 1, y: 0 },
+            }}
+            initial="hidden"
+            animate="show"
           >
-            export
-          </Link>{' '}
-          your existing databases from {legacyDomainHostname} and{' '}
-          <Link
-            className="underline"
-            href={`${currentDomainUrl}/import`}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            import
-          </Link>{' '}
-          them at {currentDomainHostname} if you wish to continue using them.
-        </p>
+            {isLegacyDomain && databases && databases.length === 0 ? (
+              <>
+                <h3 className="font-bold">No action required</h3>
 
-        <Accordion type="single" collapsible>
-          <AccordionItem value="item-1" className="border rounded-md">
-            <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-              <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                <span>Why do I need to export my databases?</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="p-3 prose prose-sm">
-              <p>
-                Since PGlite databases are stored in your browser&apos;s IndexedDB storage, other
-                domains like{' '}
-                <a href={currentDomainUrl} className="underline">
-                  {currentDomainHostname}
-                </a>{' '}
-                cannot access them directly (this is a security restriction built into every
-                browser).
-              </p>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+                <p>Looks like you don't have any existing databases that you need to transfer.</p>
 
-        <p className="prose">
-          To transfer your databases:
-          <ol>
-            <li>
-              Navigate to{' '}
-              <Link className="underline" href={`${legacyDomainUrl}/export`}>
-                {legacyDomainHostname}/export
-              </Link>{' '}
-              and click <strong>Export</strong>
-            </li>
-            <li>
-              Navigate to{' '}
-              <Link className="underline" href={`${currentDomainUrl}/import`}>
-                {currentDomainHostname}/import
-              </Link>{' '}
-              and click <strong>Import</strong>
-            </li>
-          </ol>
-        </p>
+                <p>
+                  {' '}
+                  Head on over to{' '}
+                  <a href={currentDomainUrl} className="underline">
+                    {currentDomainHostname}
+                  </a>{' '}
+                  to get started.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-bold">Action required</h3>
+
+                <div className="prose">
+                  {isLegacyDomain && databases ? (
+                    <>
+                      You have {databases.length} existing{' '}
+                      {databases.length === 1 ? 'database' : 'databases'} on {legacyDomainHostname}.
+                      If you wish to continue using {databases.length === 1 ? 'it' : 'them'}, you
+                      will need to{' '}
+                      <Link
+                        className="underline"
+                        href={`${legacyDomainUrl}/export`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        export
+                      </Link>{' '}
+                      {databases.length === 1 ? 'it' : 'them'}, then{' '}
+                      <Link
+                        className="underline"
+                        href={`${currentDomainUrl}/import`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        import
+                      </Link>{' '}
+                      {databases.length === 1 ? 'it' : 'them'} at {currentDomainHostname}.
+                    </>
+                  ) : (
+                    <>
+                      If you have existing database on {legacyDomainHostname} and wish continue
+                      using them, you will need to{' '}
+                      <Link
+                        className="underline"
+                        href={`${legacyDomainUrl}/export`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        export
+                      </Link>{' '}
+                      them, then{' '}
+                      <Link
+                        className="underline"
+                        href={`${currentDomainUrl}/import`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        import
+                      </Link>{' '}
+                      them at {currentDomainHostname}.
+                    </>
+                  )}
+                </div>
+
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="item-1" className="border rounded-md">
+                    <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                      <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                        <span>Why do I need to export my databases?</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-3 prose prose-sm">
+                      <p>
+                        Since PGlite databases are stored in your browser&apos;s IndexedDB storage,
+                        other domains like{' '}
+                        <a href={currentDomainUrl} className="underline">
+                          {currentDomainHostname}
+                        </a>{' '}
+                        cannot access them directly (this is a security restriction built into every
+                        browser).
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+                <p>
+                  The deadline to transfer your data is November 15, 2024. If you don't transition
+                  to {currentDomainHostname} by then, you will lose your data.
+                </p>
+
+                <p className="prose">
+                  To transfer your databases:
+                  <ol>
+                    <li>
+                      Navigate to{' '}
+                      <Link className="underline" href={`${legacyDomainUrl}/export`}>
+                        {legacyDomainHostname}/export
+                      </Link>{' '}
+                      and click <strong>Export</strong>
+                    </li>
+                    <li>
+                      Navigate to{' '}
+                      <Link className="underline" href={`${currentDomainUrl}/import`}>
+                        {currentDomainHostname}/import
+                      </Link>{' '}
+                      and click <strong>Import</strong>
+                    </li>
+                  </ol>
+                </p>
+              </>
+            )}
+          </m.div>
+        )}
       </DialogContent>
     </Dialog>
   )
