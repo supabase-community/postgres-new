@@ -232,6 +232,7 @@ export class DbManager {
     const { rows: messages } = await metaDb.sql<Database>`
       select id, name, created_at as "createdAt", is_hidden as "isHidden"
       from databases
+      where is_hidden = false
       order by created_at asc
     `
     return messages
@@ -243,6 +244,7 @@ export class DbManager {
     const { rows: messages } = await metaDb.sql<Result>`
       select count(*)
       from databases
+      where is_hidden = false
     `
     const [{ count }] = messages ?? []
     if (!count) {
