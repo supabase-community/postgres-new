@@ -14,7 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/u
 import { Progress } from '~/components/ui/progress'
 import '~/polyfills/readable-stream'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { Semaphore } from 'async-mutex'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { getDatabasesQueryKey } from '~/data/databases/databases-query'
 import { DbManager } from '~/lib/db'
 import { hasFile, saveFile } from '~/lib/files'
 import { tarStreamEntryToFile, waitForChunk } from '~/lib/streams'
@@ -26,12 +30,12 @@ import {
   requestFileUpload,
   stripSuffix,
 } from '~/lib/util'
-import Link from 'next/link'
 
 export default function Page() {
   const { dbManager } = useApp()
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const [progress, setProgress] = useState<number>()
-  const [isImportComplete, setIsImportComplete] = useState(false)
 
   return (
     <>
@@ -108,158 +112,149 @@ export default function Page() {
               <li>
                 Click <strong>Import</strong> and select the previously exported tarball.
                 <br />
-                {!isImportComplete ? (
-                  progress === undefined ? (
-                    <Button
-                      className="my-2"
-                      onClick={async () => {
-                        if (!dbManager) {
-                          throw new Error('dbManager is not available')
+                {progress === undefined ? (
+                  <Button
+                    className="my-2"
+                    onClick={async () => {
+                      if (!dbManager) {
+                        throw new Error('dbManager is not available')
+                      }
+
+                      const file = await requestFileUpload()
+
+                      setProgress(0)
+
+                      const metaDb = await dbManager.getMetaDb()
+
+                      const fileStream = file
+                        .stream()
+                        .pipeThrough(new DecompressionStream('gzip'))
+                        .pipeThrough(new UntarStream())
+
+                      // Ensure that we load the meta DB first
+                      const [metaDumpEntry, restEntryStream] = await waitForChunk(
+                        fileStream,
+                        (entry) => entry.path === 'meta.tar.gz'
+                      )
+
+                      if (!metaDumpEntry) {
+                        throw new Error('Tarball is missing meta database dump')
+                      }
+
+                      const metaDump = await tarStreamEntryToFile(metaDumpEntry)
+
+                      // Load the external meta DB temporarily in memory
+                      const externalMetaDb = await DbManager.createPGlite({
+                        loadDataDir: metaDump,
+                      })
+
+                      // Create a temporary DbManager from it
+                      // (so that migrations and other checks run)
+                      const externalDbManager = new DbManager(externalMetaDb)
+
+                      const databases = await externalDbManager.exportDatabases()
+                      const messages = await externalDbManager.exportMessages()
+
+                      try {
+                        await metaDb.sql`begin`
+                        await dbManager.importDatabases(databases)
+                        await dbManager.importMessages(messages)
+                        await metaDb.sql`commit`
+                      } catch (err) {
+                        await metaDb.sql`rollback`
+                        throw err
+                      }
+
+                      const existingIDBDatabases = await indexedDB.databases()
+                      const dbLoadSemaphore = new Semaphore(5)
+                      const dbLoadPromises: Promise<void>[] = []
+
+                      for await (const entry of restEntryStream) {
+                        // Only handle file entries (vs. directory, etc)
+                        if (entry.header.typeflag !== '0') {
+                          continue
                         }
 
-                        const file = await requestFileUpload()
+                        const pathSegments = entry.path.split('/').filter((v) => !!v)
+                        const [rootDir] = pathSegments
 
-                        setProgress(0)
+                        switch (rootDir) {
+                          case 'dbs': {
+                            const dump = await tarStreamEntryToFile(entry)
+                            const databaseId = stripSuffix(dump.name, '.tar.gz')
 
-                        const metaDb = await dbManager.getMetaDb()
-
-                        const fileStream = file
-                          .stream()
-                          .pipeThrough(new DecompressionStream('gzip'))
-                          .pipeThrough(new UntarStream())
-
-                        // Ensure that we load the meta DB first
-                        const [metaDumpEntry, restEntryStream] = await waitForChunk(
-                          fileStream,
-                          (entry) => entry.path === 'meta.tar.gz'
-                        )
-
-                        if (!metaDumpEntry) {
-                          throw new Error('Tarball is missing meta database dump')
-                        }
-
-                        const metaDump = await tarStreamEntryToFile(metaDumpEntry)
-
-                        // Load the external meta DB temporarily in memory
-                        const externalMetaDb = await DbManager.createPGlite({
-                          loadDataDir: metaDump,
-                        })
-
-                        // Create a temporary DbManager from it
-                        // (so that migrations and other checks run)
-                        const externalDbManager = new DbManager(externalMetaDb)
-
-                        const databases = await externalDbManager.exportDatabases()
-                        const messages = await externalDbManager.exportMessages()
-
-                        try {
-                          await metaDb.sql`begin`
-                          await dbManager.importDatabases(databases)
-                          await dbManager.importMessages(messages)
-                          await metaDb.sql`commit`
-                        } catch (err) {
-                          await metaDb.sql`rollback`
-                          throw err
-                        }
-
-                        const existingIDBDatabases = await indexedDB.databases()
-                        const dbLoadSemaphore = new Semaphore(5)
-                        const dbLoadPromises: Promise<void>[] = []
-
-                        for await (const entry of restEntryStream) {
-                          // Only handle file entries (vs. directory, etc)
-                          if (entry.header.typeflag !== '0') {
-                            continue
-                          }
-
-                          const pathSegments = entry.path.split('/').filter((v) => !!v)
-                          const [rootDir] = pathSegments
-
-                          switch (rootDir) {
-                            case 'dbs': {
-                              const dump = await tarStreamEntryToFile(entry)
-                              const databaseId = stripSuffix(dump.name, '.tar.gz')
-
-                              if (!databaseId) {
-                                throw new Error(
-                                  `Failed to parse database ID from file '${entry.path}'`
-                                )
-                              }
-
-                              const databaseExists = existingIDBDatabases.some(
-                                (db) => db.name === `/pglite/${dbManager.prefix}-${databaseId}`
+                            if (!databaseId) {
+                              throw new Error(
+                                `Failed to parse database ID from file '${entry.path}'`
                               )
-
-                              if (databaseExists) {
-                                console.warn(
-                                  `Database with ID '${databaseId}' already exists, skipping`
-                                )
-                                setProgress((progress) => (progress ?? 0) + 100 / databases.length)
-                                continue
-                              }
-
-                              // Limit the number of concurrent loads to avoid excessive RAM use
-                              const dbLoadPromise = dbLoadSemaphore.runExclusive(async () => {
-                                try {
-                                  // Load dump into PGlite instance (persists in IndexedDB)
-                                  await dbManager.getDbInstance(databaseId, dump)
-                                } catch (err) {
-                                  console.warn(
-                                    `Failed to load database with ID '${databaseId}'`,
-                                    err
-                                  )
-                                }
-
-                                await dbManager.closeDbInstance(databaseId)
-                                setProgress((progress) => (progress ?? 0) + 100 / databases.length)
-                              })
-
-                              dbLoadPromises.push(dbLoadPromise)
-
-                              break
                             }
-                            case 'files': {
-                              const file = await tarStreamEntryToFile(entry)
 
-                              // File ID is captured as the name of the last sub-directory
-                              const fileId = pathSegments.at(-2)
+                            const databaseExists = existingIDBDatabases.some(
+                              (db) => db.name === `/pglite/${dbManager.prefix}-${databaseId}`
+                            )
 
-                              if (!fileId) {
-                                throw new Error(
-                                  `Failed to parse file ID from file path '${entry.path}'`
-                                )
-                              }
-
-                              const fileExists = await hasFile(fileId)
-
-                              if (fileExists) {
-                                console.warn(`File with ID '${fileId}' already exists, skipping`)
-                                continue
-                              }
-
-                              await saveFile(fileId, file)
-                              break
+                            if (databaseExists) {
+                              console.warn(
+                                `Database with ID '${databaseId}' already exists, skipping`
+                              )
+                              setProgress((progress) => (progress ?? 0) + 100 / databases.length)
+                              continue
                             }
+
+                            // Limit the number of concurrent loads to avoid excessive RAM use
+                            const dbLoadPromise = dbLoadSemaphore.runExclusive(async () => {
+                              try {
+                                // Load dump into PGlite instance (persists in IndexedDB)
+                                await dbManager.getDbInstance(databaseId, dump)
+                              } catch (err) {
+                                console.warn(`Failed to load database with ID '${databaseId}'`, err)
+                              }
+
+                              await dbManager.closeDbInstance(databaseId)
+                              setProgress((progress) => (progress ?? 0) + 100 / databases.length)
+                            })
+
+                            dbLoadPromises.push(dbLoadPromise)
+
+                            break
+                          }
+                          case 'files': {
+                            const file = await tarStreamEntryToFile(entry)
+
+                            // File ID is captured as the name of the last sub-directory
+                            const fileId = pathSegments.at(-2)
+
+                            if (!fileId) {
+                              throw new Error(
+                                `Failed to parse file ID from file path '${entry.path}'`
+                              )
+                            }
+
+                            const fileExists = await hasFile(fileId)
+
+                            if (fileExists) {
+                              console.warn(`File with ID '${fileId}' already exists, skipping`)
+                              continue
+                            }
+
+                            await saveFile(fileId, file)
+                            break
                           }
                         }
+                      }
 
-                        await Promise.all(dbLoadPromises)
+                      await Promise.all(dbLoadPromises)
+                      await queryClient.invalidateQueries({ queryKey: getDatabasesQueryKey() })
 
-                        setIsImportComplete(true)
-                      }}
-                    >
-                      Import
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2 text-xs items-center">
-                      <Progress className="my-2 w-[60%]" value={Math.round(progress)} />
-                      {Math.round(progress)}%
-                    </div>
-                  )
+                      router.push('/')
+                    }}
+                  >
+                    Import
+                  </Button>
                 ) : (
-                  <div>
-                    Import was successful. Head over to{' '}
-                    <Link href={currentDomainUrl}>{currentDomainHostname}</Link>.
+                  <div className="flex gap-2 text-xs items-center">
+                    <Progress className="my-2 w-[60%]" value={Math.round(progress)} />
+                    {Math.round(progress)}%
                   </div>
                 )}
               </li>
