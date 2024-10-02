@@ -120,7 +120,9 @@ function RenameDialog() {
               <>
                 <h3 className="font-bold">No action required</h3>
 
-                <p>Looks like you don't have any existing databases that you need to transfer.</p>
+                <p>
+                  Looks like you don&apos;t have any existing databases that you need to transfer.
+                </p>
 
                 <p>
                   {' '}
@@ -208,8 +210,8 @@ function RenameDialog() {
                   </AccordionItem>
                 </Accordion>
                 <p>
-                  The deadline to transfer your data is November 15, 2024. If you don't transition
-                  to {currentDomainHostname} by then, you will lose your data.
+                  The deadline to transfer your data is November 15, 2024. If you don&apos;t
+                  transition to {currentDomainHostname} by then, you will lose your data.
                 </p>
 
                 <p className="prose">
