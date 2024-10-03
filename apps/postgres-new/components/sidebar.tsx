@@ -469,8 +469,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                   onClick={async (e) => {
                     e.preventDefault()
-
-                    setIsDeployDialogOpen(true)
+                    // check is user has a Supabase token, if not do OAuth flow
+                    // initiate Supabase Oauth flow
                     setIsPopoverOpen(false)
                   }}
                   disabled={user === undefined}
