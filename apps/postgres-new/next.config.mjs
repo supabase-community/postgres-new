@@ -1,6 +1,7 @@
 import { createRequire } from 'module'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import webpack from 'webpack'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -16,6 +17,13 @@ const nextConfig = {
         'stream/promises': false,
       },
     }
+
+    // Polyfill `ReadableStream`
+    config.plugins.push(
+      new webpack.ProvidePlugin({
+        ReadableStream: [join(import.meta.dirname, 'polyfills/readable-stream.ts'), 'default'],
+      })
+    )
 
     // See https://webpack.js.org/configuration/resolve/#resolvealias
     config.resolve.alias = {

@@ -12,7 +12,6 @@ import {
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Progress } from '~/components/ui/progress'
-import '~/polyfills/readable-stream'
 
 import { useQueryClient } from '@tanstack/react-query'
 import { Semaphore } from 'async-mutex'
