@@ -62,13 +62,13 @@ export default function Page() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-3 prose prose-sm">
-                We are renaming {legacyDomainHostname} due to a trademark conflict on the name
-                &quot;Postgres&quot;. To respect intellectual property rights, we are transitioning
-                to our new name,{' '}
+                This project is not an official Postgres project and we don&apos;t want to mislead
+                anyone! We&apos;re renaming to{' '}
                 <Link href={currentDomainUrl} className="underline">
                   {currentDomainHostname}
-                </Link>
-                .
+                </Link>{' '}
+                because, well, that&apos;s what this does. This will still be 100% Postgres-focused,
+                just with a different URL.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
