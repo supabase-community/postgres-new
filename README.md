@@ -1,10 +1,10 @@
-# postgres.new
+# database.build ([formerly postgres.new](#why-rename-postgresnew))
 
 In-browser Postgres sandbox with AI assistance.
 
-![github-repo-hero](https://github.com/user-attachments/assets/e55f7c0d-a817-4aeb-838e-728aabda3a5d)
+![github-repo-hero](https://github.com/user-attachments/assets/1ace0688-dfa7-4ddb-86bc-c976fa5b2f42)
 
-With [postgres.new](https://postgres.new), you can instantly spin up an unlimited number of Postgres databases that run directly in your browser (and soon, deploy them to S3). 
+With [database.build](https://database.build), you can instantly spin up an unlimited number of Postgres databases that run directly in your browser (and soon, deploy them to S3). 
 
 Each database is paired with a large language model (LLM) which opens the door to some interesting use cases:
 
@@ -14,7 +14,7 @@ Each database is paired with a large language model (LLM) which opens the door t
 - Build database diagrams
 
 ## How it works
-All queries in postgres.new run directly in your browser. There’s no remote Postgres container or WebSocket proxy.
+All queries in database.build run directly in your browser. There’s no remote Postgres container or WebSocket proxy.
 
 How is this possible? [PGlite](https://pglite.dev/), a WASM version of Postgres that can run directly in your browser. Every database that you create spins up a new instance of PGlite that exposes a fully-functional Postgres database. Data is stored in IndexedDB so that changes persist after refresh.
 
@@ -24,6 +24,10 @@ This is a monorepo split into the following projects:
 
 - [Frontend (Next.js)](./apps/postgres-new/): This contains the primary web app built with Next.js
 - [Backend (pg-gateway)](./apps/db-service/): This serves S3-backed PGlite databases over the PG wire protocol using [pg-gateway](https://github.com/supabase-community/pg-gateway)
+
+## Why rename postgres.new?
+
+We renamed postgres.new due to a trademark conflict on the name "Postgres". To respect intellectual property rights, we are transitioning to our new name, database.build.
 
 ## Video
 
