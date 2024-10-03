@@ -1,8 +1,8 @@
 import './globals.css'
 import 'katex/dist/katex.min.css'
+
 import type { Metadata } from 'next'
 import { Inter as FontSans } from 'next/font/google'
-import Layout from '~/components/layout'
 import Providers from '~/components/providers'
 import { cn } from '~/lib/utils'
 
@@ -24,9 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn('bg-background font-sans antialiased', fontSans.variable)}>
-        <Providers>
-          <Layout>{children}</Layout>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

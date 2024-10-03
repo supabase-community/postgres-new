@@ -134,8 +134,8 @@ export default function Workspace({
         <div className="grid gap-6 mt-4">
           <h2 className="text-lg font-bold">Mobile Support Coming Soon</h2>
           <p>
-            <a className="underline" href="https://postgres.new">
-              postgres.new
+            <a className="underline" href="https://database.build">
+              database.build
             </a>{' '}
             is in early Alpha and is{' '}
             <a className="underline" href="https://supabase.com/blog/postgres-new">

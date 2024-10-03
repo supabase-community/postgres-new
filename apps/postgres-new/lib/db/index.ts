@@ -1,6 +1,7 @@
 import type { PGliteInterface, PGliteOptions, Transaction } from '@electric-sql/pglite'
+import { raw, sql } from '@electric-sql/pglite/template'
 import { PGliteWorker } from '@electric-sql/pglite/worker'
-import { Message } from 'ai'
+import { Message, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
 
@@ -11,14 +12,29 @@ export type Database = {
   isHidden: boolean
 }
 
+export type MetaMessage = {
+  id: string
+  databaseId: string
+  role: string
+  content: string
+  toolInvocations: ToolInvocation[]
+  createdAt: Date
+}
+
 export class DbManager {
   runtimePgVersion: string | undefined
   prefix = 'playground'
 
-  metaDbPromise: Promise<PGliteInterface> | undefined
-  databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
+  private metaDbInstance: PGliteInterface | undefined
+  private metaDbPromise: Promise<PGliteInterface> | undefined
+  private databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
 
-  constructor() {
+  constructor(metaDb?: PGliteInterface) {
+    // Allow passing a custom meta DB (useful for DB imports)
+    if (metaDb) {
+      this.metaDbInstance = metaDb
+    }
+
     // Preload the PG version
     this.getRuntimePgVersion()
   }
@@ -26,23 +42,26 @@ export class DbManager {
   /**
    * Creates a PGlite instance that runs in a web worker
    */
-  static async createPGlite(dataDir?: string, options?: PGliteOptions) {
+  static async createPGlite(options?: PGliteOptions): Promise<PGliteInterface> {
     if (typeof window === 'undefined') {
       throw new Error('PGlite worker instances are only available in the browser')
     }
 
-    return PGliteWorker.create(
+    const db = await PGliteWorker.create(
       // Note the below syntax is required by webpack in order to
       // identify the worker properly during static analysis
       // see: https://webpack.js.org/guides/web-workers/
       new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
       {
         // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
-        id: dataDir ?? nanoid(),
-        dataDir,
+        id: options?.dataDir ?? nanoid(),
         ...options,
       }
     )
+
+    await db.waitReady
+
+    return db
   }
 
   async getMetaDb() {
@@ -53,7 +72,8 @@ export class DbManager {
     const run = async () => {
       await this.handleUnsupportedPGVersion('meta')
 
-      const metaDb = await DbManager.createPGlite('idb://meta')
+      const metaDb =
+        this.metaDbInstance ?? (await DbManager.createPGlite({ dataDir: 'idb://meta' }))
       await runMigrations(metaDb, metaMigrations)
       return metaDb
     }
@@ -99,6 +119,31 @@ export class DbManager {
         [message.id, databaseId, message.role, message.content]
       )
     }
+  }
+
+  async exportMessages() {
+    const metaDb = await this.getMetaDb()
+    const { rows: messages } = await metaDb.sql<MetaMessage>`
+      select id, database_id as "databaseId", role, content, tool_invocations as "toolInvocations", created_at as "createdAt"
+      from messages
+      order by created_at asc
+    `
+    return messages
+  }
+
+  async importMessages(messages: MetaMessage[]) {
+    if (messages.length === 0) {
+      return
+    }
+
+    const metaDb = await this.getMetaDb()
+
+    const values = messages.map(
+      (message) =>
+        sql`(${message.id}, ${message.databaseId}, ${message.role}, ${message.content}, ${message.toolInvocations ? JSON.stringify(message.toolInvocations) : raw`${null}`}, ${message.createdAt})`
+    )
+
+    return metaDb.sql`insert into messages (id, database_id, role, content, tool_invocations, created_at) values ${join(values, ',')} on conflict (id) do nothing`
   }
 
   async getDatabases() {
@@ -182,7 +227,48 @@ export class DbManager {
     await this.deleteDbInstance(id)
   }
 
-  async getDbInstance(id: string) {
+  async exportDatabases() {
+    const metaDb = await this.getMetaDb()
+    const { rows: messages } = await metaDb.sql<Database>`
+      select id, name, created_at as "createdAt", is_hidden as "isHidden"
+      from databases
+      where is_hidden = false
+      order by created_at asc
+    `
+    return messages
+  }
+
+  async countDatabases() {
+    const metaDb = await this.getMetaDb()
+    type Result = { count: number }
+    const { rows: messages } = await metaDb.sql<Result>`
+      select count(*)
+      from databases
+      where is_hidden = false
+    `
+    const [{ count }] = messages ?? []
+    if (count === undefined) {
+      throw new Error('Failed to count databases')
+    }
+    return count
+  }
+
+  async importDatabases(databases: Database[]) {
+    if (databases.length === 0) {
+      return
+    }
+
+    const metaDb = await this.getMetaDb()
+
+    const values = databases.map(
+      (database) =>
+        sql`(${database.id}, ${database.name ?? raw`${null}`}, ${database.createdAt}, ${database.isHidden})`
+    )
+
+    return metaDb.sql`insert into databases (id, name, created_at, is_hidden) values ${join(values, ',')} on conflict (id) do nothing`
+  }
+
+  async getDbInstance(id: string, loadDataDir?: Blob | File) {
     const openDatabasePromise = this.databaseConnections.get(id)
 
     if (openDatabasePromise) {
@@ -200,7 +286,7 @@ export class DbManager {
 
       await this.handleUnsupportedPGVersion(dbPath)
 
-      const db = await DbManager.createPGlite(`idb://${dbPath}`)
+      const db = await DbManager.createPGlite({ dataDir: `idb://${dbPath}`, loadDataDir })
       await runMigrations(db, migrations)
 
       return db
@@ -468,4 +554,23 @@ export async function runMigrations(db: PGliteInterface, migrations: Migration[]
       await tx.exec(migration.sql)
     }
   })
+}
+
+interface TemplateContainer {
+  strings: TemplateStringsArray
+  values: unknown[]
+}
+
+/**
+ * Joins multiple `` sql`...` `` tagged template outputs
+ * using a delimiter.
+ *
+ * Useful for building SQL queries with a dynamic number
+ * of parameters.
+ */
+function join(templateContainers: TemplateContainer[], delimiter: string): TemplateContainer {
+  return templateContainers.reduce(
+    (acc, container, i) => (i === 0 ? container : sql`${acc}${raw`${delimiter}`}${container}`),
+    sql``
+  )
 }
