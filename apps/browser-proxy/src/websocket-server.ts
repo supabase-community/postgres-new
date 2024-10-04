@@ -48,6 +48,15 @@ websocketServer.on('error', (error) => {
 websocketServer.on('connection', async (websocket, request) => {
   debug('websocket connection')
 
+  // 1 hour lifetime for the websocket connection
+  const websocketConnectionTimeout = setTimeout(
+    () => {
+      debug('websocket connection timed out')
+      websocket.close()
+    },
+    1000 * 60 * 60 * 1
+  )
+
   const host = request.headers.host
 
   if (!host) {
@@ -101,6 +110,7 @@ websocketServer.on('connection', async (websocket, request) => {
   })
 
   websocket.on('close', () => {
+    clearTimeout(websocketConnectionTimeout)
     connectionManager.deleteWebsocket(databaseId)
     // TODO: have a way of ending a PostgresConnection
     logEvent(new DatabaseUnshared({ databaseId, userId: user.id }))

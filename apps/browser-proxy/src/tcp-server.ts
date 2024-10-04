@@ -26,6 +26,13 @@ tcpServer.on('connection', async (socket) => {
     connectionId: string
   } | null = null
 
+  // 5 minutes idle timeout for the tcp connection
+  socket.setTimeout(1000 * 60 * 5)
+  socket.on('timeout', () => {
+    debug('tcp connection timeout')
+    socket.end()
+  })
+
   debug('new tcp connection')
 
   const connection = await fromNodeSocket(socket, {
