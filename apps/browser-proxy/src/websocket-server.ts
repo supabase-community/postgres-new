@@ -8,6 +8,7 @@ import { connectionManager } from './connection-manager.ts'
 import { DatabaseShared, DatabaseUnshared, logEvent } from './telemetry.ts'
 import { parse } from './protocol.ts'
 import { pgDumpMiddleware } from './pg-dump-middleware/pg-dump-middleware.ts'
+import { BackendError } from 'pg-gateway'
 
 const debug = mainDebug.extend('websocket-server')
 
@@ -47,15 +48,6 @@ websocketServer.on('error', (error) => {
 
 websocketServer.on('connection', async (websocket, request) => {
   debug('websocket connection')
-
-  // 1 hour lifetime for the websocket connection
-  const websocketConnectionTimeout = setTimeout(
-    () => {
-      debug('websocket connection timed out')
-      websocket.close()
-    },
-    1000 * 60 * 60 * 1
-  )
 
   const host = request.headers.host
 
@@ -108,6 +100,24 @@ websocketServer.on('connection', async (websocket, request) => {
       tcpConnection.streamWriter?.write(message)
     }
   })
+
+  // 1 hour lifetime for the websocket connection
+  const websocketConnectionTimeout = setTimeout(
+    () => {
+      debug('websocket connection timed out')
+      const tcpConnection = connectionManager.getSocketForDatabase(databaseId)
+      if (tcpConnection) {
+        const errorMessage = BackendError.create({
+          code: '57P01',
+          message: 'terminating connection due to lifetime timeout (1 hour)',
+          severity: 'FATAL',
+        }).flush()
+        tcpConnection.streamWriter?.write(errorMessage)
+      }
+      websocket.close()
+    },
+    1000 * 60 * 60 * 1
+  )
 
   websocket.on('close', () => {
     clearTimeout(websocketConnectionTimeout)
