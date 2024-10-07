@@ -19,6 +19,11 @@ All queries in database.build run directly in your browser. There’s no remote 
 
 How is this possible? [PGlite](https://pglite.dev/), a WASM version of Postgres that can run directly in your browser. Every database that you create spins up a new instance of PGlite that exposes a fully-functional Postgres database. Data is stored in IndexedDB so that changes persist after refresh.
 
+## Live Share
+With Live Share, you can connect directly to your in-browser PGlite databases from _outside the browser_.
+
+https://github.com/user-attachments/assets/eecc7f10-6251-4a18-9982-543ab349f3a8
+
 ## Monorepo
 
 This is a monorepo split into the following projects:
