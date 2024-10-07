@@ -372,7 +372,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         )}
         href={`/db/${database.id}`}
       >
-        {isActive && liveShare.isLiveSharing && (
+        {liveShare.isLiveSharing && liveShare.databaseId === database.id && (
           <Tooltip>
             <TooltipTrigger asChild>
               <RadioIcon size={18} />
@@ -545,34 +545,37 @@ type ConnectMenuItemProps = {
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
   const { liveShare, user } = useApp()
 
-  if (!liveShare.isLiveSharing) {
+  if (liveShare.isLiveSharing && liveShare.databaseId === props.databaseId) {
     return (
       <DropdownMenuItem
-        disabled={!user}
         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
         onClick={async (e) => {
           e.preventDefault()
-          liveShare.start(props.databaseId)
+          liveShare.stop()
           props.setIsPopoverOpen(false)
         }}
       >
-        <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
-        <span>Live Share</span>
+        <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+        <span>Stop sharing</span>
       </DropdownMenuItem>
     )
   }
 
   return (
     <DropdownMenuItem
+      disabled={!user}
       className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
       onClick={async (e) => {
         e.preventDefault()
-        liveShare.stop()
+        if (liveShare.isLiveSharing) {
+          liveShare.stop()
+        }
+        liveShare.start(props.databaseId)
         props.setIsPopoverOpen(false)
       }}
     >
-      <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
-      <span>Stop sharing</span>
+      <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
+      <span>Live Share</span>
     </DropdownMenuItem>
   )
 }
