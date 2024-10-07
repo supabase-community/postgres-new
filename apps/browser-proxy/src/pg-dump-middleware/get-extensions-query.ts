@@ -1,4 +1,4 @@
-import { VECTOR_OID } from './constants.ts'
+import { FIRST_NORMAL_OID, VECTOR_OID } from './constants.ts'
 import { parseDataRowFields, parseRowDescription } from './utils.ts'
 
 export function isGetExtensionsQuery(message: Uint8Array): boolean {
@@ -66,6 +66,12 @@ export function patchGetExtensionsResult(data: Uint8Array) {
       const fields = parseDataRowFields(message)
       if (fields[extnameColumnIndex]?.value === 'vector') {
         vectorOid = fields[oidColumnIndex]!.value!
+        if (parseInt(vectorOid) >= FIRST_NORMAL_OID) {
+          return {
+            message: data,
+            vectorOid,
+          }
+        }
         const patchedMessage = patchOidField(message, oidColumnIndex, fields)
         messages.push(patchedMessage)
         offset += messageLength + 1
