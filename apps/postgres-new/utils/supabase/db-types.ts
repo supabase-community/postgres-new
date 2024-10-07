@@ -60,15 +60,162 @@ export type Database = {
           },
         ]
       }
+      deployed_databases: {
+        Row: {
+          created_at: string
+          deployment_provider_id: number
+          id: number
+          local_database_id: string
+          provider_metadata: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deployment_provider_id: number
+          id?: never
+          local_database_id: string
+          provider_metadata?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deployment_provider_id?: number
+          id?: never
+          local_database_id?: string
+          provider_metadata?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployed_databases_deployment_provider_id_fkey"
+            columns: ["deployment_provider_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployed_databases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deployment_provider_integrations: {
+        Row: {
+          created_at: string
+          credentials: Json | null
+          deployment_provider_id: number | null
+          id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json | null
+          deployment_provider_id?: number | null
+          id?: never
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json | null
+          deployment_provider_id?: number | null
+          id?: never
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_provider_integrations_deployment_provider_id_fkey"
+            columns: ["deployment_provider_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_provider_integrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deployment_providers: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      deployments: {
+        Row: {
+          created_at: string
+          deployed_database_id: number
+          id: number
+          status: Database["public"]["Enums"]["deployment_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deployed_database_id: number
+          id?: never
+          status: Database["public"]["Enums"]["deployment_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deployed_database_id?: number
+          id?: never
+          status?: Database["public"]["Enums"]["deployment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployments_deployed_database_id_fkey"
+            columns: ["deployed_database_id"]
+            isOneToOne: false
+            referencedRelation: "deployed_databases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      supabase_functions_certificate_secret: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      supabase_url: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      deployment_status: "in_progress" | "success" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
