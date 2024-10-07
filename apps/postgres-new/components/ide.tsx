@@ -271,7 +271,7 @@ function Footer() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Learn about postgres.new
+        Learn about database.build
       </a>
     </div>
   )

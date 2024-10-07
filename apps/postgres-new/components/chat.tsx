@@ -5,7 +5,6 @@ import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
 import { ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
 import {
-  ChangeEvent,
   FormEventHandler,
   useCallback,
   useEffect,
@@ -19,6 +18,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { TablesData } from '~/data/tables/tables-query'
 import { saveFile } from '~/lib/files'
 import { useAutoScroll, useDropZone } from '~/lib/hooks'
+import { requestFileUpload } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
 import { useApp } from './app-provider'
@@ -497,35 +497,15 @@ export default function Chat() {
             variant={'ghost'}
             className="w-8 h-8 text-muted-foreground hover:text-foreground focus:text-foreground"
             size="icon"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault()
 
               if (!user) {
                 return
               }
 
-              // Create a file input element
-              const fileInput = document.createElement('input')
-              fileInput.type = 'file'
-              fileInput.className = 'hidden'
-
-              // Add an event listener to handle the file selection
-              fileInput.addEventListener('change', async (event) => {
-                const changeEvent = event as unknown as ChangeEvent<HTMLInputElement>
-                const [file] = Array.from(changeEvent.target?.files ?? [])
-
-                if (file) {
-                  await sendCsv(file)
-                }
-
-                fileInput.remove()
-              })
-
-              // Add the file input to the body (required for some browsers)
-              document.body.appendChild(fileInput)
-
-              // Trigger the click event on the file input element
-              fileInput.click()
+              const file = await requestFileUpload()
+              await sendCsv(file)
             }}
             disabled={!isChatEnabled}
           >
@@ -554,7 +534,7 @@ export default function Chat() {
                 return
               }
 
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 if (!isLoading && isSubmitEnabled) {
                   handleFormSubmit(e)

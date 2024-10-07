@@ -19,6 +19,11 @@ class ConnectionManager {
     return this.sockets.get(connectionId)
   }
 
+  public getSocketForDatabase(databaseId: DatabaseId) {
+    const connectionId = this.socketsByDatabase.get(databaseId)
+    return connectionId ? this.sockets.get(connectionId) : undefined
+  }
+
   public setSocket(databaseId: DatabaseId, connectionId: ConnectionId, socket: PostgresConnection) {
     this.sockets.set(connectionId, socket)
     this.socketsByDatabase.set(databaseId, connectionId)

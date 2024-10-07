@@ -1,6 +1,7 @@
 import { createRequire } from 'module'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import webpack from 'webpack'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -17,6 +18,13 @@ const nextConfig = {
       },
     }
 
+    // Polyfill `ReadableStream`
+    config.plugins.push(
+      new webpack.ProvidePlugin({
+        ReadableStream: [join(import.meta.dirname, 'polyfills/readable-stream.ts'), 'default'],
+      })
+    )
+
     // See https://webpack.js.org/configuration/resolve/#resolvealias
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -26,6 +34,33 @@ const nextConfig = {
     return config
   },
   swcMinify: false,
+  async redirects() {
+    /** @type {import('next/dist/lib/load-custom-routes').Redirect[]} */
+    const redirects = []
+
+    // All postgres.new/* redirect to database.build/*, except postgres.new/export
+    if (
+      process.env.REDIRECT_LEGACY_DOMAIN === 'true' &&
+      process.env.NEXT_PUBLIC_LEGACY_DOMAIN &&
+      process.env.NEXT_PUBLIC_CURRENT_DOMAIN
+    ) {
+      const legacyHostname = new URL(process.env.NEXT_PUBLIC_LEGACY_DOMAIN).hostname
+
+      redirects.push({
+        source: '/:path((?!export$).*)',
+        has: [
+          {
+            type: 'host',
+            value: legacyHostname,
+          },
+        ],
+        destination: `${process.env.NEXT_PUBLIC_CURRENT_DOMAIN}/:path?from=${legacyHostname}`,
+        permanent: false,
+      })
+    }
+
+    return redirects
+  },
 }
 
 export default nextConfig
