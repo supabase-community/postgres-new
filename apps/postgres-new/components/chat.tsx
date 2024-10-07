@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Flame, Paperclip, Square } from 'lucide-react'
+import { ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
 import {
   FormEventHandler,
   useCallback,
@@ -25,6 +25,7 @@ import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
+import { CopyableField } from './copyable-field'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -48,7 +49,8 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited } = useApp()
+  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, liveShare } =
+    useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -195,8 +197,10 @@ export default function Chat() {
 
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
-  const isSubmitEnabled =
-    !isLoadingMessages && !isLoadingSchema && Boolean(input.trim()) && user !== undefined
+  const isChatEnabled =
+    !isLoadingMessages && !isLoadingSchema && user !== undefined && !liveShare.isLiveSharing
+
+  const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
   // Create imperative handle that can be used to focus the input anywhere in the app
   useImperativeHandle(focusRef, () => ({
@@ -235,10 +239,54 @@ export default function Chat() {
           <div
             className={cn(
               'h-full flex flex-col items-center overflow-y-auto',
-              !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined
+              !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
+              liveShare.isLiveSharing ? 'overflow-y-hidden' : undefined
             )}
             ref={scrollRef}
           >
+            {liveShare.isLiveSharing && (
+              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90 z-10">
+                <div className="flex items-center justify-center h-full flex-col gap-y-5">
+                  <div className="w-full text-left">
+                    <p className="text-lg">Access your in-browser database</p>
+                    <p className="text-xs text-muted-foreground">
+                      Closing the window will stop the Live Share session
+                    </p>
+                  </div>
+                  <CopyableField
+                    value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+                  />
+
+                  {liveShare.clientIp ? (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                      </span>
+                      <span>
+                        Connected from{' '}
+                        <span className="text-card-foreground">{liveShare.clientIp}</span>
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
+                      <span>Not connected</span>
+                    </p>
+                  )}
+                  <Button
+                    className="w-full gap-2"
+                    variant="outline"
+                    onClick={() => {
+                      liveShare.stop()
+                    }}
+                  >
+                    <PlugIcon size={16} />
+                    <span>Stop sharing database</span>
+                  </Button>
+                </div>
+              </div>
+            )}
             <m.div
               key={databaseId}
               className="flex flex-col gap-4 w-full max-w-4xl p-10"
@@ -459,7 +507,7 @@ export default function Chat() {
               const file = await requestFileUpload()
               await sendCsv(file)
             }}
-            disabled={isLoading || !user}
+            disabled={!isChatEnabled}
           >
             <Paperclip size={16} strokeWidth={1.3} />
           </Button>
@@ -479,7 +527,7 @@ export default function Chat() {
               setInputFocusState(false)
             }}
             autoFocus
-            disabled={!user}
+            disabled={!isChatEnabled}
             rows={Math.min(input.split('\n').length, 10)}
             onKeyDown={(e) => {
               if (!(e.target instanceof HTMLTextAreaElement)) {

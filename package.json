@@ -3,10 +3,8 @@
   "scripts": {
     "dev": "npm run dev --workspace postgres-new"
   },
-  "workspaces": [
-    "apps/*"
-  ],
+  "workspaces": ["apps/*"],
   "devDependencies": {
-    "supabase": "^1.187.8"
+    "supabase": "^1.191.3"
   }
 }

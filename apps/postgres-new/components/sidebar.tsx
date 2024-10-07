@@ -11,6 +11,8 @@ import {
   MoreVertical,
   PackagePlus,
   Pencil,
+  PlugIcon,
+  RadioIcon,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -39,6 +41,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { TooltipPortal } from '@radix-ui/react-tooltip'
+import { LiveShareIcon } from './live-share-icon'
 
 export default function Sidebar() {
   const {
@@ -290,7 +294,7 @@ type DatabaseMenuItemProps = {
 
 function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const router = useRouter()
-  const { user, dbManager } = useApp()
+  const { user, dbManager, liveShare } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
@@ -364,6 +368,18 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         )}
         href={`/db/${database.id}`}
       >
+        {isActive && liveShare.isLiveSharing && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <RadioIcon size={18} />
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent side="bottom">
+                <p>Shared</p>
+              </TooltipContent>
+            </TooltipPortal>
+          </Tooltip>
+        )}
         <span className="text-nowrap grow truncate">{database.name ?? 'My database'}</span>
         <DropdownMenu
           modal={false}
@@ -482,6 +498,11 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   />
                   <span>Deploy</span>
                 </DropdownMenuItem>
+                <LiveShareMenuItem
+                  databaseId={database.id}
+                  isActive={isActive}
+                  setIsPopoverOpen={setIsPopoverOpen}
+                />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="gap-3"
@@ -508,5 +529,51 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         </DropdownMenu>
       </Link>
     </>
+  )
+}
+
+type ConnectMenuItemProps = {
+  databaseId: string
+  isActive: boolean
+  setIsPopoverOpen: (open: boolean) => void
+}
+
+function LiveShareMenuItem(props: ConnectMenuItemProps) {
+  const { liveShare, user } = useApp()
+
+  // Only show the connect menu item on fully loaded dashboard
+  if (!props.isActive) {
+    return null
+  }
+
+  if (!liveShare.isLiveSharing) {
+    return (
+      <DropdownMenuItem
+        disabled={!user}
+        className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+        onClick={async (e) => {
+          e.preventDefault()
+          liveShare.start(props.databaseId)
+          props.setIsPopoverOpen(false)
+        }}
+      >
+        <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
+        <span>Live Share</span>
+      </DropdownMenuItem>
+    )
+  }
+
+  return (
+    <DropdownMenuItem
+      className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+      onClick={async (e) => {
+        e.preventDefault()
+        liveShare.stop()
+        props.setIsPopoverOpen(false)
+      }}
+    >
+      <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
+      <span>Stop sharing</span>
+    </DropdownMenuItem>
   )
 }

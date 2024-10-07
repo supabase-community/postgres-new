@@ -5,6 +5,7 @@
  */
 
 import { User } from '@supabase/supabase-js'
+import { Mutex } from 'async-mutex'
 import {
   createContext,
   PropsWithChildren,
@@ -17,6 +18,8 @@ import {
 } from 'react'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
+import { isStartupMessage, isTerminateMessage, parseStartupMessage } from '~/lib/pg-wire-util'
+import { parse, serialize } from '~/lib/websocket-protocol'
 import { legacyDomainHostname } from '~/lib/util'
 import { createClient } from '~/utils/supabase/client'
 
@@ -107,6 +110,104 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
+  const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
+  const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
+  const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
+  const cleanUp = useCallback(() => {
+    setLiveShareWebsocket(null)
+    setLiveSharedDatabaseId(null)
+    setConnectedClientIp(null)
+  }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
+  const startLiveShare = useCallback(
+    async (databaseId: string) => {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
+      const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('You must be signed in to live share')
+      }
+
+      const ws = new WebSocket(
+        `wss://${databaseHostname}?token=${encodeURIComponent(session.access_token)}`
+      )
+
+      ws.binaryType = 'arraybuffer'
+
+      ws.onopen = () => {
+        setLiveSharedDatabaseId(databaseId)
+      }
+
+      const db = await dbManager.getDbInstance(databaseId)
+      const mutex = new Mutex()
+      let activeConnectionId: string | null = null
+
+      ws.onmessage = (event) => {
+        mutex.runExclusive(async () => {
+          const data = new Uint8Array(await event.data)
+
+          const { connectionId, message } = parse(data)
+
+          if (isStartupMessage(message)) {
+            activeConnectionId = connectionId
+            const parameters = parseStartupMessage(message)
+            if ('client_ip' in parameters) {
+              setConnectedClientIp(parameters.client_ip)
+            }
+            return
+          }
+
+          if (isTerminateMessage(message)) {
+            activeConnectionId = null
+            setConnectedClientIp(null)
+            // reset session state
+            await db.query('rollback').catch(() => {})
+            await db.query('discard all')
+            await db.query('set search_path to public')
+            return
+          }
+
+          if (activeConnectionId !== connectionId) {
+            console.error('received message from inactive connection', {
+              activeConnectionId,
+              connectionId,
+            })
+            return
+          }
+
+          const response = await db.execProtocolRaw(message)
+          ws.send(serialize(connectionId, response))
+        })
+      }
+      ws.onclose = (event) => {
+        cleanUp()
+      }
+      ws.onerror = (error) => {
+        console.error('webSocket error:', error)
+        cleanUp()
+      }
+
+      setLiveShareWebsocket(ws)
+    },
+    [cleanUp, supabase.auth]
+  )
+  const stopLiveShare = useCallback(() => {
+    liveShareWebsocket?.close()
+    cleanUp()
+  }, [cleanUp, liveShareWebsocket])
+  const liveShare = {
+    start: startLiveShare,
+    stop: stopLiveShare,
+    databaseId: liveSharedDatabaseId,
+    clientIp: connectedClientIp,
+    isLiveSharing: Boolean(liveSharedDatabaseId),
+  }
   const [isLegacyDomain, setIsLegacyDomain] = useState(false)
   const [isLegacyDomainRedirect, setIsLegacyDomainRedirect] = useState(false)
 
@@ -126,6 +227,7 @@ export default function AppProvider({ children }: AppProps) {
       value={{
         user,
         isLoadingUser,
+        liveShare,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -168,6 +270,13 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
+  liveShare: {
+    start: (databaseId: string) => Promise<void>
+    stop: () => void
+    databaseId: string | null
+    clientIp: string | null
+    isLiveSharing: boolean
+  }
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
 }
