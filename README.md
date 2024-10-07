@@ -22,7 +22,7 @@ How is this possible? [PGlite](https://pglite.dev/), a WASM version of Postgres 
 ## Live Share
 With Live Share, you can connect directly to your in-browser PGlite databases from _outside the browser_.
 
-https://github.com/user-attachments/assets/eecc7f10-6251-4a18-9982-543ab349f3a8
+https://github.com/user-attachments/assets/78c45f61-4213-49f0-a563-55b426dd6c35
 
 ## Monorepo
 
