@@ -53,6 +53,7 @@ export default function Sidebar() {
     setIsSignInDialogOpen,
     setIsRenameDialogOpen,
     isLegacyDomain,
+    liveShare,
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
@@ -130,6 +131,9 @@ export default function Sidebar() {
                     if (!user) {
                       setIsSignInDialogOpen(true)
                     } else {
+                      if (liveShare.isLiveSharing) {
+                        liveShare.stop()
+                      }
                       router.push('/')
                       focusRef.current?.focus()
                     }
@@ -540,11 +544,6 @@ type ConnectMenuItemProps = {
 
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
   const { liveShare, user } = useApp()
-
-  // Only show the connect menu item on fully loaded dashboard
-  if (!props.isActive) {
-    return null
-  }
 
   if (!liveShare.isLiveSharing) {
     return (
