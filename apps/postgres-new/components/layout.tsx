@@ -3,10 +3,11 @@
 import 'chart.js/auto'
 import 'chartjs-adapter-date-fns'
 
+import { DialogTrigger } from '@radix-ui/react-dialog'
 import { LazyMotion, m } from 'framer-motion'
-import { Loader } from 'lucide-react'
+import { Loader, MoreVertical } from 'lucide-react'
 import Link from 'next/link'
-import { PropsWithChildren } from 'react'
+import { PropsWithChildren, useState } from 'react'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { useBreakpoint } from '~/lib/use-breakpoint'
@@ -17,6 +18,7 @@ import {
   legacyDomainUrl,
 } from '~/lib/util'
 import { useApp } from './app-provider'
+import { LiveShareIcon } from './live-share-icon'
 import Sidebar from './sidebar'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
@@ -33,7 +35,7 @@ export default function Layout({ children }: LayoutProps) {
     <LazyMotion features={loadFramerFeatures}>
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* TODO: re-enable rename banner when ready */}
+          {!isLegacyDomain && <LiveShareBanner />}
           {(isLegacyDomain || isLegacyDomainRedirect) && <RenameBanner />}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             {/* TODO: make sidebar available on mobile */}
@@ -46,6 +48,86 @@ export default function Layout({ children }: LayoutProps) {
         <RenameDialog />
       </TooltipProvider>
     </LazyMotion>
+  )
+}
+
+function LiveShareBanner() {
+  const [videoLoaded, setVideoLoaded] = useState(false)
+
+  return (
+    <div className="px-3 py-3 flex gap-1 justify-center text-sm text-center bg-neutral-800 text-white">
+      <span>New: Connect to your in-browser databases from outside the browser.</span>
+      <Dialog onOpenChange={() => setVideoLoaded(false)}>
+        <DialogTrigger asChild>
+          <span className="underline cursor-pointer">Learn more.</span>
+        </DialogTrigger>
+        <DialogContent className="max-w-2x max-h-full overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Introducing Live Share</DialogTitle>
+            <div className="py-2 border-b" />
+          </DialogHeader>
+
+          <div className="prose">
+            <p>
+              With Live Share, you can connect directly to your in-browser PGlite databases from{' '}
+              <em>outside the browser</em>.
+            </p>
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              {!videoLoaded && (
+                <div style={{ position: 'absolute', zIndex: 1, color: 'white' }}>
+                  <Loader className="animate-spin" size={36} strokeWidth={0.75} />
+                </div>
+              )}
+              <m.video
+                width="1860"
+                height="1080"
+                variants={{
+                  hidden: { opacity: 0 },
+                  show: { opacity: 1 },
+                }}
+                initial="hidden"
+                animate={videoLoaded ? 'show' : 'hidden'}
+                className="rounded-sm m-0"
+                autoPlay
+                loop
+                onLoadedData={() => setVideoLoaded(true)}
+              >
+                <source
+                  src="https://github.com/user-attachments/assets/78c45f61-4213-49f0-a563-55b426dd6c35"
+                  type="video/mp4"
+                />
+              </m.video>
+            </div>
+
+            <m.div layout className="inline-block">
+              <h4 className="font-bold">How does it work?</h4>
+
+              <ol className="mb-0">
+                <li>
+                  Click on the <MoreVertical size={16} className="text-muted-foreground inline" />{' '}
+                  menu next your database and tap{' '}
+                  <strong>
+                    <LiveShareIcon size={16} className="text-muted-foreground inline" /> Live Share
+                  </strong>
+                </li>
+                <li>A unique connection string will appear for your database</li>
+                <li>
+                  Copy-paste the connection string into any Postgres client (like <code>psql</code>)
+                  and begin querying!
+                </li>
+              </ol>
+            </m.div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
