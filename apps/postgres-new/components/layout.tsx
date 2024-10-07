@@ -26,14 +26,13 @@ const loadFramerFeatures = () => import('./framer-features').then((res) => res.d
 export type LayoutProps = PropsWithChildren
 
 export default function Layout({ children }: LayoutProps) {
-  const { isPreview, isLegacyDomain, isLegacyDomainRedirect } = useApp()
+  const { isLegacyDomain, isLegacyDomainRedirect } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
 
   return (
     <LazyMotion features={loadFramerFeatures}>
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {isPreview && <PreviewBanner />}
           {/* TODO: re-enable rename banner when ready */}
           {(isLegacyDomain || isLegacyDomainRedirect) && <RenameBanner />}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
@@ -47,15 +46,6 @@ export default function Layout({ children }: LayoutProps) {
         <RenameDialog />
       </TooltipProvider>
     </LazyMotion>
-  )
-}
-
-function PreviewBanner() {
-  return (
-    <div className="px-3 py-3 flex justify-center text-sm text-center bg-neutral-800 text-white">
-      Heads up! This is a preview version of {currentDomainHostname}, so expect some changes here
-      and there.
-    </div>
   )
 }
 
