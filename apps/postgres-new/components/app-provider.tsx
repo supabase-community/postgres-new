@@ -100,7 +100,6 @@ export default function AppProvider({ children }: AppProps) {
     setUser(undefined)
   }, [supabase])
 
-  const isPreview = process.env.NEXT_PUBLIC_IS_PREVIEW === 'true'
   const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
   const { value: pgVersion } = useAsyncMemo(async () => {
     if (!dbManager) {
@@ -237,7 +236,6 @@ export default function AppProvider({ children }: AppProps) {
         isRateLimited,
         setIsRateLimited,
         focusRef,
-        isPreview,
         dbManager,
         pgliteVersion,
         pgVersion,
@@ -266,7 +264,6 @@ export type AppContextValues = {
   isRateLimited: boolean
   setIsRateLimited: (limited: boolean) => void
   focusRef: RefObject<FocusHandle>
-  isPreview: boolean
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string

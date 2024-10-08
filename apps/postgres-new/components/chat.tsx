@@ -23,9 +23,11 @@ import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
 import { useApp } from './app-provider'
 import ChatMessage from './chat-message'
-import SignInButton from './sign-in-button'
-import { useWorkspace } from './workspace'
 import { CopyableField } from './copyable-field'
+import SignInButton from './sign-in-button'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+import { useWorkspace } from './workspace'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -244,49 +246,7 @@ export default function Chat() {
             )}
             ref={scrollRef}
           >
-            {liveShare.isLiveSharing && (
-              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90 z-10">
-                <div className="flex items-center justify-center h-full flex-col gap-y-5">
-                  <div className="w-full text-left">
-                    <p className="text-lg">Access your in-browser database</p>
-                    <p className="text-xs text-muted-foreground">
-                      Closing the window will stop the Live Share session
-                    </p>
-                  </div>
-                  <CopyableField
-                    value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
-                  />
-
-                  {liveShare.clientIp ? (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                      </span>
-                      <span>
-                        Connected from{' '}
-                        <span className="text-card-foreground">{liveShare.clientIp}</span>
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
-                      <span>Not connected</span>
-                    </p>
-                  )}
-                  <Button
-                    className="w-full gap-2"
-                    variant="outline"
-                    onClick={() => {
-                      liveShare.stop()
-                    }}
-                  >
-                    <PlugIcon size={16} />
-                    <span>Stop sharing database</span>
-                  </Button>
-                </div>
-              </div>
-            )}
+            <LiveShareOverlay databaseId={databaseId} />
             <m.div
               key={databaseId}
               className="flex flex-col gap-4 w-full max-w-4xl p-10"
@@ -374,18 +334,21 @@ export default function Chat() {
         ) : (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
             {user ? (
-              <m.h3
-                layout
-                className="text-2xl font-light text-center"
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 },
-                }}
-                initial="hidden"
-                animate="show"
-              >
-                What would you like to create?
-              </m.h3>
+              <>
+                <LiveShareOverlay databaseId={databaseId} />
+                <m.h3
+                  layout
+                  className="text-2xl font-light text-center"
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  initial="hidden"
+                  animate="show"
+                >
+                  What would you like to create?
+                </m.h3>
+              </>
             ) : (
               <m.div
                 className="flex flex-col items-center gap-4 max-w-lg"
@@ -569,4 +532,183 @@ export default function Chat() {
       </div>
     </div>
   )
+}
+
+function LiveShareOverlay(props: { databaseId: string }) {
+  const { liveShare } = useApp()
+
+  if (liveShare.isLiveSharing && liveShare.databaseId === props.databaseId) {
+    return (
+      <div className="h-full w-full max-w-4xl absolute flex flex-col items-stretch justify-center backdrop-blur-sm bg-card/90 z-10">
+        <div className="flex flex-col items-center justify-start gap-y-7 overflow-y-auto pt-20 pb-10">
+          <div className="w-full text-left">
+            <p className="text-lg">Access your in-browser database</p>
+            <p className="text-xs text-muted-foreground">
+              Closing the window will stop the Live Share session
+            </p>
+          </div>
+          <Tabs defaultValue="uri" className="w-full justify-between bg-muted/50 rounded-md border">
+            <TabsList className="w-full flex justify-start bg-transparent px-3">
+              <TabsTrigger
+                value="uri"
+                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
+              >
+                URI
+              </TabsTrigger>
+              <TabsTrigger
+                value="psql"
+                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
+              >
+                PSQL
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="uri" className="px-2 pb-2">
+              <CopyableField
+                value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+              />
+            </TabsContent>
+            <TabsContent value="psql" className="px-2 pb-2">
+              <CopyableField
+                value={`psql "postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require"`}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {liveShare.clientIp ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+              <span>
+                Connected from <span className="text-card-foreground">{liveShare.clientIp}</span>
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
+              <span>No client connected</span>
+            </p>
+          )}
+          <Button
+            className="w-full gap-2"
+            variant="outline"
+            onClick={() => {
+              liveShare.stop()
+            }}
+          >
+            <PlugIcon size={16} />
+            <span>Stop sharing database</span>
+          </Button>
+
+          <div className="self-stretch border-b border-b-foreground/15 my-4" />
+
+          <Accordion type="single" collapsible className="self-stretch flex flex-col gap-2">
+            <AccordionItem value="postgres-clients" className="border rounded-md">
+              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                  <span>Can I connect using any Postgres client?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-3 prose prose-sm">
+                <p>
+                  Yes! Any standard Postgres client that communicates using the Postgres wire
+                  protocol is supported. Connections are established over an encrypted TLS channel
+                  using the SNI extension, so your client will also need to support TLS with SNI
+                  (most modern clients support this).
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="concurrent-connections" className="border rounded-md">
+              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                  <span>How many concurrent connections can I have?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-3 prose prose-sm">
+                <p>
+                  PGlite operates in single-user mode, so you can only establish one connection at a
+                  time per database. If you attempt to establish more than one connection using the
+                  Live Share connection string, you will receive a &quot;too many clients&quot;
+                  error.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="orms" className="border rounded-md">
+              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                  <span>Does this work with ORMs?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-3 prose prose-sm">
+                <p>
+                  Yes, as long as your ORM doesn&apos;t require multiple concurrent connections.
+                  Some ORMs like Prisma run a shadow database in parallel to your main database in
+                  order to generate migrations. In order to use Prisma, you will need to{' '}
+                  <a
+                    href="https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/shadow-database#manually-configuring-the-shadow-database"
+                    target="__blank"
+                    rel="noopener noreferrer"
+                  >
+                    manually configure
+                  </a>{' '}
+                  your shadow database to point to another temporary database.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="connection-length" className="border rounded-md">
+              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                  <span>How long will connections last?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-3 prose prose-sm">
+                <p>
+                  You can connect over Live Share for as long as your browser tab is active. Once
+                  your tab is closed, the any existing connection will terminate and you will no
+                  longer be able to connect to your database using the connection string.
+                </p>
+                <p>
+                  To prevent overloading the system, we also enforce a 5 minute idle timeout per
+                  client connection and 1 hour total timeout per database. If you need to
+                  communicate longer than these limits, simply reconnect after the timeout.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="under-the-hood" className="border rounded-md">
+              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
+                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
+                  <span>How does this work under the hood?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-3 prose prose-sm">
+                <p>
+                  We host a{' '}
+                  <a
+                    href="https://github.com/supabase-community/postgres-new/tree/main/apps/browser-proxy"
+                    target="__blank"
+                    rel="noopener noreferrer"
+                  >
+                    lightweight proxy
+                  </a>{' '}
+                  between your Postgres client and your in-browser PGlite database. It uses{' '}
+                  <a
+                    href="https://github.com/supabase-community/pg-gateway"
+                    target="__blank"
+                    rel="noopener noreferrer"
+                  >
+                    pg-gateway
+                  </a>{' '}
+                  to proxy inbound TCP connections to the corresponding browser instance via a Web
+                  Socket reverse tunnel.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      </div>
+    )
+
+    return null
+  }
 }
