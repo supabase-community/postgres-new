@@ -272,6 +272,15 @@ function Footer() {
         rel="noopener noreferrer"
       >
         Learn about database.build
+      </a>{' '}
+      |{' '}
+      <a
+        className="underline cursor-pointer"
+        href="https://github.com/supabase-community/postgres-new/issues/new/choose"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Report an issue
       </a>
     </div>
   )
