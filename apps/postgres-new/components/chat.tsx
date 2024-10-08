@@ -26,6 +26,7 @@ import ChatMessage from './chat-message'
 import SignInButton from './sign-in-button'
 import { useWorkspace } from './workspace'
 import { CopyableField } from './copyable-field'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 
 export function getInitialMessages(tables: TablesData): Message[] {
   return [
@@ -244,49 +245,7 @@ export default function Chat() {
             )}
             ref={scrollRef}
           >
-            {liveShare.isLiveSharing && (
-              <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90 z-10">
-                <div className="flex items-center justify-center h-full flex-col gap-y-5">
-                  <div className="w-full text-left">
-                    <p className="text-lg">Access your in-browser database</p>
-                    <p className="text-xs text-muted-foreground">
-                      Closing the window will stop the Live Share session
-                    </p>
-                  </div>
-                  <CopyableField
-                    value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
-                  />
-
-                  {liveShare.clientIp ? (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                      </span>
-                      <span>
-                        Connected from{' '}
-                        <span className="text-card-foreground">{liveShare.clientIp}</span>
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
-                      <span>Not connected</span>
-                    </p>
-                  )}
-                  <Button
-                    className="w-full gap-2"
-                    variant="outline"
-                    onClick={() => {
-                      liveShare.stop()
-                    }}
-                  >
-                    <PlugIcon size={16} />
-                    <span>Stop sharing database</span>
-                  </Button>
-                </div>
-              </div>
-            )}
+            <LiveShareOverlay databaseId={databaseId} />
             <m.div
               key={databaseId}
               className="flex flex-col gap-4 w-full max-w-4xl p-10"
@@ -374,18 +333,21 @@ export default function Chat() {
         ) : (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
             {user ? (
-              <m.h3
-                layout
-                className="text-2xl font-light text-center"
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 },
-                }}
-                initial="hidden"
-                animate="show"
-              >
-                What would you like to create?
-              </m.h3>
+              <>
+                <LiveShareOverlay databaseId={databaseId} />
+                <m.h3
+                  layout
+                  className="text-2xl font-light text-center"
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  initial="hidden"
+                  animate="show"
+                >
+                  What would you like to create?
+                </m.h3>
+              </>
             ) : (
               <m.div
                 className="flex flex-col items-center gap-4 max-w-lg"
@@ -569,4 +531,78 @@ export default function Chat() {
       </div>
     </div>
   )
+}
+
+function LiveShareOverlay(props: { databaseId: string }) {
+  const { liveShare } = useApp()
+
+  if (liveShare.isLiveSharing && liveShare.databaseId === props.databaseId) {
+    return (
+      <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10 absolute backdrop-blur-sm bg-card/90 z-10">
+        <div className="flex items-center justify-center h-full flex-col gap-y-7">
+          <div className="w-full text-left">
+            <p className="text-lg">Access your in-browser database</p>
+            <p className="text-xs text-muted-foreground">
+              Closing the window will stop the Live Share session
+            </p>
+          </div>
+          <Tabs defaultValue="uri" className="w-full justify-between bg-muted/50 rounded-md border">
+            <TabsList className="w-full flex justify-start bg-transparent px-3">
+              <TabsTrigger
+                value="uri"
+                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
+              >
+                URI
+              </TabsTrigger>
+              <TabsTrigger
+                value="psql"
+                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
+              >
+                PSQL
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="uri" className="px-2 pb-2">
+              <CopyableField
+                value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
+              />
+            </TabsContent>
+            <TabsContent value="psql" className="px-2 pb-2">
+              <CopyableField
+                value={`psql "postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require"`}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {liveShare.clientIp ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+              <span>
+                Connected from <span className="text-card-foreground">{liveShare.clientIp}</span>
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
+              <span>No client connected</span>
+            </p>
+          )}
+          <Button
+            className="w-full gap-2"
+            variant="outline"
+            onClick={() => {
+              liveShare.stop()
+            }}
+          >
+            <PlugIcon size={16} />
+            <span>Stop sharing database</span>
+          </Button>
+        </div>
+      </div>
+    )
+
+    return null
+  }
 }
