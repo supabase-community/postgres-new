@@ -629,7 +629,8 @@ function LiveShareOverlay(props: { databaseId: string }) {
                 <p>
                   PGlite operates in single-user mode, so you can only establish one connection at a
                   time per database. If you attempt to establish more than one connection using the
-                  Live Share connection string, you will receive a "too many clients" error.
+                  Live Share connection string, you will receive a &quot;too many clients&quot;
+                  error.
                 </p>
               </AccordionContent>
             </AccordionItem>
