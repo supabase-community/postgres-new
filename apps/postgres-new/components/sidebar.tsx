@@ -544,6 +544,7 @@ type ConnectMenuItemProps = {
 
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
   const { liveShare, user } = useApp()
+  const router = useRouter()
 
   if (liveShare.isLiveSharing && liveShare.databaseId === props.databaseId) {
     return (
@@ -571,6 +572,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
           liveShare.stop()
         }
         liveShare.start(props.databaseId)
+        router.push(`/db/${props.databaseId}`)
         props.setIsPopoverOpen(false)
       }}
     >
