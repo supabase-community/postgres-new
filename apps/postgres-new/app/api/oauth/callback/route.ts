@@ -1,10 +1,9 @@
 import { createClient } from '~/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { env } from 'process'
-
-const supabase = createClient()
 
 export async function GET(req: NextRequest) {
+  const supabase = createClient()
+
   const { data, error } = await supabase.auth.getUser()
   console.log({ data, error })
   // We have middleware, so this should never happen (used for type narrowing)
