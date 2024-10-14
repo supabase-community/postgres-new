@@ -489,9 +489,16 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                   onClick={async (e) => {
                     e.preventDefault()
-                    // check is user has a Supabase token, if not do OAuth flow
-                    // initiate Supabase Oauth flow
-                    setIsPopoverOpen(false)
+                    const params = new URLSearchParams({
+                      client_id: process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID!,
+                      redirect_uri: `${window.location.origin}/api/oauth/callback`,
+                      response_type: 'code',
+                      state: JSON.stringify({
+                        databaseId: database.id,
+                      }),
+                    })
+                    window.location.href =
+                      'https://api.supabase.com/v1/oauth/authorize' + '?' + params.toString()
                   }}
                   disabled={user === undefined}
                 >

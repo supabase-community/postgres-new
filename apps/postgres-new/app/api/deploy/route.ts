@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 const supabase = createClient()
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   const { data, error } = await supabase.auth.getUser()
 
   // We have middleware, so this should never happen (used for type narrowing)
