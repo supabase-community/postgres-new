@@ -109,7 +109,6 @@ export async function GET(req: NextRequest) {
   const integration = await supabase
     .from('deployment_provider_integrations')
     .insert({
-      user_id: user.id,
       deployment_provider_id: deploymentProvider.id,
       credentials: {
         accessToken: accessTokenSecretId,

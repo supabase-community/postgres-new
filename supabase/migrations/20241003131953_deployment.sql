@@ -17,7 +17,7 @@ insert into deployment_providers (name) values ('Supabase');
 -- table for storing deployment provider integrations
 create table deployment_provider_integrations (
   id bigint primary key generated always as identity,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null references auth.users(id) default auth.uid(),
   deployment_provider_id bigint references deployment_providers(id),
   scope jsonb not null default '{}'::jsonb,
   credentials jsonb not null,
@@ -32,13 +32,12 @@ create trigger deployment_provider_integrations_updated_at before update on depl
 -- table for storing deployed databases
 create table deployed_databases (
   id bigint primary key generated always as identity,
-  user_id uuid not null references auth.users(id),
   local_database_id text not null,
-  deployment_provider_id bigint not null references deployment_providers(id),
+  deployment_provider_integration_id bigint not null references deployment_provider_integrations(id),
   provider_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(user_id, local_database_id, deployment_provider_id)
+  unique(local_database_id, deployment_provider_integration_id)
 );
 
 create trigger deployed_databases_updated_at before update on deployed_databases
@@ -85,20 +84,20 @@ alter table deployed_databases enable row level security;
 -- RLS policies for deployed_databases
 create policy "Users can read their own deployed databases"
   on deployed_databases for select
-  using (auth.uid() = user_id);
+  using (auth.uid() = (select user_id from deployment_provider_integrations where id = deployed_databases.deployment_provider_integration_id));
 
 create policy "Users can create their own deployed databases"
   on deployed_databases for insert
-  with check (auth.uid() = user_id);
+  with check (auth.uid() = (select user_id from deployment_provider_integrations where id = deployment_provider_integration_id));
 
 create policy "Users can update their own deployed databases"
   on deployed_databases for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using (auth.uid() = (select user_id from deployment_provider_integrations where id = deployed_databases.deployment_provider_integration_id))
+  with check (auth.uid() = (select user_id from deployment_provider_integrations where id = deployment_provider_integration_id));
 
 create policy "Users can delete their own deployed databases"
   on deployed_databases for delete
-  using (auth.uid() = user_id);
+  using (auth.uid() = (select user_id from deployment_provider_integrations where id = deployed_databases.deployment_provider_integration_id));
 
 -- Enable RLS on deployments
 alter table deployments enable row level security;
@@ -106,20 +105,39 @@ alter table deployments enable row level security;
 -- RLS policies for deployments
 create policy "Users can read their own deployments"
   on deployments for select
-  using (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id));
+  using (auth.uid() = (
+    select dpi.user_id 
+    from deployed_databases dd
+    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
+    where dd.id = deployments.deployed_database_id
+  ));
 
 create policy "Users can create their own deployments"
   on deployments for insert
-  with check (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id));
+  with check (auth.uid() = (
+    select dpi.user_id 
+    from deployed_databases dd
+    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
+    where dd.id = deployments.deployed_database_id
+  ));
 
 create policy "Users can update their own deployments"
   on deployments for update
-  using (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id))
-  with check (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id));
+  using (auth.uid() = (
+    select dpi.user_id 
+    from deployed_databases dd
+    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
+    where dd.id = deployments.deployed_database_id
+  ));
 
 create policy "Users can delete their own deployments"
   on deployments for delete
-  using (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id));
+  using (auth.uid() = (
+    select dpi.user_id 
+    from deployed_databases dd
+    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
+    where dd.id = deployments.deployed_database_id
+  ));
 
 create or replace function insert_secret(secret text, name text)
 returns uuid
