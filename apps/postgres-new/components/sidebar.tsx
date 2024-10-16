@@ -43,6 +43,7 @@ import {
 } from './ui/dropdown-menu'
 import { TooltipPortal } from '@radix-ui/react-tooltip'
 import { LiveShareIcon } from './live-share-icon'
+import { createClient } from '~/utils/supabase/client'
 
 export default function Sidebar() {
   const {
@@ -489,16 +490,51 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                   onClick={async (e) => {
                     e.preventDefault()
+                    const supabase = createClient()
+                    const { data: provider, error: providerError } = await supabase
+                      .from('deployment_providers')
+                      .select('id')
+                      .eq('name', 'Supabase')
+                      .single()
+
+                    if (providerError) {
+                      console.error(providerError)
+                      return
+                    }
+
+                    // check existing integration, we currently assume a single integration per user and provider
+                    // later we will allow for multiple integrations per provider with different scopes
+                    const { data: integration, error: integrationError } = await supabase
+                      .from('deployment_provider_integrations')
+                      .select('id')
+                      .eq('deployment_provider_id', provider.id)
+                      .eq('user_id', user!.id)
+                      .maybeSingle()
+
+                    if (integrationError) {
+                      console.error(integrationError)
+                      return
+                    }
+
+                    if (!integration) {
+                      const params = new URLSearchParams({
+                        client_id: process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID!,
+                        redirect_uri: `${window.location.origin}/api/oauth/supabase/callback`,
+                        response_type: 'code',
+                        state: JSON.stringify({
+                          databaseId: database.id,
+                        }),
+                      })
+                      window.location.href =
+                        'https://api.supabase.com/v1/oauth/authorize' + '?' + params.toString()
+                      return
+                    }
+
                     const params = new URLSearchParams({
-                      client_id: process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID!,
-                      redirect_uri: `${window.location.origin}/api/oauth/callback`,
-                      response_type: 'code',
-                      state: JSON.stringify({
-                        databaseId: database.id,
-                      }),
+                      integration: integration.id.toString(),
                     })
-                    window.location.href =
-                      'https://api.supabase.com/v1/oauth/authorize' + '?' + params.toString()
+
+                    router.push(`/deploy/${database.id}?${params.toString()}`)
                   }}
                   disabled={user === undefined}
                 >

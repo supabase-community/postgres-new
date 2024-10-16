@@ -19,11 +19,11 @@ create table deployment_provider_integrations (
   id bigint primary key generated always as identity,
   user_id uuid not null references auth.users(id),
   deployment_provider_id bigint references deployment_providers(id),
-  -- stores the credentials like the refresh token
-  credentials jsonb,
+  scope jsonb not null default '{}'::jsonb,
+  credentials jsonb not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(user_id, deployment_provider_id)
+  unique(user_id, deployment_provider_id, scope)
 );
 
 create trigger deployment_provider_integrations_updated_at before update on deployment_provider_integrations
@@ -35,7 +35,7 @@ create table deployed_databases (
   user_id uuid not null references auth.users(id),
   local_database_id text not null,
   deployment_provider_id bigint not null references deployment_providers(id),
-  provider_metadata jsonb,
+  provider_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, local_database_id, deployment_provider_id)
@@ -120,3 +120,65 @@ create policy "Users can update their own deployments"
 create policy "Users can delete their own deployments"
   on deployments for delete
   using (auth.uid() = (select user_id from deployed_databases where id = deployments.deployed_database_id));
+
+create or replace function insert_secret(secret text, name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+ 
+  return vault.create_secret(secret, name);
+end;
+$$;
+
+create or replace function update_secret(secret_id uuid, new_secret text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+ 
+  return vault.update_secret(secret_id, new_secret);
+end;
+$$;
+
+create function read_secret(secret_id uuid)
+returns text
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  secret text;
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+ 
+  select decrypted_secret from vault.decrypted_secrets where id =
+  secret_id into secret;
+  return secret;
+end;
+$$;
+
+create function delete_secret(secret_id uuid)
+returns text
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+ 
+  return delete from vault.decrypted_secrets where id = secret_id;
+end;
+$$;

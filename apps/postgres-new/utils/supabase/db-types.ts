@@ -66,7 +66,7 @@ export type Database = {
           deployment_provider_id: number
           id: number
           local_database_id: string
-          provider_metadata: Json | null
+          provider_metadata: Json
           updated_at: string
           user_id: string
         }
@@ -75,7 +75,7 @@ export type Database = {
           deployment_provider_id: number
           id?: never
           local_database_id: string
-          provider_metadata?: Json | null
+          provider_metadata?: Json
           updated_at?: string
           user_id: string
         }
@@ -84,7 +84,7 @@ export type Database = {
           deployment_provider_id?: number
           id?: never
           local_database_id?: string
-          provider_metadata?: Json | null
+          provider_metadata?: Json
           updated_at?: string
           user_id?: string
         }
@@ -108,25 +108,28 @@ export type Database = {
       deployment_provider_integrations: {
         Row: {
           created_at: string
-          credentials: Json | null
+          credentials: Json
           deployment_provider_id: number | null
           id: number
+          scope: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          credentials?: Json | null
+          credentials: Json
           deployment_provider_id?: number | null
           id?: never
+          scope?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          credentials?: Json | null
+          credentials?: Json
           deployment_provider_id?: number | null
           id?: never
+          scope?: Json
           updated_at?: string
           user_id?: string
         }
@@ -205,12 +208,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_secret: {
+        Args: {
+          secret_id: string
+        }
+        Returns: string
+      }
+      insert_secret: {
+        Args: {
+          secret: string
+          name: string
+        }
+        Returns: string
+      }
+      read_secret: {
+        Args: {
+          secret_id: string
+        }
+        Returns: string
+      }
       supabase_functions_certificate_secret: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       supabase_url: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      update_secret: {
+        Args: {
+          secret_id: string
+          new_secret: string
+        }
         Returns: string
       }
     }
