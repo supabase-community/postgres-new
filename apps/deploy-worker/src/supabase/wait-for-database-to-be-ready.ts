@@ -1,8 +1,8 @@
 import type { Project } from './types.ts'
 import { setTimeout } from 'timers/promises'
 
-const MAX_POLLING_TIME = 120000 // 2 minutes in milliseconds
-const POLLING_INTERVAL = 5000 // 5 seconds in milliseconds
+const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
+const POLLING_INTERVAL = 10 * 1000 // 10 seconds in milliseconds
 
 type DatabaseStatus = 'COMING_UP' | 'ACTIVE_HEALTHY' | 'UNHEALTHY'
 
