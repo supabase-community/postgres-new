@@ -1,3 +1,6 @@
+/**
+ * Generate a random password with a length of 16 characters.
+ */
 export function generatePassword(): string {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   const length = 16

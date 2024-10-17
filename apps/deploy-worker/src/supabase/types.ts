@@ -1,38 +1,35 @@
-type ProjectStatus =
-  | 'ACTIVE_HEALTHY'
-  | 'ACTIVE_UNHEALTHY'
-  | 'COMING_UP'
-  | 'GOING_DOWN'
-  | 'INACTIVE'
-  | 'INIT_FAILED'
-  | 'REMOVED'
-  | 'RESTARTING'
-  | 'UNKNOWN'
-  | 'UPGRADING'
-  | 'PAUSING'
-  | 'RESTORING'
-  | 'RESTORE_FAILED'
-  | 'PAUSE_FAILED'
+import type { createClient } from './client.ts'
+import type { createManagementApiClient } from './management-api/client.ts'
+import type { paths } from './management-api/types.ts'
 
-export type Project = {
-  id: string
-  organization_id: string
-  name: string
-  region: string
-  created_at: string
-  database: {
-    host: string
-    version: string
-    postgres_engine: string
-    release_channel: string
-  }
-  status: ProjectStatus
-}
+export type Credentials = { expiresAt: string; refreshToken: string; accessToken: string }
+
+export type Project =
+  paths['/v1/projects/{ref}']['get']['responses']['200']['content']['application/json']
+
+type Unpacked<T> = T extends (infer U)[] ? U : T
+
+type Database = Unpacked<
+  paths['/v1/projects/{ref}/config/database/pooler']['get']['responses']['200']['content']['application/json']
+>
 
 export type SupabaseProviderMetadata = {
-  project: Project & {
-    database: Project['database'] & {
+  project: {
+    id: Project['id']
+    organizationId: Project['organization_id']
+    name: Project['name']
+    region: Project['region']
+    createdAt: Project['created_at']
+    database: {
+      host: Database['db_host']
+      name: Database['db_name']
       password: string
+      port: number
+      user: Database['db_user']
     }
   }
 }
+
+export type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+
+export type ManagementApiClient = Awaited<ReturnType<typeof createManagementApiClient>>

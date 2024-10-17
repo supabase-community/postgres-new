@@ -1,35 +1,41 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { createClient } from './supabase/client.ts'
 import { HTTPException } from 'hono/http-exception'
-import { deployOnSupabase } from './supabase/deploy.ts'
+import { deploy } from './supabase/deploy.ts'
 
 const app = new Hono()
 
-app.get(
+app.use('*', cors())
+
+app.post(
   '/',
   zValidator(
     'json',
     z.object({
       databaseId: z.string(),
-      integrationId: z.string(),
+      integrationId: z.number().int(),
       databaseUrl: z.string(),
     })
   ),
   async (c) => {
     const { databaseId, integrationId, databaseUrl: localDatabaseUrl } = c.req.valid('json')
 
-    const token = c.req.header('Authorization')?.replace('Bearer ', '')
-
-    if (!token) {
+    const accessToken = c.req.header('Authorization')?.replace('Bearer ', '')
+    const refreshToken = c.req.header('X-Refresh-Token')
+    if (!accessToken || !refreshToken) {
       throw new HTTPException(401, { message: 'Unauthorized' })
     }
 
     const supabase = createClient()
 
-    const { error } = await supabase.auth.getUser(token)
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
 
     if (error) {
       throw new HTTPException(401, { message: 'Unauthorized' })
@@ -40,12 +46,13 @@ app.get(
     //   local_database_id: databaseId,
     // })
     try {
-      const { databaseUrl } = await deployOnSupabase(
+      const { databaseUrl } = await deploy(
         { supabase },
         { databaseId, integrationId, localDatabaseUrl }
       )
       return c.json({ databaseUrl })
     } catch (error: unknown) {
+      console.error(error)
       if (error instanceof Error) {
         throw new HTTPException(500, { message: error.message })
       }
