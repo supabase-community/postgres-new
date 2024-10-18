@@ -5,7 +5,7 @@
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
     "dev": "node --watch --env-file=.env --experimental-strip-types src/index.ts",
     "type-check": "tsc",
-    "generate:database-types": "npx supabase gen types --lang=typescript --local > src/supabase/db-types.ts",
+    "generate:database-types": "npx supabase gen types --lang=typescript --local > src/supabase/database-types.ts",
     "generate:management-api-types": "npx openapi-typescript https://api.supabase.com/api/v1-json -o ./src/supabase/management-api/types.ts"
   },
   "dependencies": {

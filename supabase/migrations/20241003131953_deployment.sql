@@ -48,11 +48,17 @@ create type deployment_status as enum ('in_progress', 'success', 'failed');
 -- table for storing individual deployments
 create table deployments (
   id bigint primary key generated always as identity,
-  deployed_database_id bigint not null references deployed_databases(id),
-  status deployment_status not null,
+  local_database_id text not null,
+  status deployment_status not null default 'in_progress',
+  deployed_database_id bigint references deployed_databases(id),
+  events jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create unique index idx_deployments_in_progress
+on deployments (local_database_id)
+where status = 'in_progress';
 
 create trigger deployments_updated_at before update on deployments
   for each row execute procedure moddatetime (updated_at);

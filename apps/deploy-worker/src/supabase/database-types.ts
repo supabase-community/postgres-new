@@ -164,22 +164,28 @@ export type Database = {
       deployments: {
         Row: {
           created_at: string
-          deployed_database_id: number
+          deployed_database_id: number | null
+          events: Json
           id: number
+          local_database_id: string
           status: Database["public"]["Enums"]["deployment_status"]
           updated_at: string
         }
         Insert: {
           created_at?: string
-          deployed_database_id: number
+          deployed_database_id?: number | null
+          events?: Json
           id?: never
-          status: Database["public"]["Enums"]["deployment_status"]
+          local_database_id: string
+          status?: Database["public"]["Enums"]["deployment_status"]
           updated_at?: string
         }
         Update: {
           created_at?: string
-          deployed_database_id?: number
+          deployed_database_id?: number | null
+          events?: Json
           id?: never
+          local_database_id?: string
           status?: Database["public"]["Enums"]["deployment_status"]
           updated_at?: string
         }

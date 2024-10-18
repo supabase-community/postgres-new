@@ -41,10 +41,6 @@ app.post(
       throw new HTTPException(401, { message: 'Unauthorized' })
     }
 
-    // TODO: create a lock in postgres to prevent multiple deployments
-    // await supabase.from('deployment_locks').insert({
-    //   local_database_id: databaseId,
-    // })
     try {
       const { databaseUrl } = await deploy(
         { supabase },
@@ -57,9 +53,6 @@ app.post(
         throw new HTTPException(500, { message: error.message })
       }
       throw new HTTPException(500, { message: 'Internal server error' })
-    } finally {
-      // TODO: remove the lock
-      // await supabase.from('deployment_locks').delete().eq('local_database_id', databaseId)
     }
   }
 )

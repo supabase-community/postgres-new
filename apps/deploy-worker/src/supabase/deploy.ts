@@ -14,42 +14,76 @@ export async function deploy(
   ctx: { supabase: SupabaseClient },
   params: { databaseId: string; integrationId: number; localDatabaseUrl: string }
 ) {
-  // check if the database was already deployed
-  const deployedDatabase = await ctx.supabase
-    .from('deployed_databases')
-    .select('*')
-    .eq('local_database_id', params.databaseId)
-    .eq('deployment_provider_integration_id', params.integrationId)
-    .maybeSingle()
-
-  if (deployedDatabase.error) {
-    throw new Error('Cannot find deployed database', { cause: deployedDatabase.error })
-  }
-
-  if (!deployedDatabase.data) {
-    deployedDatabase.data = await createDeployedDatabase(
-      { supabase: ctx.supabase },
-      { databaseId: params.databaseId, integrationId: params.integrationId }
-    )
-  }
-
-  // get the database url
-  const databaseUrl = await getDatabaseUrl({
-    project: (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project,
-  })
-
-  // use pg_dump and pg_restore to transfer the data from the local database to the remote database
-  const command = `pg_dump "${params.localDatabaseUrl}" -Fc | pg_restore -d "${databaseUrl}" --clean --if-exists`
-  console.log(command)
-  try {
-    await exec(command)
-  } catch (error) {
-    throw new Error('Cannot transfer the data from the local database to the remote database', {
-      cause: error,
+  const { data: deployment, error: createDeploymentError } = await ctx.supabase
+    .from('deployments')
+    .insert({
+      local_database_id: params.databaseId,
     })
+    .select('id')
+    .single()
+
+  if (createDeploymentError) {
+    if (createDeploymentError.code === '23505') {
+      throw new Error('Deployment already in progress', { cause: createDeploymentError })
+    }
+
+    throw new Error('Cannot create deployment', { cause: createDeploymentError })
   }
 
-  return {
-    databaseUrl,
+  try {
+    // check if the database was already deployed
+    const deployedDatabase = await ctx.supabase
+      .from('deployed_databases')
+      .select('*')
+      .eq('local_database_id', params.databaseId)
+      .eq('deployment_provider_integration_id', params.integrationId)
+      .maybeSingle()
+
+    if (deployedDatabase.error) {
+      throw new Error('Cannot find deployed database', { cause: deployedDatabase.error })
+    }
+
+    if (!deployedDatabase.data) {
+      deployedDatabase.data = await createDeployedDatabase(
+        { supabase: ctx.supabase },
+        { databaseId: params.databaseId, integrationId: params.integrationId }
+      )
+    }
+
+    // get the database url
+    const databaseUrl = await getDatabaseUrl({
+      project: (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project,
+    })
+
+    // use pg_dump and pg_restore to transfer the data from the local database to the remote database
+    const command = `pg_dump "${params.localDatabaseUrl}" -Fc | pg_restore -d "${databaseUrl}" --clean --if-exists`
+
+    try {
+      await exec(command)
+    } catch (error) {
+      throw new Error('Cannot transfer the data from the local database to the remote database', {
+        cause: error,
+      })
+    }
+
+    await ctx.supabase
+      .from('deployments')
+      .update({
+        status: 'success',
+      })
+      .eq('id', deployment.id)
+
+    return {
+      databaseUrl,
+    }
+  } catch (error) {
+    await ctx.supabase
+      .from('deployments')
+      .update({
+        status: 'failed',
+      })
+      .eq('id', deployment.id)
+
+    throw error
   }
 }
