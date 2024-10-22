@@ -2,16 +2,18 @@
 
 import { useMutation } from '@tanstack/react-query'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { createClient } from '~/utils/supabase/client'
+import { Loader2 } from 'lucide-react'
 
 export default function Page() {
   const params = useParams<{ databaseId: string }>()
-  const searchParams = useSearchParams()
+  const router = useRouter()
   const { liveShare } = useApp()
-  const [databaseUrl, setDatabaseUrl] = useState<string | undefined>()
+  const searchParams = useSearchParams()
+
   const { mutate: deploy, error } = useMutation({
     mutationFn: async () => {
       // make the database available to the deployment worker
@@ -43,21 +45,41 @@ export default function Page() {
       })
 
       if (!response.ok) {
+        console.log(response)
         throw new Error(response.statusText)
       }
 
       return (await response.json()) as {
-        databaseUrl: string
+        project: {
+          name: string
+          url: string
+          databaseUrl: string
+        }
       }
     },
     onSuccess(data) {
-      setDatabaseUrl(data.databaseUrl)
+      const searchParams = new URLSearchParams({
+        event: 'deploy.success',
+        project: JSON.stringify(data.project),
+      })
+      const url = new URL(
+        `/db/${params.databaseId}?${searchParams.toString()}`,
+        window.location.href
+      )
+      router.push(url.toString())
     },
     onError(error) {
-      console.error(error)
+      const searchParams = new URLSearchParams({
+        event: 'deploy.failure',
+        error: error.message,
+      })
+      const url = new URL(
+        `/db/${params.databaseId}?${searchParams.toString()}`,
+        window.location.href
+      )
+      router.push(url.toString())
     },
     onSettled() {
-      console.log('stopping live share')
       liveShare.stop()
     },
   })
@@ -65,28 +87,21 @@ export default function Page() {
     deploy()
   }, [deploy])
 
-  const text = error
-    ? { title: 'Database deployment failed', content: error.message }
-    : databaseUrl
-      ? {
-          title: 'Database deployed',
-          content: 'Your database is deployed at the following URL:',
-          url: databaseUrl,
-        }
-      : {
-          title: 'Deploying your database',
-          content: 'Your database is being deployed. Please do not close this page.',
-        }
-
   return (
     <Dialog open>
-      <DialogContent className="max-w-2xl" showCloseButton={false}>
+      <DialogContent className="max-w-3xl" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>{text.title}</DialogTitle>
+          <DialogTitle>Deploying your database</DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
-        <div>
-          <p>{text.content}</p>
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4">
+            <Loader2 className="animate-spin" />
+            <div>
+              <p>Your database is being deployed. This process typically takes a few minutes.</p>
+              <p>Please keep this page open to ensure successful deployment.</p>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

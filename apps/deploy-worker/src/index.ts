@@ -42,11 +42,8 @@ app.post(
     }
 
     try {
-      const { databaseUrl } = await deploy(
-        { supabase },
-        { databaseId, integrationId, localDatabaseUrl }
-      )
-      return c.json({ databaseUrl })
+      const project = await deploy({ supabase }, { databaseId, integrationId, localDatabaseUrl })
+      return c.json({ project })
     } catch (error: unknown) {
       console.error(error)
       if (error instanceof Error) {

@@ -3,10 +3,13 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
+import { DeployFailureDialog } from '~/components/deploy-failure-dialog'
+import { DeploySuccessDialog } from '~/components/deploy-success-dialog'
 import Workspace from '~/components/workspace'
 
 export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
+
   const router = useRouter()
   const { dbManager } = useApp()
 
@@ -25,5 +28,11 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [dbManager, databaseId, router])
 
-  return <Workspace databaseId={databaseId} visibility="local" />
+  return (
+    <>
+      <DeploySuccessDialog />
+      <DeployFailureDialog />
+      <Workspace databaseId={databaseId} visibility="local" />
+    </>
+  )
 }

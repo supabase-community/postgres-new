@@ -50,9 +50,11 @@ export async function deploy(
       )
     }
 
+    const project = (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project
+
     // get the database url
     const databaseUrl = await getDatabaseUrl({
-      project: (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project,
+      project,
     })
 
     // use pg_dump and pg_restore to transfer the data from the local database to the remote database
@@ -74,6 +76,8 @@ export async function deploy(
       .eq('id', deployment.id)
 
     return {
+      name: project.name,
+      url: `https://supabase.com/dashboard/project/${project.id}`,
       databaseUrl,
     }
   } catch (error) {
