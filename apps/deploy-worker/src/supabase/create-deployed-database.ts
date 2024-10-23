@@ -1,3 +1,4 @@
+import { DeployError } from '../error.ts'
 import { supabaseAdmin } from './client.ts'
 import { generatePassword } from './generate-password.ts'
 import { getAccessToken } from './get-access-token.ts'
@@ -24,7 +25,7 @@ export async function createDeployedDatabase(
     .single()
 
   if (integration.error) {
-    throw new Error('Cannot find integration', { cause: integration.error })
+    throw new DeployError('Cannot find integration', { cause: integration.error })
   }
 
   // first we need to create a new project on Supabase using the Management API
@@ -58,7 +59,7 @@ export async function createDeployedDatabase(
   )
 
   if (createdProjectError) {
-    throw new Error('Failed to create project on Supabase', {
+    throw new DeployError('Failed to create project on Supabase', {
       cause: createdProjectError,
     })
   }
@@ -80,7 +81,7 @@ export async function createDeployedDatabase(
   )
 
   if (poolerError) {
-    throw new Error('Failed to get pooler details', {
+    throw new DeployError('Failed to get pooler details', {
       cause: poolerError,
     })
   }
@@ -88,7 +89,7 @@ export async function createDeployedDatabase(
   const primaryDatabase = pooler.find((db) => db.database_type === 'PRIMARY')
 
   if (!primaryDatabase) {
-    throw new Error('Primary database not found')
+    throw new DeployError('Primary database not found')
   }
 
   // store the database password as a secret
@@ -98,7 +99,7 @@ export async function createDeployedDatabase(
   })
 
   if (databasePasswordSecret.error) {
-    throw new Error('Cannot store database password as secret', {
+    throw new DeployError('Cannot store database password as secret', {
       cause: databasePasswordSecret.error,
     })
   }
@@ -132,7 +133,7 @@ export async function createDeployedDatabase(
     .single()
 
   if (deployedDatabase.error) {
-    throw new Error('Cannot create deployed database', { cause: deployedDatabase.error })
+    throw new DeployError('Cannot create deployed database', { cause: deployedDatabase.error })
   }
 
   return deployedDatabase.data

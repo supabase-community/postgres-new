@@ -52,6 +52,7 @@ create table deployments (
   status deployment_status not null default 'in_progress',
   deployed_database_id bigint references deployed_databases(id),
   events jsonb not null default '[]'::jsonb,
+  user_id uuid not null references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -111,39 +112,33 @@ alter table deployments enable row level security;
 -- RLS policies for deployments
 create policy "Users can read their own deployments"
   on deployments for select
-  using (auth.uid() = (
-    select dpi.user_id 
-    from deployed_databases dd
-    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
-    where dd.id = deployments.deployed_database_id
-  ));
+  using (auth.uid() = user_id);
 
 create policy "Users can create their own deployments"
   on deployments for insert
-  with check (auth.uid() = (
-    select dpi.user_id 
-    from deployed_databases dd
-    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
-    where dd.id = deployments.deployed_database_id
-  ));
+  with check (auth.uid() = user_id);
 
 create policy "Users can update their own deployments"
   on deployments for update
-  using (auth.uid() = (
-    select dpi.user_id 
-    from deployed_databases dd
-    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
-    where dd.id = deployments.deployed_database_id
-  ));
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and (
+      deployed_database_id is null
+      or
+      exists (
+        select 1
+        from deployed_databases dd
+        join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
+        where dd.id = deployed_database_id
+          and dpi.user_id = auth.uid()
+      )
+    )
+  );
 
 create policy "Users can delete their own deployments"
   on deployments for delete
-  using (auth.uid() = (
-    select dpi.user_id 
-    from deployed_databases dd
-    join deployment_provider_integrations dpi on dd.deployment_provider_integration_id = dpi.id
-    where dd.id = deployments.deployed_database_id
-  ));
+  using (auth.uid() = user_id);
 
 create or replace function insert_secret(secret text, name text)
 returns uuid

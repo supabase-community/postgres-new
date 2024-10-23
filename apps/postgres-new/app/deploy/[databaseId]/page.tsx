@@ -45,8 +45,7 @@ export default function Page() {
       })
 
       if (!response.ok) {
-        console.log(response)
-        throw new Error(response.statusText)
+        throw new Error(await response.text())
       }
 
       return (await response.json()) as {
@@ -54,6 +53,7 @@ export default function Page() {
           name: string
           url: string
           databaseUrl: string
+          isRedeploy: boolean
         }
       }
     },

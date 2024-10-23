@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate:types": "supabase gen types --lang=typescript --local > utils/supabase/db-types.ts"
+    "generate:database-types": "supabase gen types --lang=typescript --local > utils/supabase/db-types.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.21",
@@ -16,6 +16,7 @@
     "@gregnr/postgres-meta": "^0.82.0-dev.2",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-accordion": "^1.2.0",
+    "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
     "@radix-ui/react-label": "^2.1.0",

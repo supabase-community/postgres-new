@@ -1,3 +1,4 @@
+import { DeployError } from '../error.ts'
 import { supabaseAdmin } from './client.ts'
 import type { Credentials, SupabaseClient } from './types.ts'
 
@@ -18,7 +19,7 @@ export async function getAccessToken(
     })
 
     if (refreshToken.error) {
-      throw new Error('Failed to read refresh token', { cause: refreshToken.error })
+      throw new DeployError('Failed to read refresh token', { cause: refreshToken.error })
     }
 
     const now = Date.now()
@@ -37,7 +38,7 @@ export async function getAccessToken(
     })
 
     if (!newCredentialsResponse.ok) {
-      throw new Error('Failed to fetch new credentials', {
+      throw new DeployError('Failed to fetch new credentials', {
         cause: {
           status: newCredentialsResponse.status,
           statusText: newCredentialsResponse.statusText,
@@ -59,7 +60,7 @@ export async function getAccessToken(
     })
 
     if (updateRefreshToken.error) {
-      throw new Error('Failed to update refresh token', { cause: updateRefreshToken.error })
+      throw new DeployError('Failed to update refresh token', { cause: updateRefreshToken.error })
     }
 
     const updateAccessToken = await supabaseAdmin.rpc('update_secret', {
@@ -68,7 +69,7 @@ export async function getAccessToken(
     })
 
     if (updateAccessToken.error) {
-      throw new Error('Failed to update access token', { cause: updateAccessToken.error })
+      throw new DeployError('Failed to update access token', { cause: updateAccessToken.error })
     }
 
     const updateIntegration = await ctx.supabase
@@ -83,7 +84,7 @@ export async function getAccessToken(
       .eq('id', params.integrationId)
 
     if (updateIntegration.error) {
-      throw new Error('Failed to update integration', { cause: updateIntegration.error })
+      throw new DeployError('Failed to update integration', { cause: updateIntegration.error })
     }
   }
 
@@ -92,7 +93,7 @@ export async function getAccessToken(
   })
 
   if (accessToken.error) {
-    throw new Error('Failed to read access token', { cause: accessToken.error })
+    throw new DeployError('Failed to read access token', { cause: accessToken.error })
   }
 
   return accessToken.data

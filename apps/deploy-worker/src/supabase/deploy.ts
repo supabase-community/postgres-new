@@ -4,6 +4,7 @@ import { exec as execSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createDeployedDatabase } from './create-deployed-database.ts'
 import { getDatabaseUrl } from './get-database-url.ts'
+import { DeployError } from '../error.ts'
 const exec = promisify(execSync)
 
 /**
@@ -24,11 +25,13 @@ export async function deploy(
 
   if (createDeploymentError) {
     if (createDeploymentError.code === '23505') {
-      throw new Error('Deployment already in progress', { cause: createDeploymentError })
+      throw new DeployError('Deployment already in progress', { cause: createDeploymentError })
     }
 
-    throw new Error('Cannot create deployment', { cause: createDeploymentError })
+    throw new DeployError('Cannot create deployment', { cause: createDeploymentError })
   }
+
+  let isRedeploy = false
 
   try {
     // check if the database was already deployed
@@ -40,7 +43,7 @@ export async function deploy(
       .maybeSingle()
 
     if (deployedDatabase.error) {
-      throw new Error('Cannot find deployed database', { cause: deployedDatabase.error })
+      throw new DeployError('Cannot find deployed database', { cause: deployedDatabase.error })
     }
 
     if (!deployedDatabase.data) {
@@ -48,6 +51,21 @@ export async function deploy(
         { supabase: ctx.supabase },
         { databaseId: params.databaseId, integrationId: params.integrationId }
       )
+    } else {
+      isRedeploy = true
+    }
+
+    const { error: linkDeploymentError } = await ctx.supabase
+      .from('deployments')
+      .update({
+        deployed_database_id: deployedDatabase.data.id,
+      })
+      .eq('id', deployment.id)
+
+    if (linkDeploymentError) {
+      throw new DeployError('Cannot link deployment with deployed database', {
+        cause: linkDeploymentError,
+      })
     }
 
     const project = (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project
@@ -63,9 +81,12 @@ export async function deploy(
     try {
       await exec(command)
     } catch (error) {
-      throw new Error('Cannot transfer the data from the local database to the remote database', {
-        cause: error,
-      })
+      throw new DeployError(
+        'Cannot transfer the data from the local database to the remote database',
+        {
+          cause: error,
+        }
+      )
     }
 
     await ctx.supabase
@@ -78,7 +99,8 @@ export async function deploy(
     return {
       name: project.name,
       url: `https://supabase.com/dashboard/project/${project.id}`,
-      databaseUrl,
+      databaseUrl: await getDatabaseUrl({ project, hidePassword: isRedeploy }),
+      isRedeploy,
     }
   } catch (error) {
     await ctx.supabase

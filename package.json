@@ -5,6 +5,6 @@
   },
   "workspaces": ["apps/*"],
   "devDependencies": {
-    "supabase": "^1.204.3"
+    "supabase": "^1.207.9"
   }
 }

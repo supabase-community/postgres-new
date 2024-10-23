@@ -1,3 +1,4 @@
+import { DeployError } from '../error.ts'
 import type { ManagementApiClient, Project } from './types.ts'
 import { setTimeout } from 'timers/promises'
 
@@ -24,7 +25,7 @@ export async function waitForProjectToBeHealthy(
       })
 
       if (error) {
-        throw new Error('Failed to get Supabase project health status', {
+        throw new DeployError('Failed to get Supabase project health status', {
           cause: error,
         })
       }
@@ -34,7 +35,7 @@ export async function waitForProjectToBeHealthy(
       }
 
       if (Date.now() - startTime > MAX_POLLING_TIME * 60 * 1000) {
-        throw new Error(`Project did not become healthy within ${MAX_POLLING_TIME} minutes`, {
+        throw new DeployError(`Project did not become healthy within ${MAX_POLLING_TIME} minutes`, {
           cause: {
             status: project.status,
           },
@@ -77,7 +78,7 @@ export async function waitForDatabaseToBeHealthy(
       )
 
       if (error) {
-        throw new Error("Failed to get Supabase project's database health status", {
+        throw new DeployError("Failed to get Supabase project's database health status", {
           cause: error,
         })
       }
@@ -86,11 +87,11 @@ export async function waitForDatabaseToBeHealthy(
       const poolerService = servicesHealth.find((service) => service.name === 'pooler')
 
       if (!databaseService) {
-        throw new Error('Database service not found on Supabase for health check')
+        throw new DeployError('Database service not found on Supabase for health check')
       }
 
       if (!poolerService) {
-        throw new Error('Pooler service not found on Supabase for health check')
+        throw new DeployError('Pooler service not found on Supabase for health check')
       }
 
       if (
@@ -101,12 +102,15 @@ export async function waitForDatabaseToBeHealthy(
       }
 
       if (Date.now() - startTime > MAX_POLLING_TIME * 60 * 1000) {
-        throw new Error(`Database did not become healthy within ${MAX_POLLING_TIME} minutes`, {
-          cause: {
-            status: databaseService.status,
-            error: databaseService.error,
-          },
-        })
+        throw new DeployError(
+          `Database did not become healthy within ${MAX_POLLING_TIME} minutes`,
+          {
+            cause: {
+              status: databaseService.status,
+              error: databaseService.error,
+            },
+          }
+        )
       }
 
       await setTimeout(POLLING_INTERVAL)

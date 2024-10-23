@@ -6,6 +6,7 @@ import { zValidator } from '@hono/zod-validator'
 import { createClient } from './supabase/client.ts'
 import { HTTPException } from 'hono/http-exception'
 import { deploy } from './supabase/deploy.ts'
+import { DeployError } from './error.ts'
 
 const app = new Hono()
 
@@ -46,7 +47,7 @@ app.post(
       return c.json({ project })
     } catch (error: unknown) {
       console.error(error)
-      if (error instanceof Error) {
+      if (error instanceof DeployError) {
         throw new HTTPException(500, { message: error.message })
       }
       throw new HTTPException(500, { message: 'Internal server error' })

@@ -27,7 +27,7 @@ import { useDatabaseUpdateMutation } from '~/data/databases/database-update-muta
 import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
 import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
-import { Database } from '~/lib/db'
+import { Database as LocalDatabase } from '~/lib/db'
 import { downloadFile, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
@@ -44,6 +44,12 @@ import {
 import { TooltipPortal } from '@radix-ui/react-tooltip'
 import { LiveShareIcon } from './live-share-icon'
 import { createClient } from '~/utils/supabase/client'
+import { RedeployAlertDialog } from './redeploy-alert-dialog'
+import { useDeployedDatabasesQuery } from '~/data/deployed-databases/deployed-databases-query'
+
+type Database = LocalDatabase & {
+  isDeployed: boolean
+}
 
 export default function Sidebar() {
   const {
@@ -58,8 +64,15 @@ export default function Sidebar() {
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
-  const { data: databases, isLoading: isLoadingDatabases } = useDatabasesQuery()
+  const { data: localDatabases, isLoading: isLoadingDatabases } = useDatabasesQuery()
+  const { data: deployedDatabases } = useDeployedDatabasesQuery()
   const [showSidebar, setShowSidebar] = useState(true)
+
+  const databases = localDatabases?.map((db) => ({
+    ...db,
+    isDeployed:
+      deployedDatabases?.some((deployedDb) => deployedDb.local_database_id === db.id) ?? false,
+  }))
 
   return (
     <>
@@ -310,8 +323,18 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const { data: isOnDeployWaitlist } = useIsOnDeployWaitlistQuery()
   const { mutateAsync: joinDeployWaitlist } = useDeployWaitlistCreateMutation()
 
+  const [isRedeployAlertDialogOpen, setIsRedeployAlertDialogOpen] = useState(false)
+  const [deployUrl, setDeployUrl] = useState<string | null>(null)
+
   return (
     <>
+      <RedeployAlertDialog
+        isOpen={isRedeployAlertDialogOpen}
+        onOpenChange={setIsRedeployAlertDialogOpen}
+        onConfirm={() => {
+          router.push(deployUrl!)
+        }}
+      />
       <Dialog
         open={isDeployDialogOpen}
         onOpenChange={(open) => {
@@ -534,7 +557,15 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                       integration: integration.id.toString(),
                     })
 
-                    router.push(`/deploy/${database.id}?${params.toString()}`)
+                    const deployUrl = `/deploy/${database.id}?${params.toString()}`
+
+                    setDeployUrl(deployUrl)
+
+                    if (database.isDeployed) {
+                      setIsRedeployAlertDialogOpen(true)
+                    } else {
+                      router.push(deployUrl)
+                    }
                   }}
                   disabled={user === undefined}
                 >
@@ -543,7 +574,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     strokeWidth={2}
                     className="flex-shrink-0 text-muted-foreground"
                   />
-                  <span>Deploy</span>
+                  <span>{database.isDeployed ? 'Redeploy' : 'Deploy'}</span>
                 </DropdownMenuItem>
                 <LiveShareMenuItem
                   databaseId={database.id}
