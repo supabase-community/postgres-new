@@ -1,21 +1,11 @@
 primary_region = 'iad'
 
-[[services]]
-internal_port = 5432
-protocol = "tcp"
-[[services.ports]]
-handlers = ["proxy_proto"]
-port = 5432
-
-[[services]]
-internal_port = 443
-protocol = "tcp"
-[[services.ports]]
-port = 443
-
-[[restart]]
-policy = "always"
-retries = 10
+[http_service]
+internal_port = 4000
+force_https = true
+auto_stop_machines = "suspend"
+auto_start_machines = true
+min_machines_running = 0
 
 [[vm]]
 memory = '512mb'

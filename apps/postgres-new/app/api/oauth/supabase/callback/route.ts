@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 
   const now = Date.now()
-
+  console.log('getting tokens')
   // get tokens
   const tokensResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
     method: 'POST',
@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
       redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
     }),
   })
+  console.log('got tokens')
 
   const tokens = (await tokensResponse.json()) as {
     access_token: string
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
+  console.log('getting organization')
   // get org
   const [org] = (await fetch('https://api.supabase.com/v1/organizations', {
     method: 'GET',
@@ -68,9 +70,11 @@ export async function GET(req: NextRequest) {
     id: string
     name: string
   }[]
+  console.log('got organization')
 
   const adminClient = createAdminClient()
 
+  console.log('storing refresh token')
   // store the tokens as secrets
   const { data: refreshTokenSecretId, error: refreshTokenSecretError } = await adminClient.rpc(
     'insert_secret',
@@ -83,6 +87,8 @@ export async function GET(req: NextRequest) {
   if (refreshTokenSecretError) {
     return new Response('Failed to store refresh token as secret', { status: 500 })
   }
+  console.log('stored refresh token')
+  console.log('storing access token')
   const { data: accessTokenSecretId, error: accessTokenSecretError } = await adminClient.rpc(
     'insert_secret',
     {
@@ -94,7 +100,9 @@ export async function GET(req: NextRequest) {
   if (accessTokenSecretError) {
     return new Response('Failed to store access token as secret', { status: 500 })
   }
+  console.log('stored access token')
 
+  console.log('getting deployment provider')
   // store the credentials and relevant metadata
   const { data: deploymentProvider, error: deploymentProviderError } = await supabase
     .from('deployment_providers')
@@ -105,7 +113,9 @@ export async function GET(req: NextRequest) {
   if (deploymentProviderError) {
     return new Response('Failed to get deployment provider', { status: 500 })
   }
+  console.log('got deployment provider')
 
+  console.log('creating integration')
   const integration = await supabase
     .from('deployment_provider_integrations')
     .insert({
@@ -125,10 +135,14 @@ export async function GET(req: NextRequest) {
   if (integration.error) {
     return new Response('Failed to create integration', { status: 500 })
   }
-
+  console.log('created integration')
   const params = new URLSearchParams({
     integration: integration.data.id.toString(),
   })
 
+  console.log(
+    'redirecting to',
+    new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url).toString()
+  )
   return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
 }
