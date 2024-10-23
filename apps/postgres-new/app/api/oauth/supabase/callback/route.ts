@@ -71,6 +71,9 @@ export async function GET(req: NextRequest) {
 
   const adminClient = createAdminClient()
 
+  // TODO: check if secret already exists first as the secret is tied to an org, multiple users from the same org could
+  // be using the same token. Or scope the secret to the user id instead? Or don't give a name to the secret?
+
   // store the tokens as secrets
   const { data: refreshTokenSecretId, error: refreshTokenSecretError } = await adminClient.rpc(
     'insert_secret',
