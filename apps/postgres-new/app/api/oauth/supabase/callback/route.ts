@@ -5,7 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   const supabase = createClient()
 
+  console.time('get user')
   const getUserResponse = await supabase.auth.getUser()
+  console.timeEnd('get user')
 
   // We have middleware, so this should never happen (used for type narrowing)
   if (getUserResponse.error) {
@@ -34,6 +36,7 @@ export async function GET(req: NextRequest) {
 
   const now = Date.now()
 
+  console.time('get tokens')
   // get tokens
   const tokensResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
     method: 'POST',
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest) {
       redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
     }),
   })
+  console.timeEnd('get tokens')
 
   if (!tokensResponse.ok) {
     return new Response('Failed to get tokens', { status: 500 })
@@ -61,6 +65,7 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
+  console.time('get organizations')
   const organizationsResponse = await fetch('https://api.supabase.com/v1/organizations', {
     method: 'GET',
     headers: {
@@ -68,6 +73,7 @@ export async function GET(req: NextRequest) {
       Authorization: `Bearer ${tokens.access_token}`,
     },
   })
+  console.timeEnd('get organizations')
 
   if (!organizationsResponse.ok) {
     return new Response('Failed to get organizations', { status: 500 })
@@ -94,10 +100,12 @@ export async function GET(req: NextRequest) {
     secret: tokens.access_token,
   })
 
+  console.time('create secrets')
   const [createRefreshTokenSecretResponse, createAccessTokenSecretResponse] = await Promise.all([
     createRefreshTokenSecret,
     createAccessTokenSecret,
   ])
+  console.timeEnd('create secrets')
 
   if (createRefreshTokenSecretResponse.error) {
     return new Response('Failed to store refresh token as secret', { status: 500 })
@@ -107,17 +115,20 @@ export async function GET(req: NextRequest) {
     return new Response('Failed to store access token as secret', { status: 500 })
   }
 
+  console.time('get deployment provider')
   // store the credentials and relevant metadata
   const getDeploymentProviderResponse = await supabase
     .from('deployment_providers')
     .select('id')
     .eq('name', 'Supabase')
     .single()
+  console.timeEnd('get deployment provider')
 
   if (getDeploymentProviderResponse.error) {
     return new Response('Failed to get deployment provider', { status: 500 })
   }
 
+  console.time('create integration')
   const createIntegrationResponse = await supabase
     .from('deployment_provider_integrations')
     .insert({
@@ -133,6 +144,7 @@ export async function GET(req: NextRequest) {
     })
     .select('id')
     .single()
+  console.timeEnd('create integration')
 
   if (createIntegrationResponse.error) {
     return new Response('Failed to create integration', { status: 500 })
