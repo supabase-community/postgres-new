@@ -193,6 +193,10 @@ export default function AppProvider({ children }: AppProps) {
       }
 
       setLiveShareWebsocket(ws)
+
+      const databaseUrl = `postgres://postgres@${databaseHostname}/postgres?sslmode=require`
+
+      return databaseUrl
     },
     [cleanUp, supabase.auth]
   )
@@ -268,7 +272,7 @@ export type AppContextValues = {
   pgliteVersion?: string
   pgVersion?: string
   liveShare: {
-    start: (databaseId: string) => Promise<void>
+    start: (databaseId: string) => Promise<string>
     stop: () => void
     databaseId: string | null
     clientIp: string | null

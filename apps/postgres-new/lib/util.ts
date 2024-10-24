@@ -119,3 +119,22 @@ export function titleToKebabCase(str: string): string {
 export function stripSuffix(value: string, suffix: string): string {
   return value.endsWith(suffix) ? value.slice(0, -suffix.length) : value
 }
+
+export function getDeployUrl(params: { databaseId: string; integrationId: number }) {
+  const deployParams = new URLSearchParams({
+    integration: params.integrationId.toString(),
+  })
+  return `/deploy/${params.databaseId}?${deployParams.toString()}`
+}
+
+export function getOauthUrl(params: { databaseId: string }) {
+  const oauthParams = new URLSearchParams({
+    client_id: process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID!,
+    redirect_uri: `${window.location.origin}/api/oauth/supabase/callback`,
+    response_type: 'code',
+    state: JSON.stringify({
+      databaseId: params.databaseId,
+    }),
+  })
+  return `https://api.supabase.com/v1/oauth/authorize?${oauthParams.toString()}`
+}
