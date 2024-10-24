@@ -5,14 +5,14 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   const supabase = createClient()
 
-  const { data, error } = await supabase.auth.getUser()
+  const getUserResponse = await supabase.auth.getUser()
 
   // We have middleware, so this should never happen (used for type narrowing)
-  if (error) {
+  if (getUserResponse.error) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const { user } = data
+  const { user } = getUserResponse.data
 
   const code = req.nextUrl.searchParams.get('code') as string | null
 
@@ -49,6 +49,10 @@ export async function GET(req: NextRequest) {
     }),
   })
 
+  if (!tokensResponse.ok) {
+    return new Response('Failed to get tokens', { status: 500 })
+  }
+
   const tokens = (await tokensResponse.json()) as {
     access_token: string
     refresh_token: string
@@ -57,81 +61,85 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
-  // get org
-  const [org] = (await fetch('https://api.supabase.com/v1/organizations', {
+  const organizationsResponse = await fetch('https://api.supabase.com/v1/organizations', {
     method: 'GET',
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${tokens.access_token}`,
     },
-  }).then((res) => res.json())) as {
+  })
+
+  if (!organizationsResponse.ok) {
+    return new Response('Failed to get organizations', { status: 500 })
+  }
+
+  const [organization] = (await organizationsResponse.json()) as {
     id: string
     name: string
   }[]
 
+  if (!organization) {
+    return new Response('Organization not found', { status: 404 })
+  }
+
   const adminClient = createAdminClient()
 
-  // TODO: check if secret already exists first as the secret is tied to an org, multiple users from the same org could
-  // be using the same token. Or scope the secret to the user id instead? Or don't give a name to the secret?
-
   // store the tokens as secrets
-  const { data: refreshTokenSecretId, error: refreshTokenSecretError } = await adminClient.rpc(
-    'insert_secret',
-    {
-      name: `supabase_oauth_refresh_token_${org.id}`,
-      secret: tokens.refresh_token,
-    }
-  )
+  const createRefreshTokenSecret = adminClient.rpc('insert_secret', {
+    name: `supabase_oauth_refresh_token_${organization.id}_${user.id}`,
+    secret: tokens.refresh_token,
+  })
+  const createAccessTokenSecret = adminClient.rpc('insert_secret', {
+    name: `supabase_oauth_access_token_${organization.id}_${user.id}`,
+    secret: tokens.access_token,
+  })
 
-  if (refreshTokenSecretError) {
+  const [createRefreshTokenSecretResponse, createAccessTokenSecretResponse] = await Promise.all([
+    createRefreshTokenSecret,
+    createAccessTokenSecret,
+  ])
+
+  if (createRefreshTokenSecretResponse.error) {
     return new Response('Failed to store refresh token as secret', { status: 500 })
   }
 
-  const { data: accessTokenSecretId, error: accessTokenSecretError } = await adminClient.rpc(
-    'insert_secret',
-    {
-      name: `supabase_oauth_access_token_${org.id}`,
-      secret: tokens.access_token,
-    }
-  )
-
-  if (accessTokenSecretError) {
+  if (createAccessTokenSecretResponse.error) {
     return new Response('Failed to store access token as secret', { status: 500 })
   }
 
   // store the credentials and relevant metadata
-  const { data: deploymentProvider, error: deploymentProviderError } = await supabase
+  const getDeploymentProviderResponse = await supabase
     .from('deployment_providers')
     .select('id')
     .eq('name', 'Supabase')
     .single()
 
-  if (deploymentProviderError) {
+  if (getDeploymentProviderResponse.error) {
     return new Response('Failed to get deployment provider', { status: 500 })
   }
 
-  const integration = await supabase
+  const createIntegrationResponse = await supabase
     .from('deployment_provider_integrations')
     .insert({
-      deployment_provider_id: deploymentProvider.id,
+      deployment_provider_id: getDeploymentProviderResponse.data.id,
       credentials: {
-        accessToken: accessTokenSecretId,
+        accessToken: createAccessTokenSecretResponse.data,
         expiresAt: new Date(now + tokens.expires_in * 1000).toISOString(),
-        refreshToken: refreshTokenSecretId,
+        refreshToken: createRefreshTokenSecretResponse.data,
       },
       scope: {
-        organizationId: org.id,
+        organizationId: organization.id,
       },
     })
     .select('id')
     .single()
 
-  if (integration.error) {
+  if (createIntegrationResponse.error) {
     return new Response('Failed to create integration', { status: 500 })
   }
 
   const params = new URLSearchParams({
-    integration: integration.data.id.toString(),
+    integration: createIntegrationResponse.data.id.toString(),
   })
 
   return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
