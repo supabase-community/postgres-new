@@ -15,6 +15,7 @@ import {
   RadioIcon,
   Trash2,
   Upload,
+  Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -28,7 +29,7 @@ import { useDatabasesQuery } from '~/data/databases/databases-query'
 import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
 import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
 import { Database as LocalDatabase } from '~/lib/db'
-import { downloadFile, titleToKebabCase } from '~/lib/util'
+import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { CodeBlock } from './code-block'
@@ -64,9 +65,12 @@ export default function Sidebar() {
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
-  const { data: localDatabases, isLoading: isLoadingDatabases } = useDatabasesQuery()
-  const { data: deployedDatabases } = useDeployedDatabasesQuery()
+  const { data: localDatabases, isLoading: isLoadingLocalDatabases } = useDatabasesQuery()
+  const { data: deployedDatabases, isLoading: isLoadingDeployedDatabases } =
+    useDeployedDatabasesQuery()
   const [showSidebar, setShowSidebar] = useState(true)
+
+  const isLoadingDatabases = isLoadingLocalDatabases && isLoadingDeployedDatabases
 
   const databases = localDatabases?.map((db) => ({
     ...db,
@@ -326,6 +330,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const [isRedeployAlertDialogOpen, setIsRedeployAlertDialogOpen] = useState(false)
   const [deployUrl, setDeployUrl] = useState<string | null>(null)
 
+  const [isDeploying, setIsDeploying] = useState(false)
+
   return (
     <>
       <RedeployAlertDialog
@@ -513,25 +519,15 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                   onClick={async (e) => {
                     e.preventDefault()
+                    setIsDeploying(true)
                     const supabase = createClient()
-                    const { data: provider, error: providerError } = await supabase
-                      .from('deployment_providers')
-                      .select('id')
-                      .eq('name', 'Supabase')
-                      .single()
-
-                    if (providerError) {
-                      console.error(providerError)
-                      return
-                    }
 
                     // check existing integration, we currently assume a single integration per user and provider
                     // later we will allow for multiple integrations per provider with different scopes
                     const { data: integration, error: integrationError } = await supabase
                       .from('deployment_provider_integrations')
-                      .select('id')
-                      .eq('deployment_provider_id', provider.id)
-                      .eq('user_id', user!.id)
+                      .select('id, deployment_providers!inner(name)')
+                      .eq('deployment_providers.name', 'Supabase')
                       .maybeSingle()
 
                     if (integrationError) {
@@ -540,24 +536,14 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     }
 
                     if (!integration) {
-                      const params = new URLSearchParams({
-                        client_id: process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID!,
-                        redirect_uri: `${window.location.origin}/api/oauth/supabase/callback`,
-                        response_type: 'code',
-                        state: JSON.stringify({
-                          databaseId: database.id,
-                        }),
-                      })
-                      window.location.href =
-                        'https://api.supabase.com/v1/oauth/authorize' + '?' + params.toString()
+                      router.push(getOauthUrl({ databaseId: database.id }))
                       return
                     }
 
-                    const params = new URLSearchParams({
-                      integration: integration.id.toString(),
+                    const deployUrl = getDeployUrl({
+                      databaseId: database.id,
+                      integrationId: integration.id,
                     })
-
-                    const deployUrl = `/deploy/${database.id}?${params.toString()}`
 
                     setDeployUrl(deployUrl)
 
@@ -569,11 +555,19 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   }}
                   disabled={user === undefined}
                 >
-                  <Upload
-                    size={16}
-                    strokeWidth={2}
-                    className="flex-shrink-0 text-muted-foreground"
-                  />
+                  {isDeploying ? (
+                    <Loader2
+                      className="animate-spin flex-shrink-0 text-muted-foreground"
+                      size={16}
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <Upload
+                      size={16}
+                      strokeWidth={2}
+                      className="flex-shrink-0 text-muted-foreground"
+                    />
+                  )}
                   <span>{database.isDeployed ? 'Redeploy' : 'Deploy'}</span>
                 </DropdownMenuItem>
                 <LiveShareMenuItem
