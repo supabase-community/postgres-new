@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '~/utils/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
+  console.time('oauth callback')
   const supabase = createClient()
 
   console.time('get user')
@@ -153,6 +154,8 @@ export async function GET(req: NextRequest) {
   const params = new URLSearchParams({
     integration: createIntegrationResponse.data.id.toString(),
   })
+
+  console.timeEnd('oauth callback')
 
   return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
 }
