@@ -45,6 +45,23 @@ export async function createDeployedDatabase(
 
   const databasePassword = generatePassword()
 
+  const projectName = `database-build-${params.databaseId}`
+
+  // check if the project already exists on Supabase
+  const { data: projects, error: getProjectsError } = await managementApiClient.GET('/v1/projects')
+
+  if (getProjectsError) {
+    throw new DeployError('Failed to get projects from Supabase', { cause: getProjectsError })
+  }
+
+  const project = projects.find((p) => p.name === projectName)
+
+  if (project) {
+    throw new DeployError(`A project with this name ${projectName} already exists on Supabase`, {
+      cause: project,
+    })
+  }
+
   // create a new project on Supabase using the Management API
   const { data: createdProject, error: createdProjectError } = await managementApiClient.POST(
     '/v1/projects',
