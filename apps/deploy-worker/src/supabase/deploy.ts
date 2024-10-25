@@ -3,7 +3,7 @@ import type { SupabaseClient, SupabaseProviderMetadata } from './types.ts'
 import { exec as execSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createDeployedDatabase } from './create-deployed-database.ts'
-import { getDatabaseUrl } from './get-database-url.ts'
+import { getDatabaseUrl, getPoolerUrl } from './get-database-url.ts'
 import { DeployError } from '../error.ts'
 const exec = promisify(execSync)
 
@@ -75,8 +75,28 @@ export async function deploy(
       project,
     })
 
+    const excludedSchemas = [
+      '_realtime',
+      'auth',
+      'cron',
+      'extensions',
+      'graphql',
+      'graphql_public',
+      'net',
+      'pgbouncer',
+      'pgsodium',
+      'pgsodium_masks',
+      'realtime',
+      'storage',
+      'supabase_functions',
+      'supabase_migrations',
+      'vault',
+    ]
+      .map((schema) => `--exclude-schema=${schema}`)
+      .join(' ')
+
     // use pg_dump and pg_restore to transfer the data from the local database to the remote database
-    const command = `pg_dump "${params.localDatabaseUrl}" -Fc | pg_restore -d "${databaseUrl}" --clean --if-exists`
+    const command = `pg_dump "${params.localDatabaseUrl}" -Fc ${excludedSchemas} | pg_restore -d "${databaseUrl}" --clean --if-exists`
 
     try {
       await exec(command)
@@ -100,6 +120,7 @@ export async function deploy(
       name: project.name,
       url: `https://supabase.com/dashboard/project/${project.id}`,
       databaseUrl: await getDatabaseUrl({ project, hidePassword: isRedeploy }),
+      poolerUrl: await getPoolerUrl({ project, hidePassword: isRedeploy }),
       isRedeploy,
     }
   } catch (error) {

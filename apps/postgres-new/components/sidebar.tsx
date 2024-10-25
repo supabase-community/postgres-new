@@ -39,7 +39,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { TooltipPortal } from '@radix-ui/react-tooltip'
@@ -47,6 +51,7 @@ import { LiveShareIcon } from './live-share-icon'
 import { createClient } from '~/utils/supabase/client'
 import { RedeployAlertDialog } from './redeploy-alert-dialog'
 import { useDeployedDatabasesQuery } from '~/data/deployed-databases/deployed-databases-query'
+import { SupabaseIcon } from './supabase-icon'
 
 type Database = LocalDatabase & {
   isDeployed: boolean
@@ -474,7 +479,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 />
               </form>
             ) : (
-              <div className="flex flex-col items-stretch w-32">
+              <div className="flex flex-col items-stretch">
                 <DropdownMenuItem
                   className="gap-3"
                   onSelect={async (e) => {
@@ -515,61 +520,73 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
                   <span>Download</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    setIsDeploying(true)
-                    const supabase = createClient()
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger
+                    disabled={!user}
+                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                  >
+                    {isDeploying ? (
+                      <Loader2
+                        className="animate-spin flex-shrink-0 text-muted-foreground"
+                        size={16}
+                        strokeWidth={2}
+                      />
+                    ) : (
+                      <Upload
+                        size={16}
+                        strokeWidth={2}
+                        className="flex-shrink-0 text-muted-foreground"
+                      />
+                    )}
+                    <span>Deploy</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem
+                        className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                        onClick={async (e) => {
+                          e.preventDefault()
+                          setIsDeploying(true)
+                          const supabase = createClient()
 
-                    // check existing integration, we currently assume a single integration per user and provider
-                    // later we will allow for multiple integrations per provider with different scopes
-                    const { data: integration, error: integrationError } = await supabase
-                      .from('deployment_provider_integrations')
-                      .select('id, deployment_providers!inner(name)')
-                      .eq('deployment_providers.name', 'Supabase')
-                      .maybeSingle()
+                          // check existing integration, we currently assume a single integration per user and provider
+                          // later we will allow for multiple integrations per provider with different scopes
+                          const { data: integration, error: integrationError } = await supabase
+                            .from('deployment_provider_integrations')
+                            .select('id, deployment_providers!inner(name)')
+                            .eq('deployment_providers.name', 'Supabase')
+                            .maybeSingle()
 
-                    if (integrationError) {
-                      console.error(integrationError)
-                      return
-                    }
+                          if (integrationError) {
+                            console.error(integrationError)
+                            return
+                          }
 
-                    if (!integration) {
-                      router.push(getOauthUrl({ databaseId: database.id }))
-                      return
-                    }
+                          if (!integration) {
+                            router.push(getOauthUrl({ databaseId: database.id }))
+                            return
+                          }
 
-                    const deployUrl = getDeployUrl({
-                      databaseId: database.id,
-                      integrationId: integration.id,
-                    })
+                          const deployUrl = getDeployUrl({
+                            databaseId: database.id,
+                            integrationId: integration.id,
+                          })
 
-                    setDeployUrl(deployUrl)
+                          setDeployUrl(deployUrl)
 
-                    if (database.isDeployed) {
-                      setIsRedeployAlertDialogOpen(true)
-                    } else {
-                      router.push(deployUrl)
-                    }
-                  }}
-                  disabled={user === undefined}
-                >
-                  {isDeploying ? (
-                    <Loader2
-                      className="animate-spin flex-shrink-0 text-muted-foreground"
-                      size={16}
-                      strokeWidth={2}
-                    />
-                  ) : (
-                    <Upload
-                      size={16}
-                      strokeWidth={2}
-                      className="flex-shrink-0 text-muted-foreground"
-                    />
-                  )}
-                  <span>{database.isDeployed ? 'Redeploy' : 'Deploy'}</span>
-                </DropdownMenuItem>
+                          if (database.isDeployed) {
+                            setIsRedeployAlertDialogOpen(true)
+                          } else {
+                            router.push(deployUrl)
+                          }
+                        }}
+                      >
+                        <SupabaseIcon />
+                        <span>Supabase</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
                 <LiveShareMenuItem
                   databaseId={database.id}
                   isActive={isActive}

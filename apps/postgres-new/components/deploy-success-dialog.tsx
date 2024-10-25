@@ -12,6 +12,7 @@ export function DeploySuccessDialog() {
     name: string
     url: string
     databaseUrl: string
+    poolerUrl: string
     isRedeploy: boolean
   } | null>(null)
   const [open, setOpen] = useState(false)
@@ -40,7 +41,8 @@ export function DeploySuccessDialog() {
         </DialogHeader>
         <div className="flex flex-col gap-6">
           <p>
-            Your database has been {deployText} to the Supabase project:{' '}
+            Your database has been {deployText} to the Supabase project:
+            <br />
             <Link
               target="_blank"
               rel="noopener noreferrer"
@@ -51,6 +53,7 @@ export function DeploySuccessDialog() {
             </Link>
           </p>
           <p className="flex flex-col gap-2">
+            <CopyableField label="Pooler Connection URL" value={project.poolerUrl} />
             <CopyableField label="Database Connection URL" value={project.databaseUrl} />
             {project.isRedeploy ? null : (
               <span className="text-muted-foreground text-sm font-semibold">

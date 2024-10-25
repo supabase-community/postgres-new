@@ -128,10 +128,16 @@ export async function createDeployedDatabase(
       name: createdProject.name,
       region: createdProject.region,
       createdAt: createdProject.created_at,
+      databasePasswordSecretId: databasePasswordSecret.data,
       database: {
+        host: createdProject.database!.host,
+        name: 'postgres',
+        port: 5432,
+        user: 'postgres',
+      },
+      pooler: {
         host: primaryDatabase.db_host,
         name: primaryDatabase.db_name,
-        password: databasePasswordSecret.data,
         // use session mode for prepared statements
         port: 5432,
         user: primaryDatabase.db_user,

@@ -9,8 +9,8 @@ export async function waitForProjectToBeHealthy(
   ctx: { managementApiClient: ManagementApiClient },
   params: { project: Project }
 ) {
-  const MAX_POLLING_TIME = 2 // 2 minutes
-  const POLLING_INTERVAL = 5 * 1000 // 5 seconds in milliseconds
+  const MAX_POLLING_TIME = 3 // minutes
+  const POLLING_INTERVAL = 5 * 1000 // seconds in milliseconds
   const MAX_ATTEMPTS = (MAX_POLLING_TIME * 60 * 1000) / POLLING_INTERVAL
 
   let attempts = 0
