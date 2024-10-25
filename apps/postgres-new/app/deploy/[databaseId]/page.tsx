@@ -7,6 +7,7 @@ import { useApp } from '~/components/app-provider'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { createClient } from '~/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { ParticlesBackground } from '~/components/particles-background'
 
 export default function Page() {
   const params = useParams<{ databaseId: string }>()
@@ -88,22 +89,28 @@ export default function Page() {
   }, [deploy])
 
   return (
-    <Dialog open>
-      <DialogContent className="max-w-3xl" showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>Deploying your database</DialogTitle>
-          <div className="py-2 border-b" />
-        </DialogHeader>
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-4">
-            <Loader2 className="animate-spin" />
-            <div>
-              <p>Your database is being deployed. This process typically takes a few minutes.</p>
-              <p>Please keep this page open to ensure successful deployment.</p>
+    <ParticlesBackground>
+      <Dialog open>
+        <DialogContent
+          className="max-w-3xl bg-background/70 backdrop-blur-sm"
+          showCloseButton={false}
+          overlay={false}
+        >
+          <DialogHeader>
+            <DialogTitle>Deploying your database</DialogTitle>
+            <div className="py-2 border-b" />
+          </DialogHeader>
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-4">
+              <Loader2 className="animate-spin" />
+              <div>
+                <p>Your database is being deployed. This process typically takes a few minutes.</p>
+                <p>Please keep this page open to ensure successful deployment.</p>
+              </div>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </ParticlesBackground>
   )
 }
