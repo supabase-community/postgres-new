@@ -524,6 +524,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   <DropdownMenuSubTrigger
                     disabled={!user}
                     className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                    chevronRightClassName="text-muted-foreground"
                   >
                     {isDeploying ? (
                       <Loader2
