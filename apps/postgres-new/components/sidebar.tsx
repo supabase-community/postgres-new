@@ -345,6 +345,9 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         onConfirm={() => {
           router.push(deployUrl!)
         }}
+        onCancel={() => {
+          setIsDeploying(false)
+        }}
       />
       <Dialog
         open={isDeployDialogOpen}

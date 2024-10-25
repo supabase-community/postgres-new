@@ -13,6 +13,7 @@ type RedeployAlertDialogProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
+  onCancel: () => void
 }
 
 export function RedeployAlertDialog(props: RedeployAlertDialogProps) {
@@ -27,7 +28,13 @@ export function RedeployAlertDialog(props: RedeployAlertDialogProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel
+            onClick={() => {
+              props.onCancel()
+            }}
+          >
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               props.onConfirm()
