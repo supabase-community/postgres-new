@@ -11,10 +11,11 @@ export async function waitForProjectToBeHealthy(
 ) {
   const MAX_POLLING_TIME = 2 // 2 minutes
   const POLLING_INTERVAL = 5 * 1000 // 5 seconds in milliseconds
+  const MAX_ATTEMPTS = (MAX_POLLING_TIME * 60 * 1000) / POLLING_INTERVAL
 
-  const startTime = Date.now()
+  let attempts = 0
 
-  while (true) {
+  while (attempts < MAX_ATTEMPTS) {
     try {
       const { data: project, error } = await ctx.managementApiClient.GET('/v1/projects/{ref}', {
         params: {
@@ -33,21 +34,15 @@ export async function waitForProjectToBeHealthy(
       if (project.status === 'ACTIVE_HEALTHY') {
         return
       }
-      // TODO: investigate why this error is being thrown sometimes in less than MAX_POLLING_TIME
-      // Could it be Fly.io suspending the machine which would impact Date.now()?
-      if (Date.now() - startTime > MAX_POLLING_TIME * 60 * 1000) {
-        throw new DeployError(`Project did not become healthy within ${MAX_POLLING_TIME} minutes`, {
-          cause: {
-            status: project.status,
-          },
-        })
-      }
 
+      attempts += 1
       await setTimeout(POLLING_INTERVAL)
     } catch (error) {
       throw error
     }
   }
+
+  throw new DeployError(`Project did not become healthy within ${MAX_POLLING_TIME} minutes`)
 }
 
 /**
@@ -59,10 +54,11 @@ export async function waitForDatabaseToBeHealthy(
 ) {
   const MAX_POLLING_TIME = 2 // 2 minutes
   const POLLING_INTERVAL = 5 * 1000 // 5 seconds in milliseconds
+  const MAX_ATTEMPTS = (MAX_POLLING_TIME * 60 * 1000) / POLLING_INTERVAL
 
-  const startTime = Date.now()
+  let attempts = 0
 
-  while (true) {
+  while (attempts < MAX_ATTEMPTS) {
     try {
       const { data: servicesHealth, error } = await ctx.managementApiClient.GET(
         '/v1/projects/{ref}/health',
@@ -102,22 +98,12 @@ export async function waitForDatabaseToBeHealthy(
         return
       }
 
-      // TODO: investigate why this error is being thrown sometimes in less than MAX_POLLING_TIME
-      if (Date.now() - startTime > MAX_POLLING_TIME * 60 * 1000) {
-        throw new DeployError(
-          `Database did not become healthy within ${MAX_POLLING_TIME} minutes`,
-          {
-            cause: {
-              status: databaseService.status,
-              error: databaseService.error,
-            },
-          }
-        )
-      }
-
+      attempts += 1
       await setTimeout(POLLING_INTERVAL)
     } catch (error) {
       throw error
     }
   }
+
+  throw new DeployError(`Database did not become healthy within ${MAX_POLLING_TIME} minutes`)
 }
