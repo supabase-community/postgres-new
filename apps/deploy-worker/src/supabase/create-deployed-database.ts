@@ -54,11 +54,11 @@ export async function createDeployedDatabase(
     throw new DeployError('Failed to get projects from Supabase', { cause: getProjectsError })
   }
 
-  const project = projects.find((p) => p.name === projectName)
+  const existingProject = projects.find((p) => p.name === projectName)
 
-  if (project) {
+  if (existingProject) {
     throw new DeployError(`A project with this name ${projectName} already exists on Supabase`, {
-      cause: project,
+      cause: existingProject,
     })
   }
 
@@ -81,7 +81,10 @@ export async function createDeployedDatabase(
     })
   }
 
-  await waitForProjectToBeHealthy({ managementApiClient }, { project: createdProject })
+  const project = await waitForProjectToBeHealthy(
+    { managementApiClient },
+    { project: createdProject }
+  )
 
   await waitForDatabaseToBeHealthy({ managementApiClient }, { project: createdProject })
 
@@ -130,7 +133,7 @@ export async function createDeployedDatabase(
       createdAt: createdProject.created_at,
       databasePasswordSecretId: databasePasswordSecret.data,
       database: {
-        host: createdProject.database!.host,
+        host: project.database!.host,
         name: 'postgres',
         port: 5432,
         user: 'postgres',

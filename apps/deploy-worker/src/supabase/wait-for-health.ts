@@ -32,7 +32,7 @@ export async function waitForProjectToBeHealthy(
       }
 
       if (project.status === 'ACTIVE_HEALTHY') {
-        return
+        return project
       }
 
       attempts += 1
