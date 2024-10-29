@@ -76,7 +76,6 @@ export async function deploy(
     })
 
     const excludedSchemas = [
-      '_realtime',
       'auth',
       'cron',
       'extensions',
