@@ -100,3 +100,49 @@ export function isTerminateMessage(message: Uint8Array): boolean {
 
   return true
 }
+
+export type ReadyForQueryMessage = {
+  transactionStatus: 'idle' | 'transaction' | 'error'
+}
+
+export function isReadyForQuery(message: Uint8Array) {
+  return message[0] === 'Z'.charCodeAt(0)
+}
+
+export function parseReadyForQuery(message: Uint8Array): ReadyForQueryMessage {
+  const dataView = new DataView(message.buffer, message.byteOffset, message.byteLength)
+
+  const transactionStatus = getTransactionStatus(dataView.getUint8(5))
+
+  return { transactionStatus }
+}
+
+function getTransactionStatus(code: number) {
+  const transactionStatus = String.fromCharCode(code)
+
+  switch (transactionStatus) {
+    case 'I':
+      return 'idle'
+    case 'T':
+      return 'transaction'
+    case 'E':
+      return 'error'
+    default:
+      throw new Error(`unknown transaction status '${transactionStatus}'`)
+  }
+}
+
+export function* getMessages(data: Uint8Array): Iterable<Uint8Array> {
+  if (data.byteLength === 0) {
+    return
+  }
+
+  const dataView = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  let offset = 0
+
+  while (offset < dataView.byteLength) {
+    const length = dataView.getUint32(offset + 1)
+    yield data.subarray(offset, offset + length + 1)
+    offset += length + 1
+  }
+}
