@@ -1,8 +1,8 @@
 import { m } from 'framer-motion'
 import { Download } from 'lucide-react'
 import { useMemo } from 'react'
-import { format } from 'sql-formatter'
 import { loadFile } from '~/lib/files'
+import { formatSql } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import { downloadFile } from '~/lib/util'
 import CodeAccordion from '../code-accordion'
@@ -14,17 +14,7 @@ export type CsvExportProps = {
 export default function CsvExport({ toolInvocation }: CsvExportProps) {
   const { sql } = toolInvocation.args
 
-  const formattedSql = useMemo(
-    () =>
-      format(sql, {
-        language: 'postgresql',
-        keywordCase: 'lower',
-        identifierCase: 'lower',
-        dataTypeCase: 'lower',
-        functionCase: 'lower',
-      }),
-    [sql]
-  )
+  const formattedSql = useMemo(() => formatSql(sql), [sql])
 
   if (!('result' in toolInvocation)) {
     return null
@@ -37,7 +27,7 @@ export default function CsvExport({ toolInvocation }: CsvExportProps) {
       <CodeAccordion
         title="Error executing SQL"
         language="sql"
-        code={formattedSql}
+        code={formattedSql ?? sql}
         error={result.error}
       />
     )
@@ -45,7 +35,7 @@ export default function CsvExport({ toolInvocation }: CsvExportProps) {
 
   return (
     <>
-      <CodeAccordion title="Executed SQL" language="sql" code={formattedSql} />
+      <CodeAccordion title="Executed SQL" language="sql" code={formattedSql ?? sql} />
       <m.div
         layoutId={toolInvocation.toolCallId}
         className="self-start px-5 py-2.5 text-base rounded-full bg-border flex gap-2 items-center text-lighter italic"
