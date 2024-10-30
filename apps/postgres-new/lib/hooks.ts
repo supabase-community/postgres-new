@@ -168,6 +168,7 @@ export function useAsyncMemo<T>(
       })
       .catch((err) => {
         if (!hasBeenCancelled.current) {
+          setValue(undefined)
           setError(err)
         }
       })

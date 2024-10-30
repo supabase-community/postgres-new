@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format } from 'sql-formatter'
+import { formatSql } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import CodeAccordion from '../code-accordion'
 
@@ -10,17 +10,7 @@ export type ExecutedSqlProps = {
 export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
   const { sql } = toolInvocation.args
 
-  const formattedSql = useMemo(
-    () =>
-      format(sql, {
-        language: 'postgresql',
-        keywordCase: 'lower',
-        identifierCase: 'lower',
-        dataTypeCase: 'lower',
-        functionCase: 'lower',
-      }),
-    [sql]
-  )
+  const formattedSql = useMemo(() => formatSql(sql), [sql])
 
   if (!('result' in toolInvocation)) {
     return null
@@ -33,11 +23,11 @@ export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
       <CodeAccordion
         title="Error executing SQL"
         language="sql"
-        code={formattedSql}
+        code={formattedSql ?? sql}
         error={result.error}
       />
     )
   }
 
-  return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql} />
+  return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql ?? sql} />
 }

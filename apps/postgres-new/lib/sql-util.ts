@@ -1,4 +1,5 @@
 import { A_Const, A_Expr, ColumnRef, Node, RawStmt } from 'libpg-query/wasm'
+import { format } from 'sql-formatter'
 
 export function isQueryStatement(stmt: RawStmt) {
   return stmt.stmt && unwrapQueryStatement(stmt.stmt) !== undefined
@@ -505,5 +506,19 @@ export function parseConstant(constant: A_Const) {
     return constant.fval?.fval ? parseFloat(constant.fval.fval) : 0
   } else {
     throw new AssertionError(`Constant values must be a string, integer, or float`)
+  }
+}
+
+export function formatSql(sql: string) {
+  try {
+    return format(sql, {
+      language: 'postgresql',
+      keywordCase: 'lower',
+      identifierCase: 'lower',
+      dataTypeCase: 'lower',
+      functionCase: 'lower',
+    })
+  } catch (err) {
+    return undefined
   }
 }

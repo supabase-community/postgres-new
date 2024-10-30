@@ -1,7 +1,7 @@
+import { useMemo } from 'react'
+import { formatSql } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import CodeAccordion from '../code-accordion'
-import { useMemo } from 'react'
-import { format } from 'sql-formatter'
 
 export type CsvExportProps = {
   toolInvocation: ToolInvocation<'importCsv'>
@@ -10,17 +10,7 @@ export type CsvExportProps = {
 export default function CsvImport({ toolInvocation }: CsvExportProps) {
   const { sql } = toolInvocation.args
 
-  const formattedSql = useMemo(
-    () =>
-      format(sql, {
-        language: 'postgresql',
-        keywordCase: 'lower',
-        identifierCase: 'lower',
-        dataTypeCase: 'lower',
-        functionCase: 'lower',
-      }),
-    [sql]
-  )
+  const formattedSql = useMemo(() => formatSql(sql), [sql])
 
   if (!('result' in toolInvocation)) {
     return null
@@ -33,11 +23,11 @@ export default function CsvImport({ toolInvocation }: CsvExportProps) {
       <CodeAccordion
         title="Error executing SQL"
         language="sql"
-        code={formattedSql}
+        code={formattedSql ?? sql}
         error={result.error}
       />
     )
   }
 
-  return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql} />
+  return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql ?? sql} />
 }
