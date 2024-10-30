@@ -186,7 +186,7 @@ export async function deploy(
 
     return {
       name: project.name,
-      url: `https://supabase.com/dashboard/project/${project.id}`,
+      url: `${process.env.SUPABASE_PLATFORM_URL}/dashboard/project/${project.id}`,
       databasePassword,
       databaseUrl: getDatabaseUrl({ project, databasePassword }),
       poolerUrl: getPoolerUrl({ project, databasePassword }),

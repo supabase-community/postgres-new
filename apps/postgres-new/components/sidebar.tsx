@@ -1,5 +1,6 @@
 'use client'
 
+import { TooltipPortal } from '@radix-ui/react-tooltip'
 import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
@@ -7,6 +8,7 @@ import {
   Database as DbIcon,
   Download,
   Loader,
+  Loader2,
   LogOut,
   MoreVertical,
   PackagePlus,
@@ -15,7 +17,6 @@ import {
   RadioIcon,
   Trash2,
   Upload,
-  Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -26,14 +27,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { useDeployWaitlistCreateMutation } from '~/data/deploy-waitlist/deploy-waitlist-create-mutation'
-import { useIsOnDeployWaitlistQuery } from '~/data/deploy-waitlist/deploy-waitlist-query'
+import { useDeployedDatabasesQuery } from '~/data/deployed-databases/deployed-databases-query'
+import { useIntegrationQuery } from '~/data/integrations/integration-query'
 import { Database as LocalDatabase } from '~/lib/db'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
-import { CodeBlock } from './code-block'
+import { DeployDialog } from './deploy/deploy-dialog'
+import { IntegrationDialog } from './deploy/integration-dialog'
+import { RedeployAlertDialog } from './deploy/redeploy-alert-dialog'
+import { LiveShareIcon } from './live-share-icon'
 import SignInButton from './sign-in-button'
+import { SupabaseIcon } from './supabase-icon'
 import ThemeDropdown from './theme-dropdown'
 import {
   DropdownMenu,
@@ -46,12 +51,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { TooltipPortal } from '@radix-ui/react-tooltip'
-import { LiveShareIcon } from './live-share-icon'
-import { createClient } from '~/utils/supabase/client'
-import { RedeployAlertDialog } from './redeploy-alert-dialog'
-import { useDeployedDatabasesQuery } from '~/data/deployed-databases/deployed-databases-query'
-import { SupabaseIcon } from './supabase-icon'
 
 type Database = LocalDatabase & {
   isDeployed: boolean
@@ -325,13 +324,12 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
+  const { data: supabaseIntegration } = useIntegrationQuery('Supabase')
 
   const [isRenaming, setIsRenaming] = useState(false)
+
+  const [isIntegrationDialogOpen, setIsIntegrationDialogOpen] = useState(false)
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false)
-
-  const { data: isOnDeployWaitlist } = useIsOnDeployWaitlistQuery()
-  const { mutateAsync: joinDeployWaitlist } = useDeployWaitlistCreateMutation()
-
   const [isRedeployAlertDialogOpen, setIsRedeployAlertDialogOpen] = useState(false)
   const [deployUrl, setDeployUrl] = useState<string | null>(null)
 
@@ -339,6 +337,35 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
   return (
     <>
+      <IntegrationDialog
+        open={isIntegrationDialogOpen}
+        onOpenChange={(open) => {
+          setIsIntegrationDialogOpen(open)
+        }}
+        onConfirm={() => {
+          router.push(getOauthUrl({ databaseId: database.id }))
+        }}
+      />
+      <DeployDialog
+        open={isDeployDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeployDialogOpen(open)
+        }}
+        onConfirm={() => {
+          if (!supabaseIntegration) {
+            setIsDeployDialogOpen(false)
+            setIsIntegrationDialogOpen(true)
+            return
+          }
+
+          const deployUrl = getDeployUrl({
+            databaseId: database.id,
+            integrationId: supabaseIntegration.id,
+          })
+
+          router.push(deployUrl)
+        }}
+      />
       <RedeployAlertDialog
         isOpen={isRedeployAlertDialogOpen}
         onOpenChange={setIsRedeployAlertDialogOpen}
@@ -349,59 +376,6 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           setIsDeploying(false)
         }}
       />
-      <Dialog
-        open={isDeployDialogOpen}
-        onOpenChange={(open) => {
-          setIsDeployDialogOpen(open)
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Deployments are in Private Alpha</DialogTitle>
-            <div className="py-2 border-b" />
-          </DialogHeader>
-          <h2 className="font-bold">What are deployments?</h2>
-          <p>
-            Deploy your database to a serverless PGlite instance so that it can be accessed outside
-            the browser using any Postgres client:
-          </p>
-          <CodeBlock
-            className="language-curl bg-neutral-800"
-            language="curl"
-            hideLineNumbers
-            theme="dark"
-          >
-            {`psql "postgres://postgres:<password>@<your-unique-server>/postgres"`}
-          </CodeBlock>
-          <div className="flex justify-center items-center mt-3">
-            <AnimatePresence initial={false}>
-              {!isOnDeployWaitlist ? (
-                <button
-                  className="px-4 py-3 bg-foreground text-background rounded-md"
-                  onClick={async () => {
-                    await joinDeployWaitlist()
-                  }}
-                >
-                  Join Private Alpha
-                </button>
-              ) : (
-                <m.div
-                  className="px-4 py-3 border-2 rounded-md text-center border-dashed"
-                  variants={{
-                    hidden: { scale: 0 },
-                    show: { scale: 1 },
-                  }}
-                  initial="hidden"
-                  animate="show"
-                >
-                  <h3 className="font-medium mb-2">🎉 You&apos;re on the waitlist!</h3>
-                  <p>We&apos;ll send you an email when you have access to deploy.</p>
-                </m.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Link
         data-active={isActive || isPopoverOpen}
@@ -526,7 +500,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger
                     disabled={!user}
-                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3 cursor-pointer"
                     chevronRightClassName="text-muted-foreground"
                   >
                     {isDeploying ? (
@@ -548,41 +522,12 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     <DropdownMenuSubContent>
                       <DropdownMenuItem
                         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                        onClick={async (e) => {
+                        onSelect={async (e) => {
                           e.preventDefault()
-                          setIsDeploying(true)
-                          const supabase = createClient()
-
-                          // check existing integration, we currently assume a single active integration per user and provider
-                          // later we will allow for multiple integrations per provider with different scopes
-                          const { data: integration, error: integrationError } = await supabase
-                            .from('deployment_provider_integrations')
-                            .select('id, deployment_providers!inner(name)')
-                            .eq('deployment_providers.name', 'Supabase')
-                            .is('revoked_at', null)
-                            .maybeSingle()
-
-                          if (integrationError) {
-                            console.error(integrationError)
-                            return
-                          }
-
-                          if (!integration) {
-                            router.push(getOauthUrl({ databaseId: database.id }))
-                            return
-                          }
-
-                          const deployUrl = getDeployUrl({
-                            databaseId: database.id,
-                            integrationId: integration.id,
-                          })
-
-                          setDeployUrl(deployUrl)
-
-                          if (database.isDeployed) {
-                            setIsRedeployAlertDialogOpen(true)
+                          if (!supabaseIntegration) {
+                            setIsIntegrationDialogOpen(true)
                           } else {
-                            router.push(deployUrl)
+                            setIsDeployDialogOpen(true)
                           }
                         }}
                       >

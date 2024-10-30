@@ -12,7 +12,7 @@ const integrationRevokedMiddleware: Middleware = {
 
 export function createManagementApiClient(accessToken: string) {
   const client = createClient<paths>({
-    baseUrl: 'https://api.supabase.com/',
+    baseUrl: process.env.SUPABASE_PLATFORM_API_URL,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,

@@ -1,6 +1,6 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from './ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '~/components/ui/dialog'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 

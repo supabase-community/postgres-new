@@ -13,6 +13,9 @@ type Database = Unpacked<
   paths['/v1/projects/{ref}/config/database/pooler']['get']['responses']['200']['content']['application/json']
 >
 
+export type Region =
+  paths['/v1/projects']['post']['requestBody']['content']['application/json']['region']
+
 export type SupabaseProviderMetadata = {
   project: {
     id: Project['id']

@@ -25,18 +25,21 @@ export async function getAccessToken(params: {
   if (new Date(credentials.expiresAt) < new Date(Date.now() + 1 * 60 * 60 * 1000)) {
     const now = Date.now()
 
-    const newCredentialsResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-        Authorization: `Basic ${btoa(`${process.env.SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: credentials.refreshToken,
-      }),
-    })
+    const newCredentialsResponse = await fetch(
+      `${process.env.SUPABASE_PLATFORM_API_URL}/v1/oauth/token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+          Authorization: `Basic ${btoa(`${process.env.SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: credentials.refreshToken,
+        }),
+      }
+    )
 
     if (!newCredentialsResponse.ok) {
       if (newCredentialsResponse.status === 406) {

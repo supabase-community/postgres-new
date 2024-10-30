@@ -2,7 +2,7 @@ import { DeployError } from '../error.ts'
 import { generatePassword } from './generate-password.ts'
 import { getAccessToken } from './get-access-token.ts'
 import { createManagementApiClient } from './management-api/client.ts'
-import type { SupabaseClient, SupabaseProviderMetadata } from './types.ts'
+import type { Region, SupabaseClient, SupabaseProviderMetadata } from './types.ts'
 import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-for-health.ts'
 
 /**
@@ -74,7 +74,7 @@ export async function createDeployedDatabase(
         db_pass: databasePassword,
         name: `database-build-${params.databaseId}`,
         organization_id: (integration.data.scope as { organizationId: string }).organizationId,
-        region: 'us-east-1',
+        region: process.env.SUPABASE_PLATFORM_DEPLOY_REGION as Region,
       },
     }
   )

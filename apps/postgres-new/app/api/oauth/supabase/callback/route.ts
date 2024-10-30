@@ -45,19 +45,22 @@ export async function GET(req: NextRequest) {
   const now = Date.now()
 
   // get tokens
-  const tokensResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-      Authorization: `Basic ${btoa(`${process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
-    }),
-  })
+  const tokensResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/oauth/token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        Authorization: `Basic ${btoa(`${process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
+      }),
+    }
+  )
 
   if (!tokensResponse.ok) {
     return new Response('Failed to get tokens', { status: 500 })
@@ -71,13 +74,18 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
-  const organizationsResponse = await fetch('https://api.supabase.com/v1/organizations', {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${tokens.access_token}`,
-    },
-  })
+  console.log({ tokens })
+
+  const organizationsResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/organizations`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    }
+  )
 
   if (!organizationsResponse.ok) {
     return new Response('Failed to get organizations', { status: 500 })

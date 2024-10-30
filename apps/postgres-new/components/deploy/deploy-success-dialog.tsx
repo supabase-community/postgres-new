@@ -1,11 +1,11 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from './ui/dialog'
-import { useRouter } from 'next/navigation'
-import { CopyableField } from './copyable-field'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Badge } from './ui/badge'
+import { CopyableField } from '~/components/copyable-field'
+import { Badge } from '~/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 
 export function DeploySuccessDialog() {
   const router = useRouter()
@@ -84,12 +84,12 @@ export function DeploySuccessDialog() {
               <>
                 <CopyableField label="Database Password" value={project.databasePassword} />
                 <span className="text-muted-foreground text-sm">
+                  {/* eslint-disable-next-line react/no-unescaped-entities */}
                   Please{' '}
                   <span className="text-foreground font-semibold">
                     save your database password securely
                   </span>{' '}
-                  {/* eslint-disable-next-line react/no-unescaped-entities */}
-                  as it won't be displayed again.
+                  as it won&apos;t be displayed again.
                 </span>
               </>
             ) : null}
@@ -103,6 +103,7 @@ export function DeploySuccessDialog() {
               >
                 database settings
               </Link>
+              .
             </span>
           </p>
         </div>
