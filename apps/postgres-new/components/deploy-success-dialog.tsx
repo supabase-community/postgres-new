@@ -42,7 +42,7 @@ export function DeploySuccessDialog() {
         </DialogHeader>
         <div className="flex flex-col gap-8">
           <p>
-            Database {deployText} to the Supabase project{' '}
+            Database {deployText} to your Supabase project{' '}
             <Link
               target="_blank"
               rel="noopener noreferrer"
@@ -56,7 +56,10 @@ export function DeploySuccessDialog() {
             <CopyableField
               label={
                 <>
-                  Database Connection URL <Badge variant="secondary">IPv6</Badge>
+                  Database Connection URL{' '}
+                  <Badge variant="outline" className="text-muted-foreground">
+                    IPv6
+                  </Badge>
                 </>
               }
               value={project.databaseUrl}
@@ -66,8 +69,12 @@ export function DeploySuccessDialog() {
                 <>
                   Pooler Connection URL{' '}
                   <span className="inline-flex gap-1">
-                    <Badge variant="secondary">IPv4</Badge>
-                    <Badge variant="secondary">IPv6</Badge>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      IPv4
+                    </Badge>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      IPv6
+                    </Badge>
                   </span>
                 </>
               }
@@ -76,13 +83,27 @@ export function DeploySuccessDialog() {
             {project.databasePassword ? (
               <>
                 <CopyableField label="Database Password" value={project.databasePassword} />
-                <span className="text-muted-foreground text-sm font-semibold">
+                <span className="text-muted-foreground text-sm">
                   {/* eslint-disable-next-line react/no-unescaped-entities */}
-                  Important: Please save your database password securely as it won't be displayed
-                  again.
+                  Please{' '}
+                  <span className="text-foreground font-semibold">
+                    save your database password securely
+                  </span>{' '}
+                  as it won't be displayed again.
                 </span>
               </>
             ) : null}
+            <span className="text-muted-foreground text-sm">
+              You can change your password and learn more about your connection strings in your{' '}
+              <Link
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4"
+                href={`${project.url}/settings/database`}
+              >
+                database settings
+              </Link>
+            </span>
           </p>
         </div>
       </DialogContent>
