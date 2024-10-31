@@ -190,15 +190,23 @@ end;
 $$;
 
 create function delete_secret(secret_id uuid)
-returns text
+returns bigint
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  deleted_count bigint;
 begin
   if current_setting('role') != 'service_role' then
     raise exception 'authentication required';
   end if;
  
-  return delete from vault.decrypted_secrets where id = secret_id;
+  with deleted as (
+    delete from vault.secrets where id = secret_id
+    returning *
+  )
+  select count(*) into deleted_count from deleted;
+  
+  return deleted_count;
 end;
 $$;
