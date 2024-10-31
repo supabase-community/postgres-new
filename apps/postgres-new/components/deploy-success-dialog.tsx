@@ -11,9 +11,9 @@ export function DeploySuccessDialog() {
   const [project, setProject] = useState<{
     name: string
     url: string
+    databasePassword: string | undefined
     databaseUrl: string
     poolerUrl: string
-    isRedeploy: boolean
   } | null>(null)
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -30,7 +30,7 @@ export function DeploySuccessDialog() {
     return null
   }
 
-  const deployText = project.isRedeploy ? 'redeployed' : 'deployed'
+  const deployText = project.databasePassword ? 'deployed' : 'redeployed'
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -55,13 +55,16 @@ export function DeploySuccessDialog() {
           <p className="flex flex-col gap-2">
             <CopyableField label="Pooler Connection URL" value={project.poolerUrl} />
             <CopyableField label="Database Connection URL" value={project.databaseUrl} />
-            {project.isRedeploy ? null : (
-              <span className="text-muted-foreground text-sm font-semibold">
-                {/* eslint-disable-next-line react/no-unescaped-entities */}
-                Important: Please save your database password securely as it won't be displayed
-                again.
-              </span>
-            )}
+            {project.databasePassword ? (
+              <>
+                <CopyableField label="Database Password" value={project.databasePassword} />
+                <span className="text-muted-foreground text-sm font-semibold">
+                  {/* eslint-disable-next-line react/no-unescaped-entities */}
+                  Important: Please save your database password securely as it won't be displayed
+                  again.
+                </span>
+              </>
+            ) : null}
           </p>
         </div>
       </DialogContent>

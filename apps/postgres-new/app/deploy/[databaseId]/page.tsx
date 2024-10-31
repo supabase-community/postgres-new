@@ -8,6 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/u
 import { createClient } from '~/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { ParticlesBackground } from '~/components/particles-background'
+import { getOauthUrl } from '~/lib/util'
+
+class IntegrationRevokedError extends Error {
+  constructor() {
+    super('The integration is no longer active. Please re-authorize the integration.')
+    this.name = 'IntegrationRevokedError'
+  }
+}
 
 export default function Page() {
   const params = useParams<{ databaseId: string }>()
@@ -46,15 +54,20 @@ export default function Page() {
       })
 
       if (!response.ok) {
-        throw new Error(await response.text())
+        if (response.status === 406) {
+          throw new IntegrationRevokedError()
+        } else {
+          throw new Error(await response.text())
+        }
       }
 
       return (await response.json()) as {
         project: {
           name: string
           url: string
+          databasePassword: string | undefined
           databaseUrl: string
-          isRedeploy: boolean
+          poolerUrl: string
         }
       }
     },
@@ -70,6 +83,11 @@ export default function Page() {
       router.push(url.toString())
     },
     onError(error) {
+      if (error instanceof IntegrationRevokedError) {
+        router.push(getOauthUrl({ databaseId: params.databaseId }))
+        return
+      }
+
       const searchParams = new URLSearchParams({
         event: 'deploy.failure',
         error: error.message,

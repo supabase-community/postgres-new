@@ -1,9 +1,8 @@
 import { DeployError } from '../error.ts'
-import { supabaseAdmin } from './client.ts'
 import { generatePassword } from './generate-password.ts'
 import { getAccessToken } from './get-access-token.ts'
 import { createManagementApiClient } from './management-api/client.ts'
-import type { Credentials, SupabaseClient, SupabaseProviderMetadata } from './types.ts'
+import type { SupabaseClient, SupabaseProviderMetadata } from './types.ts'
 import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-for-health.ts'
 
 /**
@@ -28,18 +27,16 @@ export async function createDeployedDatabase(
     throw new DeployError('Cannot find integration', { cause: integration.error })
   }
 
-  // first we need to create a new project on Supabase using the Management API
-  const credentials = integration.data.credentials as Credentials
+  // It should be impossible to reach this state
+  if (!integration.data.credentials) {
+    throw new DeployError('The integration was revoked')
+  }
 
-  const accessToken = await getAccessToken(
-    {
-      supabase: ctx.supabase,
-    },
-    {
-      integrationId: integration.data.id,
-      credentials,
-    }
-  )
+  // first we need to create a new project on Supabase using the Management API
+  const accessToken = await getAccessToken({
+    integrationId: integration.data.id,
+    credentialsSecretId: integration.data.credentials,
+  })
 
   const managementApiClient = createManagementApiClient(accessToken)
 
@@ -48,10 +45,17 @@ export async function createDeployedDatabase(
   const projectName = `database-build-${params.databaseId}`
 
   // check if the project already exists on Supabase
-  const { data: projects, error: getProjectsError } = await managementApiClient.GET('/v1/projects')
+  const {
+    data: projects,
+    error: getProjectsError,
+    response,
+  } = await managementApiClient.GET('/v1/projects')
 
   if (getProjectsError) {
-    throw new DeployError('Failed to get projects from Supabase', { cause: getProjectsError })
+    console.log(response)
+    throw new DeployError('Failed to get projects from Supabase', {
+      cause: getProjectsError,
+    })
   }
 
   const existingProject = projects.find((p) => p.name === projectName)
@@ -106,22 +110,10 @@ export async function createDeployedDatabase(
     })
   }
 
-  const primaryDatabase = pooler.find((db) => db.database_type === 'PRIMARY')
+  const primaryDatabase = pooler!.find((db) => db.database_type === 'PRIMARY')
 
   if (!primaryDatabase) {
     throw new DeployError('Primary database not found')
-  }
-
-  // store the database password as a secret
-  const databasePasswordSecret = await supabaseAdmin.rpc('insert_secret', {
-    name: `supabase_database_password_${params.databaseId}`,
-    secret: databasePassword,
-  })
-
-  if (databasePasswordSecret.error) {
-    throw new DeployError('Cannot store database password as secret', {
-      cause: databasePasswordSecret.error,
-    })
   }
 
   const metadata: SupabaseProviderMetadata = {
@@ -131,9 +123,8 @@ export async function createDeployedDatabase(
       name: createdProject.name,
       region: createdProject.region,
       createdAt: createdProject.created_at,
-      databasePasswordSecretId: databasePasswordSecret.data,
       database: {
-        host: project.database!.host,
+        host: project!.database!.host,
         name: 'postgres',
         port: 5432,
         user: 'postgres',
@@ -162,5 +153,8 @@ export async function createDeployedDatabase(
     throw new DeployError('Cannot create deployed database', { cause: deployedDatabase.error })
   }
 
-  return deployedDatabase.data
+  return {
+    deployedDatabase: deployedDatabase.data,
+    databasePassword,
+  }
 }

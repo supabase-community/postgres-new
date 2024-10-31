@@ -31,7 +31,7 @@ export async function waitForProjectToBeHealthy(
         })
       }
 
-      if (project.status === 'ACTIVE_HEALTHY') {
+      if (project!.status === 'ACTIVE_HEALTHY') {
         return project
       }
 
@@ -80,8 +80,8 @@ export async function waitForDatabaseToBeHealthy(
         })
       }
 
-      const databaseService = servicesHealth.find((service) => service.name === 'db')
-      const poolerService = servicesHealth.find((service) => service.name === 'pooler')
+      const databaseService = servicesHealth!.find((service) => service.name === 'db')
+      const poolerService = servicesHealth!.find((service) => service.name === 'pooler')
 
       if (!databaseService) {
         throw new DeployError('Database service not found on Supabase for health check')

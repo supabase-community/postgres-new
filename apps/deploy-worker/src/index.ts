@@ -6,7 +6,8 @@ import { zValidator } from '@hono/zod-validator'
 import { createClient } from './supabase/client.ts'
 import { HTTPException } from 'hono/http-exception'
 import { deploy } from './supabase/deploy.ts'
-import { DeployError } from './error.ts'
+import { DeployError, IntegrationRevokedError } from './error.ts'
+import { revokeIntegration } from './supabase/revoke-integration.ts'
 
 const app = new Hono()
 
@@ -49,6 +50,10 @@ app.post(
       console.error(error)
       if (error instanceof DeployError) {
         throw new HTTPException(500, { message: error.message })
+      }
+      if (error instanceof IntegrationRevokedError) {
+        await revokeIntegration({ supabase }, { integrationId })
+        throw new HTTPException(406, { message: error.message })
       }
       throw new HTTPException(500, { message: 'Internal server error' })
     }

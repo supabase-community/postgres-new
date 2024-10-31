@@ -20,7 +20,6 @@ export type SupabaseProviderMetadata = {
     name: Project['name']
     region: Project['region']
     createdAt: Project['created_at']
-    databasePasswordSecretId: string
     database: {
       host: NonNullable<Project['database']>['host']
       name: string

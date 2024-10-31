@@ -20,7 +20,8 @@ create table deployment_provider_integrations (
   user_id uuid not null references auth.users(id) default auth.uid(),
   deployment_provider_id bigint references deployment_providers(id),
   scope jsonb not null default '{}'::jsonb,
-  credentials jsonb not null,
+  credentials uuid references vault.secrets(id) on delete set null,
+  revoked_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, deployment_provider_id, scope)

@@ -2,13 +2,20 @@ import { createClient } from '~/utils/supabase/server'
 import { createClient as createAdminClient } from '~/utils/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
+type Credentials = {
+  refreshToken: string
+  accessToken: string
+  expiresAt: string
+}
+
+/**
+ * This route is used to handle the callback from Supabase OAuth App integration.
+ * It will exchange the oauth code for tokens and create or update a deployment integration against the given provider.
+ */
 export async function GET(req: NextRequest) {
-  console.time('oauth callback')
   const supabase = createClient()
 
-  console.time('get user')
   const getUserResponse = await supabase.auth.getUser()
-  console.timeEnd('get user')
 
   // We have middleware, so this should never happen (used for type narrowing)
   if (getUserResponse.error) {
@@ -37,7 +44,6 @@ export async function GET(req: NextRequest) {
 
   const now = Date.now()
 
-  console.time('get tokens')
   // get tokens
   const tokensResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
     method: 'POST',
@@ -52,7 +58,6 @@ export async function GET(req: NextRequest) {
       redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
     }),
   })
-  console.timeEnd('get tokens')
 
   if (!tokensResponse.ok) {
     return new Response('Failed to get tokens', { status: 500 })
@@ -66,7 +71,6 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
-  console.time('get organizations')
   const organizationsResponse = await fetch('https://api.supabase.com/v1/organizations', {
     method: 'GET',
     headers: {
@@ -74,7 +78,6 @@ export async function GET(req: NextRequest) {
       Authorization: `Bearer ${tokens.access_token}`,
     },
   })
-  console.timeEnd('get organizations')
 
   if (!organizationsResponse.ok) {
     return new Response('Failed to get organizations', { status: 500 })
@@ -89,73 +92,88 @@ export async function GET(req: NextRequest) {
     return new Response('Organization not found', { status: 404 })
   }
 
-  const adminClient = createAdminClient()
-
-  // store the tokens as secrets
-  const createRefreshTokenSecret = adminClient.rpc('insert_secret', {
-    name: `supabase_oauth_refresh_token_${organization.id}_${user.id}`,
-    secret: tokens.refresh_token,
-  })
-  const createAccessTokenSecret = adminClient.rpc('insert_secret', {
-    name: `supabase_oauth_access_token_${organization.id}_${user.id}`,
-    secret: tokens.access_token,
-  })
-
-  console.time('create secrets')
-  const [createRefreshTokenSecretResponse, createAccessTokenSecretResponse] = await Promise.all([
-    createRefreshTokenSecret,
-    createAccessTokenSecret,
-  ])
-  console.timeEnd('create secrets')
-
-  if (createRefreshTokenSecretResponse.error) {
-    return new Response('Failed to store refresh token as secret', { status: 500 })
-  }
-
-  if (createAccessTokenSecretResponse.error) {
-    return new Response('Failed to store access token as secret', { status: 500 })
-  }
-
-  console.time('get deployment provider')
   // store the credentials and relevant metadata
   const getDeploymentProviderResponse = await supabase
     .from('deployment_providers')
     .select('id')
     .eq('name', 'Supabase')
     .single()
-  console.timeEnd('get deployment provider')
 
   if (getDeploymentProviderResponse.error) {
     return new Response('Failed to get deployment provider', { status: 500 })
   }
 
-  console.time('create integration')
-  const createIntegrationResponse = await supabase
+  // check if an existing revoked integration exists with the same organization id
+  const getRevokedIntegrationsResponse = await supabase
     .from('deployment_provider_integrations')
-    .insert({
-      deployment_provider_id: getDeploymentProviderResponse.data.id,
-      credentials: {
-        accessToken: createAccessTokenSecretResponse.data,
-        expiresAt: new Date(now + tokens.expires_in * 1000).toISOString(),
-        refreshToken: createRefreshTokenSecretResponse.data,
-      },
-      scope: {
-        organizationId: organization.id,
-      },
-    })
-    .select('id')
-    .single()
-  console.timeEnd('create integration')
+    .select('id,scope')
+    .eq('deployment_provider_id', getDeploymentProviderResponse.data.id)
+    .not('revoked_at', 'is', null)
 
-  if (createIntegrationResponse.error) {
-    return new Response('Failed to create integration', { status: 500 })
+  if (getRevokedIntegrationsResponse.error) {
+    return new Response('Failed to get revoked integrations', { status: 500 })
+  }
+
+  const revokedIntegration = getRevokedIntegrationsResponse.data.find(
+    (ri) => (ri.scope as { organizationId: string }).organizationId === organization.id
+  )
+
+  const adminClient = createAdminClient()
+
+  // store the tokens as secret
+  const credentialsSecret = await adminClient.rpc('insert_secret', {
+    name: `oauth_credentials_supabase_${organization.id}_${user.id}`,
+    secret: JSON.stringify({
+      accessToken: tokens.access_token,
+      expiresAt: new Date(now + tokens.expires_in * 1000).toISOString(),
+      refreshToken: tokens.refresh_token,
+    }),
+  })
+
+  if (credentialsSecret.error) {
+    return new Response('Failed to store the integration credentials as secret', { status: 500 })
+  }
+
+  let integrationId: number
+
+  // if an existing revoked integration exists, update the tokens and cancel the revokation
+  if (revokedIntegration) {
+    const updateIntegrationResponse = await supabase
+      .from('deployment_provider_integrations')
+      .update({
+        credentials: credentialsSecret.data,
+        revoked_at: null,
+      })
+      .eq('id', revokedIntegration.id)
+
+    if (updateIntegrationResponse.error) {
+      return new Response('Failed to update integration', { status: 500 })
+    }
+
+    integrationId = revokedIntegration.id
+  } else {
+    const createIntegrationResponse = await supabase
+      .from('deployment_provider_integrations')
+      .insert({
+        deployment_provider_id: getDeploymentProviderResponse.data.id,
+        credentials: credentialsSecret.data,
+        scope: {
+          organizationId: organization.id,
+        },
+      })
+      .select('id')
+      .single()
+
+    if (createIntegrationResponse.error) {
+      return new Response('Failed to create integration', { status: 500 })
+    }
+
+    integrationId = createIntegrationResponse.data.id
   }
 
   const params = new URLSearchParams({
-    integration: createIntegrationResponse.data.id.toString(),
+    integration: integrationId.toString(),
   })
-
-  console.timeEnd('oauth callback')
 
   return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
 }

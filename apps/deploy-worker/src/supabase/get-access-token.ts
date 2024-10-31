@@ -1,27 +1,28 @@
-import { DeployError } from '../error.ts'
+import { DeployError, IntegrationRevokedError } from '../error.ts'
 import { supabaseAdmin } from './client.ts'
-import type { Credentials, SupabaseClient } from './types.ts'
+import type { Credentials } from './types.ts'
 
 /**
  * Get the access token for a given Supabase integration.
  */
-export async function getAccessToken(
-  ctx: { supabase: SupabaseClient },
-  params: {
-    integrationId: number
-    credentials: Credentials
+export async function getAccessToken(params: {
+  integrationId: number
+  credentialsSecretId: string
+}): Promise<string> {
+  const credentialsSecret = await supabaseAdmin.rpc('read_secret', {
+    secret_id: params.credentialsSecretId,
+  })
+
+  if (credentialsSecret.error) {
+    throw new DeployError('Failed to read credentials secret', { cause: credentialsSecret.error })
   }
-): Promise<string> {
+
+  const credentials = JSON.parse(credentialsSecret.data) as Credentials
+
+  let accessToken = credentials.accessToken
+
   // if the token expires in less than 1 hour, refresh it
-  if (new Date(params.credentials.expiresAt) < new Date(Date.now() + 1 * 60 * 60 * 1000)) {
-    const refreshToken = await supabaseAdmin.rpc('read_secret', {
-      secret_id: params.credentials.refreshToken,
-    })
-
-    if (refreshToken.error) {
-      throw new DeployError('Failed to read refresh token', { cause: refreshToken.error })
-    }
-
+  if (new Date(credentials.expiresAt) < new Date(Date.now() + 1 * 60 * 60 * 1000)) {
     const now = Date.now()
 
     const newCredentialsResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
@@ -33,11 +34,15 @@ export async function getAccessToken(
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: params.credentials.refreshToken,
+        refresh_token: credentials.refreshToken,
       }),
     })
 
     if (!newCredentialsResponse.ok) {
+      if (newCredentialsResponse.status === 406) {
+        throw new IntegrationRevokedError()
+      }
+
       throw new DeployError('Failed to fetch new credentials', {
         cause: {
           status: newCredentialsResponse.status,
@@ -52,49 +57,25 @@ export async function getAccessToken(
       expires_in: number
     }
 
+    accessToken = newCredentials.access_token
+
     const expiresAt = new Date(now + newCredentials.expires_in * 1000)
 
-    const updateRefreshToken = await supabaseAdmin.rpc('update_secret', {
-      secret_id: params.credentials.refreshToken,
-      new_secret: newCredentials.refresh_token,
+    const updateCredentialsSecret = await supabaseAdmin.rpc('update_secret', {
+      secret_id: params.credentialsSecretId,
+      new_secret: JSON.stringify({
+        accessToken: newCredentials.access_token,
+        expiresAt: expiresAt.toISOString(),
+        refreshToken: newCredentials.refresh_token,
+      }),
     })
 
-    if (updateRefreshToken.error) {
-      throw new DeployError('Failed to update refresh token', { cause: updateRefreshToken.error })
-    }
-
-    const updateAccessToken = await supabaseAdmin.rpc('update_secret', {
-      secret_id: params.credentials.accessToken,
-      new_secret: newCredentials.access_token,
-    })
-
-    if (updateAccessToken.error) {
-      throw new DeployError('Failed to update access token', { cause: updateAccessToken.error })
-    }
-
-    const updateIntegration = await ctx.supabase
-      .from('deployment_provider_integrations')
-      .update({
-        credentials: {
-          accessToken: params.credentials.accessToken,
-          expiresAt: expiresAt.toISOString(),
-          refreshToken: params.credentials.refreshToken,
-        },
+    if (updateCredentialsSecret.error) {
+      throw new DeployError('Failed to update credentials secret', {
+        cause: updateCredentialsSecret.error,
       })
-      .eq('id', params.integrationId)
-
-    if (updateIntegration.error) {
-      throw new DeployError('Failed to update integration', { cause: updateIntegration.error })
     }
   }
 
-  const accessToken = await supabaseAdmin.rpc('read_secret', {
-    secret_id: params.credentials.accessToken,
-  })
-
-  if (accessToken.error) {
-    throw new DeployError('Failed to read access token', { cause: accessToken.error })
-  }
-
-  return accessToken.data
+  return accessToken
 }

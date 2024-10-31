@@ -90,27 +90,30 @@ export type Database = {
       deployment_provider_integrations: {
         Row: {
           created_at: string
-          credentials: Json
+          credentials: string | null
           deployment_provider_id: number | null
           id: number
+          revoked_at: string | null
           scope: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          credentials: Json
+          credentials?: string | null
           deployment_provider_id?: number | null
           id?: never
+          revoked_at?: string | null
           scope?: Json
           updated_at?: string
           user_id?: string
         }
         Update: {
           created_at?: string
-          credentials?: Json
+          credentials?: string | null
           deployment_provider_id?: number | null
           id?: never
+          revoked_at?: string | null
           scope?: Json
           updated_at?: string
           user_id?: string

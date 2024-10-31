@@ -15,14 +15,14 @@
     "debug": "^4.3.7",
     "hono": "^4.6.5",
     "neverthrow": "^8.0.0",
-    "openapi-fetch": "^0.12.2",
+    "openapi-fetch": "^0.13.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/debug": "^4.1.12",
     "@types/node": "^22.5.4",
-    "openapi-typescript": "^7.4.1",
+    "openapi-typescript": "^7.4.2",
     "typescript": "^5.5.4"
   }
 }

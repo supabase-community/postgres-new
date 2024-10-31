@@ -671,6 +671,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{ref}/config/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gets project's storage config */
+        get: operations["v1-get-storage-config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Updates project's storage config */
+        patch: operations["v1-update-storage-config"];
+        trace?: never;
+    };
     "/v1/projects/{ref}/config/database/postgres": {
         parameters: {
             query?: never;
@@ -1051,6 +1069,7 @@ export interface components {
             message: string;
         };
         BranchResetResponse: {
+            workflow_run_id: string;
             message: string;
         };
         V1DatabaseResponse: {
@@ -1431,6 +1450,20 @@ export interface components {
             /** @enum {string} */
             status: "COMING_UP" | "ACTIVE_HEALTHY" | "UNHEALTHY";
             error?: string;
+        };
+        StorageFeatureImageTransformation: {
+            enabled: boolean;
+        };
+        StorageFeatures: {
+            imageTransformation: components["schemas"]["StorageFeatureImageTransformation"];
+        };
+        StorageConfigResponse: {
+            fileSizeLimit: number;
+            features: components["schemas"]["StorageFeatures"];
+        };
+        UpdateStorageConfigBody: {
+            fileSizeLimit?: number;
+            features?: components["schemas"]["StorageFeatures"];
         };
         PostgresConfigResponse: {
             effective_cache_size?: string;
@@ -3729,6 +3762,78 @@ export interface operations {
                 };
             };
             /** @description Failed to retrieve project's service health status */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "v1-get-storage-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ref */
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageConfigResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to retrieve project's storage config */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "v1-update-storage-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project ref */
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStorageConfigBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to update project's storage config */
             500: {
                 headers: {
                     [name: string]: unknown;

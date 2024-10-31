@@ -1,10 +1,12 @@
-import { supabaseAdmin, type createClient } from './client.ts'
 import type { SupabaseClient, SupabaseProviderMetadata } from './types.ts'
 import { exec as execSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createDeployedDatabase } from './create-deployed-database.ts'
 import { getDatabaseUrl, getPoolerUrl } from './get-database-url.ts'
-import { DeployError } from '../error.ts'
+import { DeployError, IntegrationRevokedError } from '../error.ts'
+import { generatePassword } from './generate-password.ts'
+import { getAccessToken } from './get-access-token.ts'
+import { createManagementApiClient } from './management-api/client.ts'
 const exec = promisify(execSync)
 
 /**
@@ -15,6 +17,32 @@ export async function deploy(
   ctx: { supabase: SupabaseClient },
   params: { databaseId: string; integrationId: number; localDatabaseUrl: string }
 ) {
+  // check if the integration is still active
+  const integration = await ctx.supabase
+    .from('deployment_provider_integrations')
+    .select('*')
+    .eq('id', params.integrationId)
+    .single()
+
+  if (integration.error) {
+    throw new DeployError('Integration not found', { cause: integration.error })
+  }
+
+  if (integration.data.revoked_at) {
+    throw new IntegrationRevokedError()
+  }
+
+  const accessToken = await getAccessToken({
+    integrationId: params.integrationId,
+    // the integration isn't revoked, so it must have credentials
+    credentialsSecretId: integration.data.credentials!,
+  })
+
+  const managementApiClient = createManagementApiClient(accessToken)
+
+  // this is just to check if the integration is still active, an IntegrationRevokedError will be thrown if not
+  await managementApiClient.GET('/v1/organizations')
+
   const { data: deployment, error: createDeploymentError } = await ctx.supabase
     .from('deployments')
     .insert({
@@ -31,8 +59,6 @@ export async function deploy(
     throw new DeployError('Cannot create deployment', { cause: createDeploymentError })
   }
 
-  let isRedeploy = false
-
   try {
     // check if the database was already deployed
     const deployedDatabase = await ctx.supabase
@@ -46,13 +72,16 @@ export async function deploy(
       throw new DeployError('Cannot find deployed database', { cause: deployedDatabase.error })
     }
 
+    let databasePassword: string | undefined
+
     if (!deployedDatabase.data) {
-      deployedDatabase.data = await createDeployedDatabase(
+      const createdDeployedDatabase = await createDeployedDatabase(
         { supabase: ctx.supabase },
         { databaseId: params.databaseId, integrationId: params.integrationId }
       )
-    } else {
-      isRedeploy = true
+
+      deployedDatabase.data = createdDeployedDatabase.deployedDatabase
+      databasePassword = createdDeployedDatabase.databasePassword
     }
 
     const { error: linkDeploymentError } = await ctx.supabase
@@ -70,9 +99,23 @@ export async function deploy(
 
     const project = (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project
 
-    // get the database url
-    const databaseUrl = await getDatabaseUrl({
+    // create temporary credentials to restore the Supabase database
+    const remoteDatabaseUser = `db-build-${params.databaseId}`
+    const remoteDatabasePassword = generatePassword()
+    await managementApiClient.POST('/v1/projects/{ref}/database/query', {
+      body: {
+        query: `create user ${remoteDatabaseUser} with password '${remoteDatabasePassword}' in role postgres;`,
+      },
+      params: {
+        path: {
+          ref: project.id,
+        },
+      },
+    })
+    const remoteDatabaseUrl = getDatabaseUrl({
       project,
+      databaseUser: remoteDatabaseUser,
+      databasePassword: remoteDatabasePassword,
     })
 
     const excludedSchemas = [
@@ -95,7 +138,7 @@ export async function deploy(
       .join(' ')
 
     // use pg_dump and pg_restore to transfer the data from the local database to the remote database
-    const command = `pg_dump "${params.localDatabaseUrl}" -Fc ${excludedSchemas} | pg_restore -d "${databaseUrl}" --clean --if-exists`
+    const command = `pg_dump "${params.localDatabaseUrl}" -Fc ${excludedSchemas} -Z 0 | pg_restore -d "${remoteDatabaseUrl}" --clean --if-exists`
 
     try {
       await exec(command)
@@ -106,6 +149,16 @@ export async function deploy(
           cause: error,
         }
       )
+    } finally {
+      // delete the temporary credentials
+      await managementApiClient.POST('/v1/projects/{ref}/database/query', {
+        body: {
+          query: `drop user ${remoteDatabaseUser};`,
+        },
+        params: {
+          path: { ref: project.id },
+        },
+      })
     }
 
     await ctx.supabase
@@ -118,9 +171,9 @@ export async function deploy(
     return {
       name: project.name,
       url: `https://supabase.com/dashboard/project/${project.id}`,
-      databaseUrl: await getDatabaseUrl({ project, hidePassword: isRedeploy }),
-      poolerUrl: await getPoolerUrl({ project, hidePassword: isRedeploy }),
-      isRedeploy,
+      databasePassword,
+      databaseUrl: getDatabaseUrl({ project, databasePassword }),
+      poolerUrl: getPoolerUrl({ project, databasePassword }),
     }
   } catch (error) {
     await ctx.supabase

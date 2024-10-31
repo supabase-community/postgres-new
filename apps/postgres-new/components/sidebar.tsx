@@ -553,12 +553,13 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                           setIsDeploying(true)
                           const supabase = createClient()
 
-                          // check existing integration, we currently assume a single integration per user and provider
+                          // check existing integration, we currently assume a single active integration per user and provider
                           // later we will allow for multiple integrations per provider with different scopes
                           const { data: integration, error: integrationError } = await supabase
                             .from('deployment_provider_integrations')
                             .select('id, deployment_providers!inner(name)')
                             .eq('deployment_providers.name', 'Supabase')
+                            .is('revoked_at', null)
                             .maybeSingle()
 
                           if (integrationError) {
