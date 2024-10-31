@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CopyableField } from './copyable-field'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { Badge } from './ui/badge'
 
 export function DeploySuccessDialog() {
   const router = useRouter()
@@ -39,10 +40,9 @@ export function DeploySuccessDialog() {
           <DialogTitle>Database {deployText}</DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
           <p>
-            Your database has been {deployText} to the Supabase project:
-            <br />
+            Database {deployText} to the Supabase project{' '}
             <Link
               target="_blank"
               rel="noopener noreferrer"
@@ -52,9 +52,27 @@ export function DeploySuccessDialog() {
               {project.name}
             </Link>
           </p>
-          <p className="flex flex-col gap-2">
-            <CopyableField label="Pooler Connection URL" value={project.poolerUrl} />
-            <CopyableField label="Database Connection URL" value={project.databaseUrl} />
+          <p className="flex flex-col gap-4">
+            <CopyableField
+              label={
+                <>
+                  Database Connection URL <Badge variant="secondary">IPv6</Badge>
+                </>
+              }
+              value={project.databaseUrl}
+            />
+            <CopyableField
+              label={
+                <>
+                  Pooler Connection URL{' '}
+                  <span className="inline-flex gap-1">
+                    <Badge variant="secondary">IPv4</Badge>
+                    <Badge variant="secondary">IPv6</Badge>
+                  </span>
+                </>
+              }
+              value={project.poolerUrl}
+            />
             {project.databasePassword ? (
               <>
                 <CopyableField label="Database Password" value={project.databasePassword} />
