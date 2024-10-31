@@ -21,11 +21,15 @@ export function getDatabaseUrl(params: {
  */
 export function getPoolerUrl(params: {
   project: SupabaseProviderMetadata['project']
+  databaseUser?: string
   databasePassword?: string
 }) {
+  const user = params.databaseUser
+    ? params.project.pooler.user.replace('postgres', params.databaseUser)
+    : params.project.pooler.user
   const password = params.databasePassword ?? '[YOUR-PASSWORD]'
 
   const { pooler } = params.project
 
-  return `postgresql://${pooler.user}:${password}@${pooler.host}:${pooler.port}/${pooler.name}`
+  return `postgresql://${user}:${password}@${pooler.host}:${pooler.port}/${pooler.name}`
 }

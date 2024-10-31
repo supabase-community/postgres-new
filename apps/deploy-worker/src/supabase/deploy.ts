@@ -100,11 +100,11 @@ export async function deploy(
     const project = (deployedDatabase.data.provider_metadata as SupabaseProviderMetadata).project
 
     // create temporary credentials to restore the Supabase database
-    const remoteDatabaseUser = `db-build-${params.databaseId}`
+    const remoteDatabaseUser = `db_build_${generatePassword()}`
     const remoteDatabasePassword = generatePassword()
-    await managementApiClient.POST('/v1/projects/{ref}/database/query', {
+    const createUserResponse = await managementApiClient.POST('/v1/projects/{ref}/database/query', {
       body: {
-        query: `create user ${remoteDatabaseUser} with password '${remoteDatabasePassword}' in role postgres;`,
+        query: `create user "${remoteDatabaseUser}" with password '${remoteDatabasePassword}' in role postgres`,
       },
       params: {
         path: {
@@ -112,6 +112,13 @@ export async function deploy(
         },
       },
     })
+
+    if (createUserResponse.error) {
+      throw new DeployError('Cannot create temporary role for deployment', {
+        cause: createUserResponse.error,
+      })
+    }
+
     const remoteDatabaseUrl = getDatabaseUrl({
       project,
       databaseUser: remoteDatabaseUser,
@@ -151,14 +158,23 @@ export async function deploy(
       )
     } finally {
       // delete the temporary credentials
-      await managementApiClient.POST('/v1/projects/{ref}/database/query', {
-        body: {
-          query: `drop user ${remoteDatabaseUser};`,
-        },
-        params: {
-          path: { ref: project.id },
-        },
-      })
+      const deleteUserResponse = await managementApiClient.POST(
+        '/v1/projects/{ref}/database/query',
+        {
+          body: {
+            query: `drop user "${remoteDatabaseUser}";`,
+          },
+          params: {
+            path: { ref: project.id },
+          },
+        }
+      )
+
+      if (deleteUserResponse.error) {
+        throw new DeployError('Cannot delete temporary role for deployment', {
+          cause: deleteUserResponse.error,
+        })
+      }
     }
 
     await ctx.supabase
