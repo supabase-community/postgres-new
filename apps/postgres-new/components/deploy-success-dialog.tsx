@@ -84,11 +84,11 @@ export function DeploySuccessDialog() {
               <>
                 <CopyableField label="Database Password" value={project.databasePassword} />
                 <span className="text-muted-foreground text-sm">
-                  {/* eslint-disable-next-line react/no-unescaped-entities */}
                   Please{' '}
                   <span className="text-foreground font-semibold">
                     save your database password securely
                   </span>{' '}
+                  {/* eslint-disable-next-line react/no-unescaped-entities */}
                   as it won't be displayed again.
                 </span>
               </>
