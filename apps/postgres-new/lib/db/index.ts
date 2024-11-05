@@ -134,7 +134,7 @@ export class DbManager {
 
     const values = messages.map(
       (message) =>
-        sql`(${message.id}, ${message.databaseId}, ${message.role}, ${message.content}, ${message.toolInvocations ? JSON.stringify(message.toolInvocations) : raw`${null}`}, ${message.createdAt})`
+        sql`(${message.id}, ${message.databaseId}, ${message.role}, ${message.content}, ${message.toolInvocations}, ${message.createdAt})`
     )
 
     return metaDb.sql`insert into messages (id, database_id, role, content, tool_invocations, created_at) values ${join(values, ',')} on conflict (id) do nothing`
