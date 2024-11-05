@@ -162,6 +162,40 @@ export const tools = {
       })
     ),
   },
+  requestSql: {
+    description: codeBlock`
+      Requests a SQL file upload from the user.
+    `,
+    args: z.object({}),
+    result: result(
+      z.object({
+        fileId: z.string(),
+        file: z.object({
+          name: z.string(),
+          size: z.number(),
+          type: z.string(),
+          lastModified: z.number(),
+        }),
+        preview: z.string(),
+      })
+    ),
+  },
+  importSql: {
+    description: codeBlock`
+      Executes a Postgres SQL file with the specified ID against the user's database. Call \`requestSql\` first.
+    `,
+    args: z.object({
+      fileId: z.string().describe('The ID of the SQL file to execute'),
+      sql: z.string().describe(codeBlock`
+        The Postgres SQL file content to execute against the user's database.
+      `),
+    }),
+    result: result(
+      z.object({
+        message: z.string(),
+      })
+    ),
+  },
   embed: {
     description: codeBlock`
       Generates vector embeddings for texts. Use with pgvector extension.

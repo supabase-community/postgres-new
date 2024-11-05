@@ -18,7 +18,7 @@ import { useApp } from '~/components/app-provider'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { embed } from './embed'
-import { loadFile, saveFile } from './files'
+import { loadFile, readFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { maxRowLimit, OnToolCall } from './tools'
 
@@ -429,6 +429,25 @@ export function useOnToolCall(databaseId: string) {
           } catch (error) {
             console.error(error)
 
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'An unknown error has occurred',
+            }
+          }
+        }
+        case 'importSql': {
+          const { fileId } = toolCall.args
+
+          try {
+            const file = await loadFile(fileId)
+            await db.exec(await readFile(file))
+            await refetchTables()
+
+            return {
+              success: true,
+              message: 'The SQL file has been executed successfully.',
+            }
+          } catch (error) {
             return {
               success: false,
               error: error instanceof Error ? error.message : 'An unknown error has occurred',
