@@ -440,7 +440,7 @@ export function useOnToolCall(databaseId: string) {
 
           try {
             const file = await loadFile(fileId)
-            await db.exec(await readFile(file))
+            await db.exec(await file.text())
             await refetchTables()
 
             return {
