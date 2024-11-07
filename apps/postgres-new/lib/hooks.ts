@@ -18,7 +18,7 @@ import { useApp } from '~/components/app-provider'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { embed } from './embed'
-import { loadFile, readFile, saveFile } from './files'
+import { loadFile, saveFile } from './files'
 import { SmoothScroller } from './smooth-scroller'
 import { maxRowLimit, OnToolCall } from './tools'
 
