@@ -51,7 +51,9 @@ export default function IDE({ children, className }: IDEProps) {
           return toolInvocations
             .map((tool) =>
               // Only include SQL that successfully executed against the DB
-              tool.toolName === 'executeSql' && 'result' in tool && tool.result.success === true
+              (tool.toolName === 'executeSql' || tool.toolName === 'importSql') &&
+              'result' in tool &&
+              tool.result.success === true
                 ? tool.args.sql
                 : undefined
             )

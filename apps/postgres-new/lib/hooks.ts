@@ -435,6 +435,25 @@ export function useOnToolCall(databaseId: string) {
             }
           }
         }
+        case 'importSql': {
+          const { fileId } = toolCall.args
+
+          try {
+            const file = await loadFile(fileId)
+            await db.exec(await file.text())
+            await refetchTables()
+
+            return {
+              success: true,
+              message: 'The SQL file has been executed successfully.',
+            }
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'An unknown error has occurred',
+            }
+          }
+        }
       }
     },
     [dbManager, refetchTables, updateDatabase, databaseId, vectorDataTypeId]

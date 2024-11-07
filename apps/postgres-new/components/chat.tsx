@@ -77,28 +77,6 @@ export default function Chat() {
 
   const sendCsv = useCallback(
     async (file: File) => {
-      if (file.type !== 'text/csv') {
-        // Add an artificial tool call requesting the CSV
-        // with an error indicating the file wasn't a CSV
-        appendMessage({
-          role: 'assistant',
-          content: '',
-          toolInvocations: [
-            {
-              state: 'result',
-              toolCallId: generateId(),
-              toolName: 'requestCsv',
-              args: {},
-              result: {
-                success: false,
-                error: `The file has type '${file.type}'. Let the user know that only CSV imports are currently supported.`,
-              },
-            },
-          ],
-        })
-        return
-      }
-
       const fileId = generateId()
 
       await saveFile(fileId, file)
@@ -134,6 +112,43 @@ export default function Chat() {
     [appendMessage]
   )
 
+  const sendSql = useCallback(
+    async (file: File) => {
+      const fileId = generateId()
+
+      await saveFile(fileId, file)
+
+      const text = await file.text()
+
+      // Add an artificial tool call requesting the CSV
+      // with the file result all in one operation.
+      appendMessage({
+        role: 'assistant',
+        content: '',
+        toolInvocations: [
+          {
+            state: 'result',
+            toolCallId: generateId(),
+            toolName: 'requestSql',
+            args: {},
+            result: {
+              success: true,
+              fileId: fileId,
+              file: {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified,
+              },
+              preview: text.split('\n').slice(0, 10).join('\n').trim(),
+            },
+          },
+        ],
+      })
+    },
+    [appendMessage]
+  )
+
   const {
     ref: dropZoneRef,
     isDraggingOver,
@@ -147,7 +162,16 @@ export default function Chat() {
       const [file] = files
 
       if (file) {
-        await sendCsv(file)
+        if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+          await sendCsv(file)
+        } else if (file.type === 'application/sql' || file.name.endsWith('.sql')) {
+          await sendSql(file)
+        } else {
+          appendMessage({
+            role: 'assistant',
+            content: `Only CSV and SQL files are currently supported.`,
+          })
+        }
       }
     },
     cursorElement: (

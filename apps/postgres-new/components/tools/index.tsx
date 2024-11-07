@@ -6,6 +6,8 @@ import CsvRequest from './csv-request'
 import ExecutedSql from './executed-sql'
 import GeneratedChart from './generated-chart'
 import GeneratedEmbedding from './generated-embedding'
+import SqlImport from './sql-import'
+import SqlRequest from './sql-request'
 
 export type ToolUiProps = {
   toolInvocation: ToolInvocation
@@ -23,6 +25,10 @@ export function ToolUi({ toolInvocation }: ToolUiProps) {
       return <CsvImport toolInvocation={toolInvocation} />
     case 'exportCsv':
       return <CsvExport toolInvocation={toolInvocation} />
+    case 'requestSql':
+      return <SqlRequest toolInvocation={toolInvocation} />
+    case 'importSql':
+      return <SqlImport toolInvocation={toolInvocation} />
     case 'renameConversation':
       return <ConversationRename toolInvocation={toolInvocation} />
     case 'embed':
