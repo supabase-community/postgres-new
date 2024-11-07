@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "@database.build/deploy#build": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "@database.build/deploy-worker#dev": {
+      "dependsOn": ["^build"],
+      "interruptible": true,
+      "persistent": true,
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    }
+  }
+}

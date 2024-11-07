@@ -1,5 +1,5 @@
-import { DeployError } from '../error.ts'
-import type { ManagementApiClient, Project } from './types.ts'
+import { DeployError } from '../error.js'
+import type { ManagementApiClient, Project } from './types.js'
 import { setTimeout } from 'timers/promises'
 
 /**

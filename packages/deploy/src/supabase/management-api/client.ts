@@ -1,6 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch'
-import type { paths } from './types.ts'
-import { IntegrationRevokedError } from '../../error.ts'
+import type { paths } from './types.js'
+import { IntegrationRevokedError } from '../../error.js'
 
 const integrationRevokedMiddleware: Middleware = {
   async onResponse({ response }) {

@@ -1,6 +1,6 @@
-import type { createClient } from './client.ts'
-import type { createManagementApiClient } from './management-api/client.ts'
-import type { paths } from './management-api/types.ts'
+import type { createClient } from './client.js'
+import type { createManagementApiClient } from './management-api/client.js'
+import type { paths } from './management-api/types.js'
 
 export type Credentials = { expiresAt: string; refreshToken: string; accessToken: string }
 

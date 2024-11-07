@@ -1,13 +1,13 @@
+import { DeployError, IntegrationRevokedError } from '@database.build/deploy'
+import { createClient } from '@database.build/deploy/supabase'
+import { deploy } from '@database.build/deploy/supabase'
+import { revokeIntegration } from '@database.build/deploy/supabase'
 import { serve } from '@hono/node-server'
+import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { z } from 'zod'
-import { zValidator } from '@hono/zod-validator'
-import { createClient } from './supabase/client.ts'
 import { HTTPException } from 'hono/http-exception'
-import { deploy } from './supabase/deploy.ts'
-import { DeployError, IntegrationRevokedError } from './error.ts'
-import { revokeIntegration } from './supabase/revoke-integration.ts'
+import { z } from 'zod'
 
 const app = new Hono()
 
@@ -59,6 +59,8 @@ app.post(
     }
   }
 )
+
+app.get('')
 
 const port = 4000
 console.log(`Server is running on port ${port}`)

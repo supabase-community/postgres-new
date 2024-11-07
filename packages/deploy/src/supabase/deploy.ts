@@ -1,12 +1,12 @@
-import type { SupabaseClient, SupabaseProviderMetadata } from './types.ts'
+import type { SupabaseClient, SupabaseProviderMetadata } from './types.js'
 import { exec as execSync } from 'node:child_process'
 import { promisify } from 'node:util'
-import { createDeployedDatabase } from './create-deployed-database.ts'
-import { getDatabaseUrl, getPoolerUrl } from './get-database-url.ts'
-import { DeployError, IntegrationRevokedError } from '../error.ts'
-import { generatePassword } from './generate-password.ts'
-import { getAccessToken } from './get-access-token.ts'
-import { createManagementApiClient } from './management-api/client.ts'
+import { createDeployedDatabase } from './create-deployed-database.js'
+import { getDatabaseUrl, getPoolerUrl } from './get-database-url.js'
+import { DeployError, IntegrationRevokedError } from '../error.js'
+import { generatePassword } from './generate-password.js'
+import { getAccessToken } from './get-access-token.js'
+import { createManagementApiClient } from './management-api/client.js'
 const exec = promisify(execSync)
 
 /**

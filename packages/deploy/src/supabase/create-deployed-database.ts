@@ -1,9 +1,9 @@
-import { DeployError } from '../error.ts'
-import { generatePassword } from './generate-password.ts'
-import { getAccessToken } from './get-access-token.ts'
-import { createManagementApiClient } from './management-api/client.ts'
-import type { Region, SupabaseClient, SupabaseProviderMetadata } from './types.ts'
-import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-for-health.ts'
+import { DeployError } from '../error.js'
+import { generatePassword } from './generate-password.js'
+import { getAccessToken } from './get-access-token.js'
+import { createManagementApiClient } from './management-api/client.js'
+import type { Region, SupabaseClient, SupabaseProviderMetadata } from './types.js'
+import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-for-health.js'
 
 /**
  * Create a new project on Supabase and store the relevant metadata in the database.

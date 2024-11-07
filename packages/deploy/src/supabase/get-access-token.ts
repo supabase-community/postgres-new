@@ -1,6 +1,6 @@
-import { DeployError, IntegrationRevokedError } from '../error.ts'
-import { supabaseAdmin } from './client.ts'
-import type { Credentials } from './types.ts'
+import { DeployError, IntegrationRevokedError } from '../error.js'
+import { supabaseAdmin } from './client.js'
+import type { Credentials } from './types.js'
 
 /**
  * Get the access token for a given Supabase integration.

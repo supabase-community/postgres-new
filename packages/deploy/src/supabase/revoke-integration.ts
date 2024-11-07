@@ -1,5 +1,5 @@
-import type { SupabaseClient } from './types.ts'
-import { supabaseAdmin } from './client.ts'
+import type { SupabaseClient } from './types.js'
+import { supabaseAdmin } from './client.js'
 
 export async function revokeIntegration(
   ctx: { supabase: SupabaseClient },

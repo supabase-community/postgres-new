@@ -1,4 +1,4 @@
-import type { SupabaseProviderMetadata } from './types.ts'
+import type { SupabaseProviderMetadata } from './types.js'
 
 /**
  * Get the direct database url for a given Supabase project.
