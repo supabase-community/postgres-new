@@ -35,7 +35,7 @@ import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { DeployDialog } from './deploy/deploy-dialog'
 import { IntegrationDialog } from './deploy/integration-dialog'
-import { RedeployAlertDialog } from './deploy/redeploy-alert-dialog'
+import { RedeployDialog } from './deploy/redeploy-dialog'
 import { LiveShareIcon } from './live-share-icon'
 import SignInButton from './sign-in-button'
 import { SupabaseIcon } from './supabase-icon'
@@ -330,7 +330,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
   const [isIntegrationDialogOpen, setIsIntegrationDialogOpen] = useState(false)
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false)
-  const [isRedeployAlertDialogOpen, setIsRedeployAlertDialogOpen] = useState(false)
+  const [isRedeployDialogOpen, setIsRedeployDialogOpen] = useState(false)
   const [deployUrl, setDeployUrl] = useState<string | null>(null)
 
   const [isDeploying, setIsDeploying] = useState(false)
@@ -366,9 +366,10 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           router.push(deployUrl)
         }}
       />
-      <RedeployAlertDialog
-        isOpen={isRedeployAlertDialogOpen}
-        onOpenChange={setIsRedeployAlertDialogOpen}
+      <RedeployDialog
+        database={database}
+        isOpen={isRedeployDialogOpen}
+        onOpenChange={setIsRedeployDialogOpen}
         onConfirm={() => {
           router.push(deployUrl!)
         }}
@@ -526,8 +527,10 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                           e.preventDefault()
                           if (!supabaseIntegration) {
                             setIsIntegrationDialogOpen(true)
-                          } else {
+                          } else if (!database.isDeployed) {
                             setIsDeployDialogOpen(true)
+                          } else {
+                            setIsRedeployDialogOpen(true)
                           }
                         }}
                       >
