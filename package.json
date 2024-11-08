@@ -3,11 +3,12 @@
   "private": true,
   "packageManager": "npm@10.8.3",
   "scripts": {
-    "dev": "turbo watch dev"
+    "dev": "turbo watch dev",
+    "build": "turbo run build"
   },
   "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
     "supabase": "^1.207.9",
-    "turbo": "^2.2.3"
+    "turbo": "^2.2.4-canary.9"
   }
 }
