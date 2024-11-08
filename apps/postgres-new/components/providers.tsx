@@ -5,9 +5,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PropsWithChildren } from 'react'
 import AppProvider from './app-provider'
 import { ThemeProvider } from './theme-provider'
-import { DatabaseLocksProvider } from '~/lib/database-locks'
 
 const queryClient = new QueryClient()
+
+import dynamic from 'next/dynamic'
+
+const DatabaseLocksProvider = dynamic(
+  async () => (await import('~/lib/database-locks')).DatabaseLocksProvider,
+  {
+    ssr: false,
+  }
+)
 
 export default function Providers({ children }: PropsWithChildren) {
   return (
