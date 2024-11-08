@@ -2,8 +2,20 @@ import { DeployError } from '../error.js'
 import { generatePassword } from './generate-password.js'
 import { getAccessToken } from './get-access-token.js'
 import { createManagementApiClient } from './management-api/client.js'
-import type { Region, SupabaseClient, SupabaseProviderMetadata } from './types.js'
+import type {
+  SupabaseClient,
+  SupabaseDeploymentConfig,
+  SupabasePlatformConfig,
+  SupabaseProviderMetadata,
+} from './types.js'
 import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-for-health.js'
+
+/**
+ * Generate a project name for a deployed database.
+ */
+export function generateProjectName(databaseId: string) {
+  return `database-build-${databaseId}`
+}
 
 /**
  * Create a new project on Supabase and store the relevant metadata in the database.
@@ -11,6 +23,9 @@ import { waitForDatabaseToBeHealthy, waitForProjectToBeHealthy } from './wait-fo
 export async function createDeployedDatabase(
   ctx: {
     supabase: SupabaseClient
+    supabaseAdmin: SupabaseClient
+    supabasePlatformConfig: SupabasePlatformConfig
+    supabaseDeploymentConfig: SupabaseDeploymentConfig
   },
   params: {
     databaseId: string
@@ -33,16 +48,16 @@ export async function createDeployedDatabase(
   }
 
   // first we need to create a new project on Supabase using the Management API
-  const accessToken = await getAccessToken({
+  const accessToken = await getAccessToken(ctx, {
     integrationId: integration.data.id,
     credentialsSecretId: integration.data.credentials,
   })
 
-  const managementApiClient = createManagementApiClient(accessToken)
+  const managementApiClient = createManagementApiClient(ctx, accessToken)
 
   const databasePassword = generatePassword()
 
-  const projectName = `database-build-${params.databaseId}`
+  const projectName = generateProjectName(params.databaseId)
 
   // check if the project already exists on Supabase
   const {
@@ -52,7 +67,6 @@ export async function createDeployedDatabase(
   } = await managementApiClient.GET('/v1/projects')
 
   if (getProjectsError) {
-    console.log(response)
     throw new DeployError('Failed to get projects from Supabase', {
       cause: getProjectsError,
     })
@@ -74,7 +88,7 @@ export async function createDeployedDatabase(
         db_pass: databasePassword,
         name: `database-build-${params.databaseId}`,
         organization_id: (integration.data.scope as { organizationId: string }).organizationId,
-        region: process.env.SUPABASE_PLATFORM_DEPLOY_REGION as Region,
+        region: ctx.supabaseDeploymentConfig.region,
       },
     }
   )

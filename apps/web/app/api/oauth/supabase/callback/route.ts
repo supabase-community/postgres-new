@@ -74,8 +74,6 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
-  console.log({ tokens })
-
   const organizationsResponse = await fetch(
     `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/organizations`,
     {
@@ -128,9 +126,11 @@ export async function GET(req: NextRequest) {
 
   const adminClient = createAdminClient()
 
+  const secretName = `oauth_credentials_supabase_${organization.id}_${user.id}`
+
   // store the tokens as secret
-  const credentialsSecret = await adminClient.rpc('insert_secret', {
-    name: `oauth_credentials_supabase_${organization.id}_${user.id}`,
+  const credentialsSecret = await adminClient.rpc('upsert_secret', {
+    name: secretName,
     secret: JSON.stringify({
       accessToken: tokens.access_token,
       expiresAt: new Date(now + tokens.expires_in * 1000).toISOString(),
@@ -139,12 +139,11 @@ export async function GET(req: NextRequest) {
   })
 
   if (credentialsSecret.error) {
+    console.error(credentialsSecret.error)
     return new Response('Failed to store the integration credentials as secret', { status: 500 })
   }
 
-  let integrationId: number
-
-  // if an existing revoked integration exists, update the tokens and cancel the revokation
+  // if an existing revoked integration exists, update the tokens and cancel the revocation
   if (revokedIntegration) {
     const updateIntegrationResponse = await supabase
       .from('deployment_provider_integrations')
@@ -157,8 +156,6 @@ export async function GET(req: NextRequest) {
     if (updateIntegrationResponse.error) {
       return new Response('Failed to update integration', { status: 500 })
     }
-
-    integrationId = revokedIntegration.id
   } else {
     const createIntegrationResponse = await supabase
       .from('deployment_provider_integrations')
@@ -175,13 +172,7 @@ export async function GET(req: NextRequest) {
     if (createIntegrationResponse.error) {
       return new Response('Failed to create integration', { status: 500 })
     }
-
-    integrationId = createIntegrationResponse.data.id
   }
 
-  const params = new URLSearchParams({
-    integration: integrationId.toString(),
-  })
-
-  return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
+  return NextResponse.redirect(new URL(`/db/${state.databaseId}?deploy=Supabase`, req.url))
 }

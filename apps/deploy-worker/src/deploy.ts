@@ -1,12 +1,18 @@
-import type { SupabaseClient, SupabaseProviderMetadata } from './types.js'
 import { exec as execSync } from 'node:child_process'
 import { promisify } from 'node:util'
-import { createDeployedDatabase } from './create-deployed-database.js'
-import { getDatabaseUrl, getPoolerUrl } from './get-database-url.js'
-import { DeployError, IntegrationRevokedError } from '../error.js'
-import { generatePassword } from './generate-password.js'
-import { getAccessToken } from './get-access-token.js'
-import { createManagementApiClient } from './management-api/client.js'
+import { DeployError, IntegrationRevokedError } from '@database.build/deploy'
+import {
+  getAccessToken,
+  createManagementApiClient,
+  createDeployedDatabase,
+  generatePassword,
+  getDatabaseUrl,
+  getPoolerUrl,
+  type SupabaseClient,
+  type SupabaseDeploymentConfig,
+  type SupabasePlatformConfig,
+  type SupabaseProviderMetadata,
+} from '@database.build/deploy/supabase'
 const exec = promisify(execSync)
 
 /**
@@ -14,7 +20,12 @@ const exec = promisify(execSync)
  * If the database was already deployed, it will overwrite the existing database data
  */
 export async function deploy(
-  ctx: { supabase: SupabaseClient },
+  ctx: {
+    supabase: SupabaseClient
+    supabaseAdmin: SupabaseClient
+    supabasePlatformConfig: SupabasePlatformConfig
+    supabaseDeploymentConfig: SupabaseDeploymentConfig
+  },
   params: { databaseId: string; integrationId: number; localDatabaseUrl: string }
 ) {
   // check if the integration is still active
@@ -32,13 +43,13 @@ export async function deploy(
     throw new IntegrationRevokedError()
   }
 
-  const accessToken = await getAccessToken({
+  const accessToken = await getAccessToken(ctx, {
     integrationId: params.integrationId,
     // the integration isn't revoked, so it must have credentials
     credentialsSecretId: integration.data.credentials!,
   })
 
-  const managementApiClient = createManagementApiClient(accessToken)
+  const managementApiClient = createManagementApiClient(ctx, accessToken)
 
   // this is just to check if the integration is still active, an IntegrationRevokedError will be thrown if not
   await managementApiClient.GET('/v1/organizations')
@@ -75,10 +86,10 @@ export async function deploy(
     let databasePassword: string | undefined
 
     if (!deployedDatabase.data) {
-      const createdDeployedDatabase = await createDeployedDatabase(
-        { supabase: ctx.supabase },
-        { databaseId: params.databaseId, integrationId: params.integrationId }
-      )
+      const createdDeployedDatabase = await createDeployedDatabase(ctx, {
+        databaseId: params.databaseId,
+        integrationId: params.integrationId,
+      })
 
       deployedDatabase.data = createdDeployedDatabase.deployedDatabase
       databasePassword = createdDeployedDatabase.databasePassword
@@ -186,7 +197,7 @@ export async function deploy(
 
     return {
       name: project.name,
-      url: `${process.env.SUPABASE_PLATFORM_URL}/dashboard/project/${project.id}`,
+      url: `${ctx.supabasePlatformConfig.url}/dashboard/project/${project.id}`,
       databasePassword,
       databaseUrl: getDatabaseUrl({ project, databasePassword }),
       poolerUrl: getPoolerUrl({ project, databasePassword }),

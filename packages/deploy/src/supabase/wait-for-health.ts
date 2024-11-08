@@ -1,6 +1,5 @@
 import { DeployError } from '../error.js'
 import type { ManagementApiClient, Project } from './types.js'
-import { setTimeout } from 'timers/promises'
 
 /**
  * Wait for a Supabase project to be ready.
@@ -36,7 +35,7 @@ export async function waitForProjectToBeHealthy(
       }
 
       attempts += 1
-      await setTimeout(POLLING_INTERVAL)
+      await new Promise((r) => setTimeout(r, POLLING_INTERVAL))
     } catch (error) {
       throw error
     }
@@ -99,7 +98,7 @@ export async function waitForDatabaseToBeHealthy(
       }
 
       attempts += 1
-      await setTimeout(POLLING_INTERVAL)
+      await new Promise((r) => setTimeout(r, POLLING_INTERVAL))
     } catch (error) {
       throw error
     }

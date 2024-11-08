@@ -199,7 +199,7 @@ export type Database = {
         Args: {
           secret_id: string
         }
-        Returns: string
+        Returns: number
       }
       insert_secret: {
         Args: {
@@ -226,6 +226,13 @@ export type Database = {
         Args: {
           secret_id: string
           new_secret: string
+        }
+        Returns: string
+      }
+      upsert_secret: {
+        Args: {
+          secret: string
+          name: string
         }
         Returns: string
       }

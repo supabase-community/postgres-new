@@ -1,4 +1,5 @@
-import type { createClient } from './client.js'
+import { SupabaseClient as SupabaseClientGeneric } from '@supabase/supabase-js'
+import type { Database as SupabaseDatabase } from './database-types.js'
 import type { createManagementApiClient } from './management-api/client.js'
 import type { paths } from './management-api/types.js'
 
@@ -38,6 +39,17 @@ export type SupabaseProviderMetadata = {
   }
 }
 
-export type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+export type SupabaseClient = SupabaseClientGeneric<SupabaseDatabase>
 
 export type ManagementApiClient = Awaited<ReturnType<typeof createManagementApiClient>>
+
+export type SupabasePlatformConfig = {
+  url: string
+  apiUrl: string
+  oauthClientId: string
+  oauthSecret: string
+}
+
+export type SupabaseDeploymentConfig = {
+  region: Region
+}

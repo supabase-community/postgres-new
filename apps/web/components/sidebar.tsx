@@ -26,10 +26,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/u
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
-import { useDatabasesQuery } from '~/data/databases/databases-query'
-import { useDeployedDatabasesQuery } from '~/data/deployed-databases/deployed-databases-query'
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
-import { Database as LocalDatabase } from '~/lib/db'
+import { MergedDatabase, useMergedDatabases } from '~/data/merged-databases/merged-databases'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
@@ -52,10 +50,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 
-type Database = LocalDatabase & {
-  isDeployed: boolean
-}
-
 export default function Sidebar() {
   const {
     user,
@@ -69,18 +63,9 @@ export default function Sidebar() {
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
-  const { data: localDatabases, isLoading: isLoadingLocalDatabases } = useDatabasesQuery()
-  const { data: deployedDatabases, isLoading: isLoadingDeployedDatabases } =
-    useDeployedDatabasesQuery()
   const [showSidebar, setShowSidebar] = useState(true)
 
-  const isLoadingDatabases = isLoadingLocalDatabases && isLoadingDeployedDatabases
-
-  const databases = localDatabases?.map((db) => ({
-    ...db,
-    isDeployed:
-      deployedDatabases?.some((deployedDb) => deployedDb.local_database_id === db.id) ?? false,
-  }))
+  const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
 
   return (
     <>
@@ -314,7 +299,7 @@ export default function Sidebar() {
 }
 
 type DatabaseMenuItemProps = {
-  database: Database
+  database: MergedDatabase
   isActive: boolean
 }
 
@@ -347,6 +332,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         }}
       />
       <DeployDialog
+        databaseId={database.id}
         open={isDeployDialogOpen}
         onOpenChange={(open) => {
           setIsDeployDialogOpen(open)
@@ -365,10 +351,13 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
           router.push(deployUrl)
         }}
+        onCancel={() => {
+          setIsDeploying(false)
+        }}
       />
       <RedeployDialog
         database={database}
-        isOpen={isRedeployDialogOpen}
+        open={isRedeployDialogOpen}
         onOpenChange={setIsRedeployDialogOpen}
         onConfirm={() => {
           router.push(deployUrl!)
@@ -527,10 +516,12 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                           e.preventDefault()
                           if (!supabaseIntegration) {
                             setIsIntegrationDialogOpen(true)
-                          } else if (!database.isDeployed) {
-                            setIsDeployDialogOpen(true)
-                          } else {
+                          } else if (
+                            database.deployments.some((d) => d.provider_name === 'Supabase')
+                          ) {
                             setIsRedeployDialogOpen(true)
+                          } else {
+                            setIsDeployDialogOpen(true)
                           }
                         }}
                       >

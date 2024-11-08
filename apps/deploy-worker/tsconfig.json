@@ -2,6 +2,7 @@
   "extends": "@total-typescript/tsconfig/tsc/no-dom/app",
   "include": ["src/**/*.ts"],
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "outDir": "dist"
   }

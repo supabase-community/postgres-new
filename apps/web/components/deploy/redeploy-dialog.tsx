@@ -14,7 +14,7 @@ import { Button } from '../ui/button'
 
 export type RedeployDialogProps = {
   database: Database
-  isOpen: boolean
+  open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   onCancel: () => void
@@ -22,14 +22,14 @@ export type RedeployDialogProps = {
 
 export function RedeployDialog({
   database,
-  isOpen,
+  open,
   onOpenChange,
   onConfirm,
   onCancel,
 }: RedeployDialogProps) {
   const [confirmedValue, setConfirmedValue] = useState('')
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="mb-4">Confirm redeploy of {database.name}</DialogTitle>

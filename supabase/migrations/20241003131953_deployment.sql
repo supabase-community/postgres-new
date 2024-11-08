@@ -156,6 +156,32 @@ begin
 end;
 $$;
 
+create or replace function upsert_secret(secret text, name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  secret_id uuid;
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+
+  -- check if the secret already exists and store the id
+  select id into secret_id from vault.decrypted_secrets where vault.decrypted_secrets.name = upsert_secret.name;
+
+  if secret_id is not null then
+    -- If the secret exists, update it
+    return vault.update_secret(secret_id, secret);
+  else
+    -- If the secret does not exist, create it
+    return vault.create_secret(secret, name);
+  end if;
+end;
+$$;
+
 create or replace function update_secret(secret_id uuid, new_secret text)
 returns text
 language plpgsql
