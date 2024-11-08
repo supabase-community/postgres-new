@@ -141,3 +141,15 @@ export function useDatabaseLock(databaseId: string) {
 
   return isLocked
 }
+
+export function useIsLocked(databaseId: string) {
+  const context = useContext(DatabaseLocksContext)
+  const tabId = getTabId()
+
+  if (!context) {
+    throw new Error('useIsLocked must be used within a DatabaseLocksProvider')
+  }
+
+  const { locks } = context
+  return locks[databaseId] !== undefined && locks[databaseId] !== tabId
+}

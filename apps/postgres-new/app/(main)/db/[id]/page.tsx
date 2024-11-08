@@ -1,5 +1,7 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
@@ -29,7 +31,27 @@ export default function Page({ params }: { params: { id: string } }) {
   const isLocked = useDatabaseLock(databaseId)
 
   if (isLocked) {
-    return <div>Database is locked</div>
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <p>
+          This database is already open in another tab or window.
+          <br />
+          <br />
+          Due to{' '}
+          <Link
+            target="_blank"
+            className="underline"
+            href="https://github.com/electric-sql/pglite?tab=readme-ov-file#how-it-works"
+          >
+            PGlite's single-user mode limitation
+          </Link>
+          , only one connection is allowed at a time.
+          <br />
+          <br />
+          Please close the database in the other location to access it here.
+        </p>
+      </div>
+    )
   }
 
   return <Workspace databaseId={databaseId} visibility="local" />
