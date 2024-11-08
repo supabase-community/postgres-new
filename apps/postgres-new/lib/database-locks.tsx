@@ -125,7 +125,6 @@ export function useDatabaseLock(databaseId: string) {
         const isAvailable = !(databaseId in newLocks)
 
         if (isAvailable) {
-          console.log('Database became available, acquiring lock:', databaseId)
           acquireLock(databaseId)
         }
       }
