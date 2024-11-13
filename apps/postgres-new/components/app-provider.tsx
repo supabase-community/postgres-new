@@ -32,7 +32,6 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
-import { useLocks } from './lock-provider'
 
 export type AppProps = PropsWithChildren
 
@@ -259,12 +258,6 @@ export default function AppProvider({ children }: AppProps) {
     setIsLegacyDomainRedirect(isLegacyDomainRedirect)
     setIsRenameDialogOpen(isLegacyDomain || isLegacyDomainRedirect)
   }, [])
-
-  const locks = useLocks()
-
-  useEffect(() => {
-    console.log('Locks update:', locks)
-  }, [locks])
 
   return (
     <AppContext.Provider

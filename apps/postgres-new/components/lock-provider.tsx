@@ -1,4 +1,13 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react'
+import {
+  createContext,
+  Dispatch,
+  PropsWithChildren,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 
 type RequireProp<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>
 
@@ -23,6 +32,9 @@ export function LockProvider({ namespace, children }: LockProviderProps) {
 
   // Track locks across all tabs
   const [locks, setLocks] = useState(new Set<string>())
+
+  // Track locks acquired by this tab
+  const [selfLocks, setSelfLocks] = useState(new Set<string>())
 
   const lockPrefix = `${namespace}:`
 
@@ -62,6 +74,8 @@ export function LockProvider({ namespace, children }: LockProviderProps) {
         broadcastChannel,
         messagePort: selfChannel.port2,
         locks,
+        selfLocks,
+        setSelfLocks,
       }}
     >
       {children}
@@ -92,27 +106,45 @@ export type LockContextValues = {
    * The set of keys locked across all tabs.
    */
   locks: Set<string>
+
+  /**
+   * The set of keys locked by this tab.
+   */
+  selfLocks: Set<string>
+
+  /**
+   * Set the locks acquired by this tab.
+   */
+  setSelfLocks: Dispatch<SetStateAction<Set<string>>>
 }
 
 export const LockContext = createContext<LockContextValues | undefined>(undefined)
 
 /**
- * Hook to access the locks across all tabs.
+ * Hook to access the locks acquired by all tabs.
+ * Can optionally exclude keys acquired by current tab.
  */
-export function useLocks() {
+export function useLocks(excludeSelf = false) {
   const context = useContext(LockContext)
 
   if (!context) {
     throw new Error('LockContext missing. Are you accessing useLocks() outside of an LockProvider?')
   }
 
-  return context.locks
+  let set = context.locks
+
+  if (excludeSelf) {
+    set = set.difference(context.selfLocks)
+  }
+
+  return set
 }
 
 /**
- * Hook to check if a key is locked across all tabs.
+ * Hook to check if a key is locked by any tab.
+ * Can optionally exclude keys acquired by current tab.
  */
-export function useIsLocked(key: string) {
+export function useIsLocked(key: string, excludeSelf = false) {
   const context = useContext(LockContext)
 
   if (!context) {
@@ -121,7 +153,13 @@ export function useIsLocked(key: string) {
     )
   }
 
-  return context.locks.has(`${context.namespace}:${key}`)
+  let set = context.locks
+
+  if (excludeSelf) {
+    set = set.difference(context.selfLocks)
+  }
+
+  return set.has(key)
 }
 
 /**
@@ -137,8 +175,9 @@ export function useAcquireLock(key: string) {
     )
   }
 
-  const { namespace, broadcastChannel, messagePort } = context
+  const { namespace, broadcastChannel, messagePort, setSelfLocks } = context
 
+  const lockPrefix = `${namespace}:`
   const lockName = `${namespace}:${key}`
 
   useEffect(() => {
@@ -148,18 +187,32 @@ export function useAcquireLock(key: string) {
     // Request the lock and notify listeners
     navigator.locks
       .request(lockName, { signal: abortController.signal }, () => {
-        broadcastChannel.postMessage({ type: 'acquire', lockName })
-        messagePort.postMessage({ type: 'acquire', lockName })
+        const key = lockName.startsWith(lockPrefix) ? lockName.slice(lockPrefix.length) : undefined
+
+        if (!key) {
+          return
+        }
+
+        broadcastChannel.postMessage({ type: 'acquire', key })
+        messagePort.postMessage({ type: 'acquire', key })
         setHasAcquiredLock(true)
+        setSelfLocks((locks) => locks.union(new Set([key])))
 
         return new Promise<void>((resolve) => {
           releaseLock = resolve
         })
       })
       .then(async () => {
-        broadcastChannel.postMessage({ type: 'release', lockName })
-        messagePort.postMessage({ type: 'release', lockName })
+        const key = lockName.startsWith(lockPrefix) ? lockName.slice(lockPrefix.length) : undefined
+
+        if (!key) {
+          return
+        }
+
+        broadcastChannel.postMessage({ type: 'release', key })
+        messagePort.postMessage({ type: 'release', key })
         setHasAcquiredLock(false)
+        setSelfLocks((locks) => locks.difference(new Set([key])))
       })
       .catch(() => {})
 
@@ -176,7 +229,7 @@ export function useAcquireLock(key: string) {
       unload()
       window.removeEventListener('beforeunload', unload)
     }
-  }, [lockName, broadcastChannel, messagePort])
+  }, [lockName, lockPrefix, broadcastChannel, messagePort, setSelfLocks])
 
   return hasAcquiredLock
 }
