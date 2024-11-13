@@ -1,7 +1,7 @@
 'use client'
 
 import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo } from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
@@ -11,6 +11,7 @@ import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
+import { useAcquireLock } from './lock-provider'
 
 // TODO: support public/private DBs that live in the cloud
 export type Visibility = 'local'
@@ -106,6 +107,12 @@ export default function Workspace({
 
   const isConversationStarted =
     initialMessages !== undefined && messages.length > initialMessages.length
+
+  const hasAcquiredLock = useAcquireLock(databaseId)
+
+  useEffect(() => {
+    console.log('Has acquired lock:', databaseId, hasAcquiredLock)
+  }, [databaseId, hasAcquiredLock])
 
   return (
     <WorkspaceContext.Provider
