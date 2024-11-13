@@ -5,6 +5,7 @@ import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
 import { codeBlock } from 'common-tags'
 import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
 import { createClient } from '~/utils/supabase/server'
+import { logEvent } from '~/utils/telemetry'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -46,19 +47,30 @@ export async function POST(req: Request) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const { user } = data
+  const {
+    user: { id: userId },
+  } = data
 
-  const { remaining: inputRemaining } = await inputTokenRateLimit.getRemaining(user.id)
-  const { remaining: outputRemaining } = await outputTokenRateLimit.getRemaining(user.id)
+  const { remaining: inputTokensRemaining } = await inputTokenRateLimit.getRemaining(userId)
+  const { remaining: outputTokensRemaining } = await outputTokenRateLimit.getRemaining(userId)
 
-  if (inputRemaining <= 0 || outputRemaining <= 0) {
+  const { messages, databaseId }: { messages: Message[]; databaseId: string } = await req.json()
+
+  if (inputTokensRemaining <= 0 || outputTokensRemaining <= 0) {
+    logEvent('chat-rate-limit', {
+      databaseId,
+      userId,
+      inputTokensRemaining,
+      outputTokensRemaining,
+    })
     return new Response('Rate limited', { status: 429 })
   }
 
-  const { messages }: { messages: Message[] } = await req.json()
-
   // Trim the message context sent to the LLM to mitigate token abuse
   const trimmedMessageContext = messages.slice(-maxMessageContext)
+
+  const coreMessages = convertToCoreMessages(trimmedMessageContext)
+  const coreTools = convertToCoreTools(tools)
 
   const result = await streamText({
     system: codeBlock`
@@ -104,14 +116,37 @@ export async function POST(req: Request) {
       Feel free to suggest corrections for suspected typos.
     `,
     model: openai(chatModel),
-    messages: convertToCoreMessages(trimmedMessageContext),
-    tools: convertToCoreTools(tools),
-    async onFinish({ usage }) {
-      await inputTokenRateLimit.limit(user.id, {
+    messages: coreMessages,
+    tools: coreTools,
+    async onFinish({ usage, finishReason, toolCalls }) {
+      await inputTokenRateLimit.limit(userId, {
         rate: usage.promptTokens,
       })
-      await outputTokenRateLimit.limit(user.id, {
+      await outputTokenRateLimit.limit(userId, {
         rate: usage.completionTokens,
+      })
+
+      // The last message should always be an input message (user message or tool result)
+      const inputMessage = coreMessages.at(-1)
+      if (!inputMessage || (inputMessage.role !== 'user' && inputMessage.role !== 'tool')) {
+        return
+      }
+
+      // `tool` role indicates a tool result, `user` role indicates a user message
+      const inputType = inputMessage.role === 'tool' ? 'tool-result' : 'user-message'
+
+      // +1 for the assistant message just received
+      const messageCount = coreMessages.length + 1
+
+      logEvent('chat-inference', {
+        databaseId,
+        userId,
+        messageCount,
+        inputType,
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.completionTokens,
+        finishReason,
+        toolCalls: toolCalls?.map((toolCall) => toolCall.toolName),
       })
     },
   })
