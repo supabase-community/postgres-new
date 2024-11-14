@@ -1,11 +1,11 @@
 import { createOpenAI } from '@ai-sdk/openai'
 import { Ratelimit } from '@upstash/ratelimit'
 import { kv } from '@vercel/kv'
-import { ToolInvocation, convertToCoreMessages, streamText } from 'ai'
+import { convertToCoreMessages, streamText, ToolInvocation, ToolResultPart } from 'ai'
 import { codeBlock } from 'common-tags'
 import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
 import { createClient } from '~/utils/supabase/server'
-import { logEvent } from '~/utils/telemetry'
+import { ChatInferenceEventToolResult, logEvent } from '~/utils/telemetry'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -134,6 +134,12 @@ export async function POST(req: Request) {
 
       // `tool` role indicates a tool result, `user` role indicates a user message
       const inputType = inputMessage.role === 'tool' ? 'tool-result' : 'user-message'
+      const toolResults =
+        inputMessage.role === 'tool'
+          ? inputMessage.content
+              .map((toolResult) => getEventToolResult(toolResult))
+              .filter((eventToolResult) => eventToolResult !== undefined)
+          : undefined
 
       // +1 for the assistant message just received
       const messageCount = coreMessages.length + 1
@@ -143,6 +149,7 @@ export async function POST(req: Request) {
         userId,
         messageCount,
         inputType,
+        toolResults,
         inputTokens: usage.promptTokens,
         outputTokens: usage.completionTokens,
         finishReason,
@@ -152,4 +159,30 @@ export async function POST(req: Request) {
   })
 
   return result.toAIStreamResponse()
+}
+
+function getEventToolResult(toolResult: ToolResultPart): ChatInferenceEventToolResult | undefined {
+  try {
+    if (
+      !('result' in toolResult) ||
+      !toolResult.result ||
+      typeof toolResult.result !== 'object' ||
+      !('success' in toolResult.result) ||
+      typeof toolResult.result.success !== 'boolean'
+    ) {
+      return undefined
+    }
+
+    const {
+      toolName,
+      result: { success },
+    } = toolResult
+
+    return {
+      toolName,
+      success,
+    }
+  } catch (error) {
+    return undefined
+  }
 }

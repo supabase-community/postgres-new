@@ -13,6 +13,11 @@ export type ChatRateLimitEvent = {
   }
 }
 
+export type ChatInferenceEventToolResult = {
+  toolName: string
+  success: boolean
+}
+
 /**
  * Event for an AI chat inference request-response.
  * Includes both input and output metadata.
@@ -24,6 +29,7 @@ export type ChatInferenceEvent = {
     userId: string
     messageCount: number
     inputType: 'user-message' | 'tool-result'
+    toolResults?: ChatInferenceEventToolResult[]
     inputTokens: number
     outputTokens: number
     finishReason:
