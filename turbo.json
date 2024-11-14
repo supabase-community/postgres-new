@@ -13,6 +13,12 @@
       "interruptible": true,
       "cache": false
     },
+    "@database.build/browser-proxy#dev": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "interruptible": true,
+      "cache": false
+    },
     "@database.build/web#dev": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"],
