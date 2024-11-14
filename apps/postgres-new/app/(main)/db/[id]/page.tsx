@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
-import { useAcquireLock } from '~/components/lock-provider'
+import { useAcquireLock, useIsLocked } from '~/components/lock-provider'
 import Workspace from '~/components/workspace'
 import NewDatabasePage from '../../page'
 
@@ -12,7 +12,8 @@ export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
   const router = useRouter()
   const { dbManager } = useApp()
-  const hasAcquiredLock = useAcquireLock(databaseId)
+  useAcquireLock(databaseId)
+  const isLocked = useIsLocked(databaseId, true)
 
   useEffect(() => {
     async function run() {
@@ -29,7 +30,7 @@ export default function Page({ params }: { params: { id: string } }) {
     run()
   }, [dbManager, databaseId, router])
 
-  if (!hasAcquiredLock) {
+  if (isLocked) {
     return (
       <div className="relative h-full w-full">
         <NewDatabasePage />

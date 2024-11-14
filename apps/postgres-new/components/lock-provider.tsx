@@ -167,7 +167,6 @@ export function useIsLocked(key: string, excludeSelf = false) {
  */
 export function useAcquireLock(key: string) {
   const context = useContext(LockContext)
-  const [hasAcquiredLock, setHasAcquiredLock] = useState(false)
 
   if (!context) {
     throw new Error(
@@ -195,7 +194,6 @@ export function useAcquireLock(key: string) {
 
         broadcastChannel.postMessage({ type: 'acquire', key })
         messagePort.postMessage({ type: 'acquire', key })
-        setHasAcquiredLock(true)
         setSelfLocks((locks) => locks.union(new Set([key])))
 
         return new Promise<void>((resolve) => {
@@ -211,7 +209,6 @@ export function useAcquireLock(key: string) {
 
         broadcastChannel.postMessage({ type: 'release', key })
         messagePort.postMessage({ type: 'release', key })
-        setHasAcquiredLock(false)
         setSelfLocks((locks) => locks.difference(new Set([key])))
       })
       .catch(() => {})
@@ -230,6 +227,4 @@ export function useAcquireLock(key: string) {
       window.removeEventListener('beforeunload', unload)
     }
   }, [lockName, lockPrefix, broadcastChannel, messagePort, setSelfLocks])
-
-  return hasAcquiredLock
 }
