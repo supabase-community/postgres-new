@@ -34,8 +34,10 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
-import { assertDefined, formatSql, isMigrationStatement } from '~/lib/sql-util'
+import { assertDefined, isMigrationStatement } from '~/lib/sql-util'
 import type { ParseResult } from 'libpg-query/wasm'
+import { generateId, Message } from 'ai'
+import { getMessagesQueryKey } from '~/data/messages/messages-query'
 
 export type AppProps = PropsWithChildren
 
@@ -145,9 +147,25 @@ function useLiveShare() {
                   stmts: migrationStmts,
                 }
                 const migrationSql = await deparse(filteredAst)
-                const formattedSql = formatSql(migrationSql) ?? parsedMessage.query
-                const withSemicolon = formattedSql.endsWith(';') ? formattedSql : `${formattedSql};`
-                console.log(withSemicolon)
+                const chatMessage: Message = {
+                  id: generateId(),
+                  role: 'assistant',
+                  content: '',
+                  toolInvocations: [
+                    {
+                      state: 'result',
+                      toolCallId: generateId(),
+                      toolName: 'executeSql',
+                      args: { sql: migrationSql },
+                      result: { success: true },
+                    },
+                  ],
+                }
+                await dbManager.createMessage(databaseId, chatMessage)
+                // invalidate messages query to refresh the migrations tab
+                await queryClient.invalidateQueries({
+                  queryKey: getMessagesQueryKey(databaseId),
+                })
               }
             }
           }
