@@ -38,97 +38,19 @@ export type AppProps = PropsWithChildren
 // Create a singleton DbManager that isn't exposed to double mounting
 const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
 
-export default function AppProvider({ children }: AppProps) {
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
-  const [user, setUser] = useState<User>()
-  const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
-  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
-  const [isRateLimited, setIsRateLimited] = useState(false)
-
-  const focusRef = useRef<FocusHandle>(null)
-
+function useLiveShare() {
   const supabase = createClient()
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((e) => {
-      focusRef.current?.focus()
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const loadUser = useCallback(async () => {
-    setIsLoadingUser(true)
-    try {
-      const { data, error } = await supabase.auth.getUser()
-
-      if (error) {
-        // TODO: handle error
-        setUser(undefined)
-        return
-      }
-
-      const { user } = data
-
-      setUser(user)
-
-      return user
-    } finally {
-      setIsLoadingUser(false)
-    }
-  }, [supabase])
-
-  useEffect(() => {
-    loadUser()
-  }, [loadUser])
-
-  const signIn = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.toString(),
-      },
-    })
-
-    if (error) {
-      // TODO: handle sign in error
-    }
-
-    const user = await loadUser()
-    return user
-  }, [supabase, loadUser])
-
-  const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      // TODO: handle sign out error
-    }
-
-    setUser(undefined)
-  }, [supabase])
-
-  const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
-  const { value: pgVersion } = useAsyncMemo(async () => {
-    if (!dbManager) {
-      throw new Error('dbManager is not available')
-    }
-
-    return await dbManager.getRuntimePgVersion()
-  }, [dbManager])
-
   const queryClient = useQueryClient()
-
   const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
   const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
   const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
+
   const cleanUp = useCallback(() => {
     setLiveShareWebsocket(null)
     setLiveSharedDatabaseId(null)
     setConnectedClientIp(null)
   }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
+
   const startLiveShare = useCallback(
     async (databaseId: string) => {
       if (!dbManager) {
@@ -232,19 +154,105 @@ export default function AppProvider({ children }: AppProps) {
 
       setLiveShareWebsocket(ws)
     },
-    [cleanUp, supabase.auth]
+    [cleanUp, supabase.auth, queryClient]
   )
+
   const stopLiveShare = useCallback(() => {
     liveShareWebsocket?.close()
     cleanUp()
   }, [cleanUp, liveShareWebsocket])
-  const liveShare = {
+
+  return {
     start: startLiveShare,
     stop: stopLiveShare,
     databaseId: liveSharedDatabaseId,
     clientIp: connectedClientIp,
     isLiveSharing: Boolean(liveSharedDatabaseId),
   }
+}
+type LiveShare = ReturnType<typeof useLiveShare>
+
+export default function AppProvider({ children }: AppProps) {
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [user, setUser] = useState<User>()
+  const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
+  const [isRateLimited, setIsRateLimited] = useState(false)
+
+  const focusRef = useRef<FocusHandle>(null)
+
+  const supabase = createClient()
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((e) => {
+      focusRef.current?.focus()
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  const loadUser = useCallback(async () => {
+    setIsLoadingUser(true)
+    try {
+      const { data, error } = await supabase.auth.getUser()
+
+      if (error) {
+        // TODO: handle error
+        setUser(undefined)
+        return
+      }
+
+      const { user } = data
+
+      setUser(user)
+
+      return user
+    } finally {
+      setIsLoadingUser(false)
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    loadUser()
+  }, [loadUser])
+
+  const signIn = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: window.location.toString(),
+      },
+    })
+
+    if (error) {
+      // TODO: handle sign in error
+    }
+
+    const user = await loadUser()
+    return user
+  }, [supabase, loadUser])
+
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      // TODO: handle sign out error
+    }
+
+    setUser(undefined)
+  }, [supabase])
+
+  const pgliteVersion = process.env.NEXT_PUBLIC_PGLITE_VERSION
+  const { value: pgVersion } = useAsyncMemo(async () => {
+    if (!dbManager) {
+      throw new Error('dbManager is not available')
+    }
+
+    return await dbManager.getRuntimePgVersion()
+  }, [dbManager])
+
   const [isLegacyDomain, setIsLegacyDomain] = useState(false)
   const [isLegacyDomainRedirect, setIsLegacyDomainRedirect] = useState(false)
 
@@ -258,6 +266,8 @@ export default function AppProvider({ children }: AppProps) {
     setIsLegacyDomainRedirect(isLegacyDomainRedirect)
     setIsRenameDialogOpen(isLegacyDomain || isLegacyDomainRedirect)
   }, [])
+
+  const liveShare = useLiveShare()
 
   return (
     <AppContext.Provider
@@ -305,13 +315,7 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
-  liveShare: {
-    start: (databaseId: string) => Promise<void>
-    stop: () => void
-    databaseId: string | null
-    clientIp: string | null
-    isLiveSharing: boolean
-  }
+  liveShare: LiveShare
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
 }
