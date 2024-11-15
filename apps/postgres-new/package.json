@@ -25,6 +25,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@std/tar": "npm:@jsr/std__tar@^0.1.1",
+    "@supabase-labs/pg-protocol": "https://pkg.pr.new/supabase-community/pg-protocol/@supabase-labs/pg-protocol@86c902a",
     "@supabase/postgres-meta": "^0.81.2",
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.45.0",

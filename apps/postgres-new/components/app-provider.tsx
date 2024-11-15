@@ -8,6 +8,8 @@ import { User } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { Mutex } from 'async-mutex'
 import { debounce } from 'lodash'
+import { isQuery, parseQuery as parseQueryMessage } from '@supabase-labs/pg-protocol/frontend'
+import { isErrorResponse } from '@supabase-labs/pg-protocol/backend'
 import {
   createContext,
   PropsWithChildren,
@@ -32,11 +34,186 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
+import { assertDefined, isMigrationStatement } from '~/lib/sql-util'
+import type { ParseResult } from 'libpg-query/wasm'
+import { generateId, Message } from 'ai'
+import { getMessagesQueryKey } from '~/data/messages/messages-query'
 
 export type AppProps = PropsWithChildren
 
 // Create a singleton DbManager that isn't exposed to double mounting
 const dbManager = typeof window !== 'undefined' ? new DbManager() : undefined
+
+function useLiveShare() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+  const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
+  const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
+  const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
+
+  const cleanUp = useCallback(() => {
+    setLiveShareWebsocket(null)
+    setLiveSharedDatabaseId(null)
+    setConnectedClientIp(null)
+  }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
+
+  const startLiveShare = useCallback(
+    async (databaseId: string, options?: { captureMigrations?: boolean }) => {
+      if (!dbManager) {
+        throw new Error('dbManager is not available')
+      }
+
+      const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('You must be signed in to live share')
+      }
+
+      const ws = new WebSocket(
+        `wss://${databaseHostname}?token=${encodeURIComponent(session.access_token)}`
+      )
+
+      ws.binaryType = 'arraybuffer'
+
+      ws.onopen = () => {
+        setLiveSharedDatabaseId(databaseId)
+      }
+
+      const db = await dbManager.getDbInstance(databaseId)
+      const mutex = new Mutex()
+      let activeConnectionId: string | null = null
+
+      // Invalidate 'tables' query to refresh schema UI.
+      // Debounce so that we only invalidate once per
+      // sequence of back-to-back queries.
+      const invalidateTables = debounce(async () => {
+        await queryClient.invalidateQueries({
+          queryKey: getTablesQueryKey({ databaseId, schemas: ['public', 'meta'] }),
+        })
+      }, 50)
+
+      ws.onmessage = (event) => {
+        mutex.runExclusive(async () => {
+          const data = new Uint8Array(await event.data)
+
+          const { connectionId, message } = parse(data)
+
+          if (isStartupMessage(message)) {
+            activeConnectionId = connectionId
+            const parameters = parseStartupMessage(message)
+            if ('client_ip' in parameters) {
+              setConnectedClientIp(parameters.client_ip)
+            }
+            return
+          }
+
+          if (isTerminateMessage(message)) {
+            activeConnectionId = null
+            setConnectedClientIp(null)
+            // reset session state
+            await db.query('rollback').catch(() => {})
+            await db.query('discard all')
+            await db.query('set search_path to public')
+            return
+          }
+
+          if (activeConnectionId !== connectionId) {
+            console.error('received message from inactive connection', {
+              activeConnectionId,
+              connectionId,
+            })
+            return
+          }
+
+          const response = await db.execProtocolRaw(message)
+
+          ws.send(serialize(connectionId, response))
+
+          // Capture migrations if enabled
+          if (options?.captureMigrations && !isErrorResponse(response)) {
+            const { deparse, parseQuery } = await import('libpg-query/wasm')
+            if (isQuery(message)) {
+              const parsedMessage = parseQueryMessage(message)
+              const parseResult = await parseQuery(parsedMessage.query)
+              assertDefined(parseResult.stmts, 'Expected stmts to exist in parse result')
+              const migrationStmts = parseResult.stmts.filter(isMigrationStatement)
+              if (migrationStmts.length > 0) {
+                const filteredAst: ParseResult = {
+                  version: parseResult.version,
+                  stmts: migrationStmts,
+                }
+                const migrationSql = await deparse(filteredAst)
+                const chatMessage: Message = {
+                  id: generateId(),
+                  role: 'assistant',
+                  content: '',
+                  toolInvocations: [
+                    {
+                      state: 'result',
+                      toolCallId: generateId(),
+                      toolName: 'executeSql',
+                      args: { sql: migrationSql },
+                      result: { success: true },
+                    },
+                  ],
+                }
+                await dbManager.createMessage(databaseId, chatMessage)
+                // invalidate messages query to refresh the migrations tab
+                await queryClient.invalidateQueries({
+                  queryKey: getMessagesQueryKey(databaseId),
+                })
+              }
+            }
+          }
+
+          // Refresh table UI when safe to do so
+          // A backend response can have multiple wire messages
+          const backendMessages = Array.from(getMessages(response))
+          const lastMessage = backendMessages.at(-1)
+
+          // Only refresh if the last message is 'ReadyForQuery'
+          if (lastMessage && isReadyForQuery(lastMessage)) {
+            const { transactionStatus } = parseReadyForQuery(lastMessage)
+
+            // Do not refresh if we are in the middle of a transaction
+            // (refreshing causes SQL to run against the PGlite instance)
+            if (transactionStatus !== 'transaction') {
+              await invalidateTables()
+            }
+          }
+        })
+      }
+      ws.onclose = (event) => {
+        cleanUp()
+      }
+      ws.onerror = (error) => {
+        console.error('webSocket error:', error)
+        cleanUp()
+      }
+
+      setLiveShareWebsocket(ws)
+    },
+    [cleanUp, supabase.auth, queryClient]
+  )
+
+  const stopLiveShare = useCallback(() => {
+    liveShareWebsocket?.close()
+    cleanUp()
+  }, [cleanUp, liveShareWebsocket])
+
+  return {
+    start: startLiveShare,
+    stop: stopLiveShare,
+    databaseId: liveSharedDatabaseId,
+    clientIp: connectedClientIp,
+    isLiveSharing: Boolean(liveSharedDatabaseId),
+  }
+}
+type LiveShare = ReturnType<typeof useLiveShare>
 
 export default function AppProvider({ children }: AppProps) {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
@@ -119,132 +296,6 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
-  const queryClient = useQueryClient()
-
-  const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
-  const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
-  const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
-  const cleanUp = useCallback(() => {
-    setLiveShareWebsocket(null)
-    setLiveSharedDatabaseId(null)
-    setConnectedClientIp(null)
-  }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
-  const startLiveShare = useCallback(
-    async (databaseId: string) => {
-      if (!dbManager) {
-        throw new Error('dbManager is not available')
-      }
-
-      const databaseHostname = `${databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}`
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
-        throw new Error('You must be signed in to live share')
-      }
-
-      const ws = new WebSocket(
-        `wss://${databaseHostname}?token=${encodeURIComponent(session.access_token)}`
-      )
-
-      ws.binaryType = 'arraybuffer'
-
-      ws.onopen = () => {
-        setLiveSharedDatabaseId(databaseId)
-      }
-
-      const db = await dbManager.getDbInstance(databaseId)
-      const mutex = new Mutex()
-      let activeConnectionId: string | null = null
-
-      // Invalidate 'tables' query to refresh schema UI.
-      // Debounce so that we only invalidate once per
-      // sequence of back-to-back queries.
-      const invalidateTables = debounce(async () => {
-        await queryClient.invalidateQueries({
-          queryKey: getTablesQueryKey({ databaseId, schemas: ['public', 'meta'] }),
-        })
-      }, 50)
-
-      ws.onmessage = (event) => {
-        mutex.runExclusive(async () => {
-          const data = new Uint8Array(await event.data)
-
-          const { connectionId, message } = parse(data)
-
-          if (isStartupMessage(message)) {
-            activeConnectionId = connectionId
-            const parameters = parseStartupMessage(message)
-            if ('client_ip' in parameters) {
-              setConnectedClientIp(parameters.client_ip)
-            }
-            return
-          }
-
-          if (isTerminateMessage(message)) {
-            activeConnectionId = null
-            setConnectedClientIp(null)
-            // reset session state
-            await db.query('rollback').catch(() => {})
-            await db.query('discard all')
-            await db.query('set search_path to public')
-            return
-          }
-
-          if (activeConnectionId !== connectionId) {
-            console.error('received message from inactive connection', {
-              activeConnectionId,
-              connectionId,
-            })
-            return
-          }
-
-          const response = await db.execProtocolRaw(message)
-
-          ws.send(serialize(connectionId, response))
-
-          // Refresh table UI when safe to do so
-          // A backend response can have multiple wire messages
-          const backendMessages = Array.from(getMessages(response))
-          const lastMessage = backendMessages.at(-1)
-
-          // Only refresh if the last message is 'ReadyForQuery'
-          if (lastMessage && isReadyForQuery(lastMessage)) {
-            const { transactionStatus } = parseReadyForQuery(lastMessage)
-
-            // Do not refresh if we are in the middle of a transaction
-            // (refreshing causes SQL to run against the PGlite instance)
-            if (transactionStatus !== 'transaction') {
-              await invalidateTables()
-            }
-          }
-        })
-      }
-      ws.onclose = (event) => {
-        cleanUp()
-      }
-      ws.onerror = (error) => {
-        console.error('webSocket error:', error)
-        cleanUp()
-      }
-
-      setLiveShareWebsocket(ws)
-    },
-    [cleanUp, supabase.auth]
-  )
-  const stopLiveShare = useCallback(() => {
-    liveShareWebsocket?.close()
-    cleanUp()
-  }, [cleanUp, liveShareWebsocket])
-  const liveShare = {
-    start: startLiveShare,
-    stop: stopLiveShare,
-    databaseId: liveSharedDatabaseId,
-    clientIp: connectedClientIp,
-    isLiveSharing: Boolean(liveSharedDatabaseId),
-  }
   const [isLegacyDomain, setIsLegacyDomain] = useState(false)
   const [isLegacyDomainRedirect, setIsLegacyDomainRedirect] = useState(false)
 
@@ -258,6 +309,8 @@ export default function AppProvider({ children }: AppProps) {
     setIsLegacyDomainRedirect(isLegacyDomainRedirect)
     setIsRenameDialogOpen(isLegacyDomain || isLegacyDomainRedirect)
   }, [])
+
+  const liveShare = useLiveShare()
 
   return (
     <AppContext.Provider
@@ -305,13 +358,7 @@ export type AppContextValues = {
   dbManager?: DbManager
   pgliteVersion?: string
   pgVersion?: string
-  liveShare: {
-    start: (databaseId: string) => Promise<void>
-    stop: () => void
-    databaseId: string | null
-    clientIp: string | null
-    isLiveSharing: boolean
-  }
+  liveShare: LiveShare
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
 }

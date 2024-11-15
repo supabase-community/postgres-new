@@ -579,7 +579,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
         if (liveShare.isLiveSharing) {
           liveShare.stop()
         }
-        liveShare.start(props.databaseId)
+        liveShare.start(props.databaseId, { captureMigrations: true })
         router.push(`/db/${props.databaseId}`)
         props.setIsPopoverOpen(false)
       }}
