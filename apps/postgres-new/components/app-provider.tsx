@@ -8,6 +8,8 @@ import { User } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { Mutex } from 'async-mutex'
 import { debounce } from 'lodash'
+import { isQuery, parseQuery as parseQueryMessage } from '@supabase-labs/pg-protocol/frontend'
+import { isErrorResponse } from '@supabase-labs/pg-protocol/backend'
 import {
   createContext,
   PropsWithChildren,
@@ -32,6 +34,8 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
+import { assertDefined, formatSql, isMigrationStatement } from '~/lib/sql-util'
+import type { ParseResult } from 'libpg-query/wasm'
 
 export type AppProps = PropsWithChildren
 
@@ -52,7 +56,7 @@ function useLiveShare() {
   }, [setLiveShareWebsocket, setLiveSharedDatabaseId, setConnectedClientIp])
 
   const startLiveShare = useCallback(
-    async (databaseId: string) => {
+    async (databaseId: string, options?: { captureMigrations?: boolean }) => {
       if (!dbManager) {
         throw new Error('dbManager is not available')
       }
@@ -126,6 +130,27 @@ function useLiveShare() {
           const response = await db.execProtocolRaw(message)
 
           ws.send(serialize(connectionId, response))
+
+          // Capture migrations if enabled
+          if (options?.captureMigrations && !isErrorResponse(response)) {
+            const { deparse, parseQuery } = await import('libpg-query/wasm')
+            if (isQuery(message)) {
+              const parsedMessage = parseQueryMessage(message)
+              const parseResult = await parseQuery(parsedMessage.query)
+              assertDefined(parseResult.stmts, 'Expected stmts to exist in parse result')
+              const migrationStmts = parseResult.stmts.filter(isMigrationStatement)
+              if (migrationStmts.length > 0) {
+                const filteredAst: ParseResult = {
+                  version: parseResult.version,
+                  stmts: migrationStmts,
+                }
+                const migrationSql = await deparse(filteredAst)
+                const formattedSql = formatSql(migrationSql) ?? parsedMessage.query
+                const withSemicolon = formattedSql.endsWith(';') ? formattedSql : `${formattedSql};`
+                console.log(withSemicolon)
+              }
+            }
+          }
 
           // Refresh table UI when safe to do so
           // A backend response can have multiple wire messages
