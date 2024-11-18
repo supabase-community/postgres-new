@@ -25,6 +25,11 @@
       "persistent": true,
       "cache": true
     },
+    "@database.build/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "cache": true
+    },
     "type-check": {
       "dependsOn": ["^type-check"]
     }
