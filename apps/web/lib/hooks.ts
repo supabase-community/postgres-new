@@ -3,6 +3,7 @@
 import { generateId } from 'ai'
 import { Chart } from 'chart.js'
 import { codeBlock } from 'common-tags'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   cloneElement,
   isValidElement,
@@ -571,4 +572,22 @@ export function useFollowMouse<T extends HTMLElement, P extends HTMLElement>({
   }, [element, parentElement])
 
   return { ref }
+}
+
+/**
+ * Use a query parameter event to trigger a callback.
+ *
+ * Automatically removes query params from the URL.
+ */
+export function useQueryEvent(event: string, callback: (params: URLSearchParams) => void) {
+  const router = useRouter()
+  const params = useSearchParams()
+
+  useEffect(() => {
+    if (params.get('event') === event) {
+      router.replace(window.location.pathname)
+      callback(params)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, params])
 }

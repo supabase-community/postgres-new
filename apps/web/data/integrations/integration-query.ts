@@ -40,6 +40,7 @@ export const useIntegrationQuery = (
       const { id } = await getIntegration(name)
       return await getIntegrationDetails(id)
     },
+    retry: false,
   })
 }
 

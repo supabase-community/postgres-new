@@ -1,6 +1,7 @@
 'use client'
 
 import { generateProjectName } from '@database.build/deploy/supabase'
+import { Loader } from 'lucide-react'
 import { PropsWithChildren } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -18,16 +19,9 @@ export type DeployDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
-  onCancel: () => void
 }
 
-export function DeployDialog({
-  databaseId,
-  open,
-  onOpenChange,
-  onConfirm,
-  onCancel,
-}: DeployDialogProps) {
+export function DeployDialog({ databaseId, open, onOpenChange, onConfirm }: DeployDialogProps) {
   const { data: integration } = useIntegrationQuery('Supabase')
 
   return (
@@ -42,7 +36,11 @@ export function DeployDialog({
         </DialogHeader>
         <div className="flex flex-col gap-6">
           {!integration ? (
-            <p>Loading...</p>
+            <Loader
+              className="animate-spin self-center justify-self-center"
+              size={36}
+              strokeWidth={0.75}
+            />
           ) : (
             <div className="prose flex flex-col gap-2">
               You are about to deploy your in-browser database to Supabase. This will create a new
@@ -59,7 +57,6 @@ export function DeployDialog({
           <Button
             variant="secondary"
             onClick={() => {
-              onCancel()
               onOpenChange(false)
             }}
           >

@@ -1,3 +1,5 @@
+'use client'
+
 import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -9,25 +11,19 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
-import { Database } from '~/lib/db'
+import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { Button } from '../ui/button'
 
 export type RedeployDialogProps = {
-  database: Database
+  database: MergedDatabase
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
-  onCancel: () => void
 }
 
-export function RedeployDialog({
-  database,
-  open,
-  onOpenChange,
-  onConfirm,
-  onCancel,
-}: RedeployDialogProps) {
+export function RedeployDialog({ database, open, onOpenChange, onConfirm }: RedeployDialogProps) {
   const [confirmedValue, setConfirmedValue] = useState('')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
@@ -62,7 +58,6 @@ export function RedeployDialog({
             variant="secondary"
             onClick={() => {
               onOpenChange(false)
-              onCancel()
             }}
           >
             Cancel

@@ -20,7 +20,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { DeployFailureDialog } from '~/components/deploy/deploy-failure-dialog'
+import { DeploySuccessDialog } from '~/components/deploy/deploy-success-dialog'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
@@ -28,10 +30,13 @@ import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-muta
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
 import { MergedDatabase, useMergedDatabases } from '~/data/merged-databases/merged-databases'
+import { useQueryEvent } from '~/lib/hooks'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { useApp } from './app-provider'
 import { DeployDialog } from './deploy/deploy-dialog'
+import { SupabaseDeploymentInfo } from './deploy/deploy-info'
+import { DeployInfoDialog } from './deploy/deploy-info-dialog'
 import { IntegrationDialog } from './deploy/integration-dialog'
 import { RedeployDialog } from './deploy/redeploy-dialog'
 import { LiveShareIcon } from './live-share-icon'
@@ -309,16 +314,79 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { mutateAsync: deleteDatabase } = useDatabaseDeleteMutation()
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
-  const { data: supabaseIntegration } = useIntegrationQuery('Supabase')
+  const { data: supabaseIntegration, isLoading: isLoadingSupabaseIntegration } =
+    useIntegrationQuery('Supabase')
 
   const [isRenaming, setIsRenaming] = useState(false)
 
   const [isIntegrationDialogOpen, setIsIntegrationDialogOpen] = useState(false)
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false)
+  const [isDeployInfoDialogOpen, setIsDeployInfoDialogOpen] = useState(false)
   const [isRedeployDialogOpen, setIsRedeployDialogOpen] = useState(false)
-  const [deployUrl, setDeployUrl] = useState<string | null>(null)
+  const [isDeploySuccessDialogOpen, setIsDeploySuccessDialogOpen] = useState(false)
+  const [isDeployFailureDialogOpen, setIsDeployFailureDialogOpen] = useState(false)
 
-  const [isDeploying, setIsDeploying] = useState(false)
+  const [deployInfo, setDeployInfo] = useState<SupabaseDeploymentInfo>()
+  const [deployError, setDeployError] = useState<string>()
+
+  const isDeploying = isIntegrationDialogOpen || isDeployDialogOpen || isRedeployDialogOpen
+  const supabaseDeployment = database.deployments.find((d) => d.provider_name === 'Supabase')
+
+  /**
+   * Starts the deploy flow.
+   * - If the user has not connected to Supabase, open the integration dialog.
+   * - If the user has already deployed to Supabase, open the redeploy dialog.
+   * - Otherwise, open the deploy dialog.
+   */
+  const startDeployFlow = useCallback(() => {
+    setIsIntegrationDialogOpen(false)
+    setIsDeployDialogOpen(false)
+    setIsDeployInfoDialogOpen(false)
+    setIsRedeployDialogOpen(false)
+    setIsDeploySuccessDialogOpen(false)
+    setIsDeployFailureDialogOpen(false)
+
+    if (!isLoadingSupabaseIntegration && !supabaseIntegration) {
+      setIsIntegrationDialogOpen(true)
+    } else if (supabaseDeployment) {
+      setIsDeployInfoDialogOpen(true)
+    } else {
+      setIsDeployDialogOpen(true)
+    }
+  }, [supabaseDeployment, supabaseIntegration, isLoadingSupabaseIntegration])
+
+  useQueryEvent('deploy.start', (params) => {
+    if (!isActive) {
+      return
+    }
+    const provider = params.get('provider')?.toLowerCase()
+    if (provider === 'supabase') {
+      startDeployFlow()
+    }
+  })
+
+  useQueryEvent('deploy.success', (params) => {
+    if (!isActive) {
+      return
+    }
+    const deployInfoJson = params.get('project')
+    const deployInfo = deployInfoJson ? JSON.parse(deployInfoJson) : undefined
+    if (deployInfo) {
+      setDeployInfo(deployInfo)
+      setIsDeploySuccessDialogOpen(true)
+    }
+  })
+
+  useQueryEvent('deploy.failure', (params) => {
+    if (!isActive) {
+      return
+    }
+    const errorMessage = params.get('error')
+    if (errorMessage) {
+      setDeployError(errorMessage)
+      setIsDeployFailureDialogOpen(true)
+    }
+  })
 
   return (
     <>
@@ -339,8 +407,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
         }}
         onConfirm={() => {
           if (!supabaseIntegration) {
-            setIsDeployDialogOpen(false)
-            setIsIntegrationDialogOpen(true)
+            startDeployFlow()
             return
           }
 
@@ -351,21 +418,49 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 
           router.push(deployUrl)
         }}
-        onCancel={() => {
-          setIsDeploying(false)
-        }}
       />
+      {supabaseDeployment && (
+        <DeployInfoDialog
+          open={isDeployInfoDialogOpen}
+          onOpenChange={setIsDeployInfoDialogOpen}
+          deployedDatabase={supabaseDeployment}
+          onRedeploy={() => {
+            setIsRedeployDialogOpen(true)
+          }}
+        />
+      )}
       <RedeployDialog
         database={database}
         open={isRedeployDialogOpen}
         onOpenChange={setIsRedeployDialogOpen}
         onConfirm={() => {
-          router.push(deployUrl!)
-        }}
-        onCancel={() => {
-          setIsDeploying(false)
+          if (!supabaseIntegration) {
+            startDeployFlow()
+            return
+          }
+
+          const deployUrl = getDeployUrl({
+            databaseId: database.id,
+            integrationId: supabaseIntegration.id,
+          })
+
+          router.push(deployUrl)
         }}
       />
+      {deployInfo && (
+        <DeploySuccessDialog
+          open={isDeploySuccessDialogOpen}
+          onOpenChange={setIsDeploySuccessDialogOpen}
+          deployInfo={deployInfo}
+        />
+      )}
+      {deployError && (
+        <DeployFailureDialog
+          open={isDeployFailureDialogOpen}
+          onOpenChange={setIsDeployFailureDialogOpen}
+          errorMessage={deployError}
+        />
+      )}
 
       <Link
         data-active={isActive || isPopoverOpen}
@@ -514,15 +609,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
                         onSelect={async (e) => {
                           e.preventDefault()
-                          if (!supabaseIntegration) {
-                            setIsIntegrationDialogOpen(true)
-                          } else if (
-                            database.deployments.some((d) => d.provider_name === 'Supabase')
-                          ) {
-                            setIsRedeployDialogOpen(true)
-                          } else {
-                            setIsDeployDialogOpen(true)
-                          }
+                          startDeployFlow()
                         }}
                       >
                         <SupabaseIcon />

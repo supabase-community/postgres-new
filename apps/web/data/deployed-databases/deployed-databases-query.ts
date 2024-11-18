@@ -6,7 +6,7 @@ export type DeployedDatabase = Awaited<ReturnType<typeof getDeployedDatabases>>[
 async function getDeployedDatabases() {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('deployed_databases')
+    .from('latest_deployed_databases')
     .select(
       '*, ...deployment_provider_integrations!inner(...deployment_providers!inner(provider_name:name))'
     )

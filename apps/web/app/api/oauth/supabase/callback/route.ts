@@ -1,6 +1,6 @@
-import { createClient } from '~/utils/supabase/server'
-import { createClient as createAdminClient } from '~/utils/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '~/utils/supabase/admin'
+import { createClient } from '~/utils/supabase/server'
 
 type Credentials = {
   refreshToken: string
@@ -174,5 +174,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(`/db/${state.databaseId}?deploy=Supabase`, req.url))
+  return NextResponse.redirect(
+    new URL(`/db/${state.databaseId}?event=deploy.start&provider=Supabase`, req.url)
+  )
 }

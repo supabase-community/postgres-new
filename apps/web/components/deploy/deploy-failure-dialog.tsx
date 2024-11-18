@@ -1,35 +1,30 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from '~/components/ui/dialog'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
+import { SupabaseIcon } from '../supabase-icon'
 
-export function DeployFailureDialog() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search)
+export type DeployFailureDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  errorMessage: string
+}
 
-    if (searchParams.get('event') === 'deploy.failure') {
-      setError(searchParams.get('error'))
-      setOpen(true)
-      router.replace(window.location.pathname)
-    }
-  }, [router])
-
-  if (!error) {
-    return null
-  }
-
+export function DeployFailureDialog({
+  open,
+  onOpenChange,
+  errorMessage,
+}: DeployFailureDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Database deployment failed</DialogTitle>
+          <DialogTitle className="flex gap-2 items-center">
+            <SupabaseIcon />
+            Database deployment failed
+          </DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
-        <p>{error}</p>
+        <p>{errorMessage}</p>
       </DialogContent>
     </Dialog>
   )

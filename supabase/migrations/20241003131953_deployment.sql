@@ -65,6 +65,24 @@ where status = 'in_progress';
 create trigger deployments_updated_at before update on deployments
   for each row execute procedure moddatetime (updated_at);
 
+-- view for getting deployed databases with their last deployment date
+create view latest_deployed_databases as
+select
+  deployed_databases.*,
+  d.created_at as last_deployment_at
+from
+  deployed_databases
+left join (
+  select
+    deployed_database_id,
+    max(created_at) as created_at
+  from
+    deployments
+  group by
+    deployed_database_id
+) d
+  on d.deployed_database_id = deployed_databases.id;
+
 -- Enable RLS on deployment_provider_integrations
 alter table deployment_provider_integrations enable row level security;
 

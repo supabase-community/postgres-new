@@ -5,12 +5,15 @@ import {
   useDeployedDatabasesQuery,
 } from '../deployed-databases/deployed-databases-query'
 
+/**
+ * A local database with remote deployment information.
+ */
 export type MergedDatabase = Database & {
   deployments: DeployedDatabase[]
 }
 
 /**
- * Merges local databases with deployed databases.
+ * Merges local databases with remote deployed databases.
  */
 export function useMergedDatabases() {
   const { data: localDatabases, isLoading: isLoadingLocalDatabases } = useDatabasesQuery()
