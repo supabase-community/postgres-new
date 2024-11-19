@@ -4,6 +4,7 @@
   "scripts": {
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
     "dev": "npm run start",
+    "build": "echo 'built'",
     "type-check": "tsc",
     "generate:database-types": "npx supabase gen types --lang=typescript --local > ./supabase/database-types.ts",
     "generate:management-api-types": "npx openapi-typescript https://api.supabase.com/api/v1-json -o ./supabase/management-api/types.ts"

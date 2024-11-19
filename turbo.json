@@ -13,6 +13,10 @@
       "interruptible": true,
       "cache": false
     },
+    "@database.build/deploy-worker#build": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "@database.build/browser-proxy#dev": {
       "dependsOn": ["^build"],
       "persistent": true,
