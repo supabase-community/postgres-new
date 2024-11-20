@@ -78,6 +78,8 @@ left join (
     max(created_at) as created_at
   from
     deployments
+  where
+    status = 'success'
   group by
     deployed_database_id
 ) d
