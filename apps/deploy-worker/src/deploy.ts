@@ -1,18 +1,19 @@
-import { exec as execSync } from 'node:child_process'
-import { promisify } from 'node:util'
 import { DeployError, IntegrationRevokedError } from '@database.build/deploy'
 import {
-  getAccessToken,
-  createManagementApiClient,
   createDeployedDatabase,
+  createManagementApiClient,
   generatePassword,
+  getAccessToken,
   getDatabaseUrl,
   getPoolerUrl,
+  SUPABASE_SCHEMAS,
   type SupabaseClient,
   type SupabaseDeploymentConfig,
   type SupabasePlatformConfig,
   type SupabaseProviderMetadata,
 } from '@database.build/deploy/supabase'
+import { exec as execSync } from 'node:child_process'
+import { promisify } from 'node:util'
 const exec = promisify(execSync)
 
 /**
@@ -136,24 +137,7 @@ export async function deploy(
       databasePassword: remoteDatabasePassword,
     })
 
-    const excludedSchemas = [
-      'auth',
-      'cron',
-      'extensions',
-      'graphql',
-      'graphql_public',
-      'net',
-      'pgbouncer',
-      'pgsodium',
-      'pgsodium_masks',
-      'realtime',
-      'storage',
-      'supabase_functions',
-      'supabase_migrations',
-      'vault',
-    ]
-      .map((schema) => `--exclude-schema=${schema}`)
-      .join(' ')
+    const excludedSchemas = SUPABASE_SCHEMAS.map((schema) => `--exclude-schema=${schema}`).join(' ')
 
     // use pg_dump and pg_restore to transfer the data from the local database to the remote database
     const command = `pg_dump "${params.localDatabaseUrl}" -Fc ${excludedSchemas} -Z 0 | pg_restore -d "${remoteDatabaseUrl}" --clean --if-exists`

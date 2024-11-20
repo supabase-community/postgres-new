@@ -5,6 +5,7 @@ export * from './get-database-url.js'
 export * from './revoke-integration.js'
 export * from './wait-for-health.js'
 export * from './database-types.js'
+export * from './schemas.js'
 export * from './types.js'
 
 export * from './management-api/client.js'

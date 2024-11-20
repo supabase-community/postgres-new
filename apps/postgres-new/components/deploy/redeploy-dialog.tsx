@@ -14,6 +14,7 @@ import { Input } from '~/components/ui/input'
 import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { Button } from '../ui/button'
 import { SupabaseIcon } from '../supabase-icon'
+import { SchemaOverlapWarning } from './schema-overlap-warning'
 
 export type RedeployDialogProps = {
   database: MergedDatabase
@@ -43,6 +44,7 @@ export function RedeployDialog({ database, open, onOpenChange, onConfirm }: Rede
               version of your browser database. Existing schema and data in the deployed database
               will be lost.
             </p>
+            <SchemaOverlapWarning databaseId={database.id} />
             <div className="my-1 border-b" />
             <div className="flex flex-col gap-3">
               <p>
