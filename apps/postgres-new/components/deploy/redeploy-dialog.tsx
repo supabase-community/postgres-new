@@ -13,6 +13,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { Button } from '../ui/button'
+import { SupabaseIcon } from '../supabase-icon'
 
 export type RedeployDialogProps = {
   database: MergedDatabase
@@ -28,7 +29,10 @@ export function RedeployDialog({ database, open, onOpenChange, onConfirm }: Rede
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle className="mb-4">Confirm redeploy of {database.name}</DialogTitle>
+          <DialogTitle className="flex gap-2 items-center mb-4">
+            <SupabaseIcon />
+            Confirm redeploy of {database.name}
+          </DialogTitle>
           <DialogDescription className="flex flex-col gap-4">
             <div className="flex gap-2 items-center rounded-md border-destructive bg-destructive/25 p-2">
               <TriangleAlert size={16} />

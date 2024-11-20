@@ -9,6 +9,7 @@ import { createClient } from '~/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { ParticlesBackground } from '~/components/particles-background'
 import { getOauthUrl } from '~/lib/util'
+import { SupabaseIcon } from '~/components/supabase-icon'
 
 class IntegrationRevokedError extends Error {
   constructor() {
@@ -115,7 +116,10 @@ export default function Page() {
           overlay={false}
         >
           <DialogHeader>
-            <DialogTitle>Deploying your database</DialogTitle>
+            <DialogTitle className="flex gap-2 items-center">
+              <SupabaseIcon />
+              Deploying your database
+            </DialogTitle>
             <div className="py-2 border-b" />
           </DialogHeader>
           <div className="flex flex-col gap-6">

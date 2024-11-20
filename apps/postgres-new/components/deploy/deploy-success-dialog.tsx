@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { SupabaseDeployInfo, SupabaseDeploymentInfo } from './deploy-info'
+import { SupabaseIcon } from '../supabase-icon'
 
 export type DeploySuccessDialogProps = {
   open: boolean
@@ -17,7 +18,10 @@ export function DeploySuccessDialog({ open, onOpenChange, deployInfo }: DeploySu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Database {deployText}</DialogTitle>
+          <DialogTitle className="flex gap-2 items-center">
+            <SupabaseIcon />
+            Database {deployText}
+          </DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
         <div className="flex flex-col gap-8">
