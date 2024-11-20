@@ -40,6 +40,7 @@ import { DeployInfoDialog } from './deploy/deploy-info-dialog'
 import { IntegrationDialog } from './deploy/integration-dialog'
 import { RedeployDialog } from './deploy/redeploy-dialog'
 import { LiveShareIcon } from './live-share-icon'
+import { useIsLocked } from './lock-provider'
 import SignInButton from './sign-in-button'
 import { SupabaseIcon } from './supabase-icon'
 import ThemeDropdown from './theme-dropdown'
@@ -388,6 +389,8 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
     }
   })
 
+  const isLocked = useIsLocked(database.id, true)
+
   return (
     <>
       <IntegrationDialog
@@ -543,6 +546,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
             ) : (
               <div className="flex flex-col items-stretch">
                 <DropdownMenuItem
+                  disabled={isLocked}
                   className="gap-3"
                   onSelect={async (e) => {
                     e.preventDefault()
@@ -557,6 +561,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   <span>Rename</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={isLocked}
                   className="gap-3"
                   onSelect={async (e) => {
                     e.preventDefault()
@@ -622,9 +627,11 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                   databaseId={database.id}
                   isActive={isActive}
                   setIsPopoverOpen={setIsPopoverOpen}
+                  disabled={user === undefined || isLocked}
                 />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  disabled={isLocked}
                   className="gap-3"
                   onSelect={async (e) => {
                     e.preventDefault()
@@ -655,6 +662,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
 type ConnectMenuItemProps = {
   databaseId: string
   isActive: boolean
+  disabled?: boolean
   setIsPopoverOpen: (open: boolean) => void
 }
 
@@ -680,7 +688,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
 
   return (
     <DropdownMenuItem
-      disabled={!user}
+      disabled={props.disabled}
       className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
       onClick={async (e) => {
         e.preventDefault()

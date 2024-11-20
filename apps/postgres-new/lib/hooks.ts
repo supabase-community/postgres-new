@@ -169,6 +169,7 @@ export function useAsyncMemo<T>(
       })
       .catch((err) => {
         if (!hasBeenCancelled.current) {
+          setValue(undefined)
           setError(err)
         }
       })
@@ -429,6 +430,25 @@ export function useOnToolCall(databaseId: string) {
           } catch (error) {
             console.error(error)
 
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'An unknown error has occurred',
+            }
+          }
+        }
+        case 'importSql': {
+          const { fileId } = toolCall.args
+
+          try {
+            const file = await loadFile(fileId)
+            await db.exec(await file.text())
+            await refetchTables()
+
+            return {
+              success: true,
+              message: 'The SQL file has been executed successfully.',
+            }
+          } catch (error) {
             return {
               success: false,
               error: error instanceof Error ? error.message : 'An unknown error has occurred',

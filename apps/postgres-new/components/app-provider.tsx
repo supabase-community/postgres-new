@@ -5,7 +5,9 @@
  */
 
 import { User } from '@supabase/supabase-js'
+import { useQueryClient } from '@tanstack/react-query'
 import { Mutex } from 'async-mutex'
+import { debounce } from 'lodash'
 import {
   createContext,
   PropsWithChildren,
@@ -16,11 +18,19 @@ import {
   useRef,
   useState,
 } from 'react'
+import { getTablesQueryKey } from '~/data/tables/tables-query'
 import { DbManager } from '~/lib/db'
 import { useAsyncMemo } from '~/lib/hooks'
-import { isStartupMessage, isTerminateMessage, parseStartupMessage } from '~/lib/pg-wire-util'
-import { parse, serialize } from '~/lib/websocket-protocol'
+import {
+  getMessages,
+  isReadyForQuery,
+  isStartupMessage,
+  isTerminateMessage,
+  parseReadyForQuery,
+  parseStartupMessage,
+} from '~/lib/pg-wire-util'
 import { legacyDomainHostname } from '~/lib/util'
+import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
 
 export type AppProps = PropsWithChildren
@@ -109,6 +119,8 @@ export default function AppProvider({ children }: AppProps) {
     return await dbManager.getRuntimePgVersion()
   }, [dbManager])
 
+  const queryClient = useQueryClient()
+
   const [liveSharedDatabaseId, setLiveSharedDatabaseId] = useState<string | null>(null)
   const [connectedClientIp, setConnectedClientIp] = useState<string | null>(null)
   const [liveShareWebsocket, setLiveShareWebsocket] = useState<WebSocket | null>(null)
@@ -147,6 +159,15 @@ export default function AppProvider({ children }: AppProps) {
       const mutex = new Mutex()
       let activeConnectionId: string | null = null
 
+      // Invalidate 'tables' query to refresh schema UI.
+      // Debounce so that we only invalidate once per
+      // sequence of back-to-back queries.
+      const invalidateTables = debounce(async () => {
+        await queryClient.invalidateQueries({
+          queryKey: getTablesQueryKey({ databaseId, schemas: ['public', 'meta'] }),
+        })
+      }, 50)
+
       ws.onmessage = (event) => {
         mutex.runExclusive(async () => {
           const data = new Uint8Array(await event.data)
@@ -181,7 +202,24 @@ export default function AppProvider({ children }: AppProps) {
           }
 
           const response = await db.execProtocolRaw(message)
+
           ws.send(serialize(connectionId, response))
+
+          // Refresh table UI when safe to do so
+          // A backend response can have multiple wire messages
+          const backendMessages = Array.from(getMessages(response))
+          const lastMessage = backendMessages.at(-1)
+
+          // Only refresh if the last message is 'ReadyForQuery'
+          if (lastMessage && isReadyForQuery(lastMessage)) {
+            const { transactionStatus } = parseReadyForQuery(lastMessage)
+
+            // Do not refresh if we are in the middle of a transaction
+            // (refreshing causes SQL to run against the PGlite instance)
+            if (transactionStatus !== 'transaction') {
+              await invalidateTables()
+            }
+          }
         })
       }
       ws.onclose = (event) => {

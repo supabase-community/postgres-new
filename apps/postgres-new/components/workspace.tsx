@@ -71,6 +71,9 @@ export default function Workspace({
     maxToolRoundtrips: 10,
     keepLastMessageOnError: true,
     onToolCall: onToolCall as any, // our `OnToolCall` type is more specific than `ai` SDK's
+    body: {
+      databaseId,
+    },
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {

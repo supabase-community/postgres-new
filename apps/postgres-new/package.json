@@ -65,7 +65,7 @@
     "rehype-katex": "^7.0.0",
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
-    "sql-formatter": "^15.3.1",
+    "sql-formatter": "^15.4.5",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "web-streams-polyfill": "^4.0.0",

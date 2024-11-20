@@ -3,12 +3,12 @@ import { formatSql } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import CodeAccordion from '../code-accordion'
 
-export type CsvExportProps = {
-  toolInvocation: ToolInvocation<'importCsv'>
+export type SqlImportProps = {
+  toolInvocation: ToolInvocation<'importSql'>
 }
 
-export default function CsvImport({ toolInvocation }: CsvExportProps) {
-  const { sql } = toolInvocation.args
+export default function SqlImport({ toolInvocation }: SqlImportProps) {
+  const { fileId, sql } = toolInvocation.args
 
   const formattedSql = useMemo(() => formatSql(sql), [sql])
 

@@ -2,21 +2,19 @@
 
 import { Editor } from '@monaco-editor/react'
 import { ParseResult } from 'libpg-query/wasm'
-import { FileCode, MessageSquareMore, Sprout, Workflow } from 'lucide-react'
+import { FileCode, MessageSquareMore, Workflow } from 'lucide-react'
 import { PropsWithChildren, useEffect, useState } from 'react'
-import { format } from 'sql-formatter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useAsyncMemo } from '~/lib/hooks'
 import { tabsSchema, TabValue } from '~/lib/schema'
-import { assertDefined, isMigrationStatement } from '~/lib/sql-util'
+import { assertDefined, formatSql, isMigrationStatement } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { cn } from '~/lib/utils'
-import { useApp } from './app-provider'
 import SchemaGraph from './schema/graph'
-import { useWorkspace } from './workspace'
 import { buttonVariants } from './ui/button'
+import { useWorkspace } from './workspace'
 
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
@@ -53,7 +51,9 @@ export default function IDE({ children, className }: IDEProps) {
           return toolInvocations
             .map((tool) =>
               // Only include SQL that successfully executed against the DB
-              tool.toolName === 'executeSql' && 'result' in tool && tool.result.success === true
+              (tool.toolName === 'executeSql' || tool.toolName === 'importSql') &&
+              'result' in tool &&
+              tool.result.success === true
                 ? tool.args.sql
                 : undefined
             )
@@ -80,13 +80,7 @@ export default function IDE({ children, className }: IDEProps) {
 
         const migrationSql = await deparse(filteredAst)
 
-        const formattedSql = format(migrationSql, {
-          language: 'postgresql',
-          keywordCase: 'lower',
-          identifierCase: 'lower',
-          dataTypeCase: 'lower',
-          functionCase: 'lower',
-        })
+        const formattedSql = formatSql(migrationSql) ?? sql
 
         const withSemicolon = formattedSql.endsWith(';') ? formattedSql : `${formattedSql};`
 
@@ -189,14 +183,11 @@ export default function IDE({ children, className }: IDEProps) {
                 monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
                   async provideDocumentFormattingEdits(model) {
                     const currentCode = editor.getValue()
-                    const formattedCode = format(currentCode, {
-                      language: 'postgresql',
-                      keywordCase: 'lower',
-                    })
+                    const formattedCode = formatSql(currentCode)
                     return [
                       {
                         range: model.getFullModelRange(),
-                        text: formattedCode,
+                        text: formattedCode ?? currentCode,
                       },
                     ]
                   },
@@ -233,14 +224,11 @@ export default function IDE({ children, className }: IDEProps) {
                 monaco.languages.registerDocumentFormattingEditProvider('pgsql', {
                   async provideDocumentFormattingEdits(model) {
                     const currentCode = editor.getValue()
-                    const formattedCode = format(currentCode, {
-                      language: 'postgresql',
-                      keywordCase: 'lower',
-                    })
+                    const formattedCode = formatSql(currentCode)
                     return [
                       {
                         range: model.getFullModelRange(),
-                        text: formattedCode,
+                        text: formattedCode ?? currentCode,
                       },
                     ]
                   },
