@@ -2,8 +2,6 @@ FROM node:22-alpine AS base
 
 FROM base AS builder
 
-RUN apk add --no-cache postgresql16-client
-
 WORKDIR /app
 
 RUN npm install -g turbo@^2
@@ -24,6 +22,8 @@ COPY --from=builder /app/out/full/ .
 RUN npx turbo run build --filter=@database.build/deploy-worker
 
 FROM base AS runner
+
+RUN apk add --no-cache postgresql16-client
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
