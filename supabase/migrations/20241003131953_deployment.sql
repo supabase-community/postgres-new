@@ -66,7 +66,9 @@ create trigger deployments_updated_at before update on deployments
   for each row execute procedure moddatetime (updated_at);
 
 -- view for getting deployed databases with their last deployment date
-create view latest_deployed_databases as
+create view latest_deployed_databases
+with (security_invoker=true)
+as
 select
   deployed_databases.*,
   d.created_at as last_deployment_at
