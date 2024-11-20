@@ -188,18 +188,44 @@ export type Database = {
             referencedRelation: "deployed_databases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deployments_deployed_database_id_fkey"
+            columns: ["deployed_database_id"]
+            isOneToOne: false
+            referencedRelation: "latest_deployed_databases"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      latest_deployed_databases: {
+        Row: {
+          created_at: string | null
+          deployment_provider_integration_id: number | null
+          id: number | null
+          last_deployment_at: string | null
+          local_database_id: string | null
+          provider_metadata: Json | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployed_databases_deployment_provider_integration_id_fkey"
+            columns: ["deployment_provider_integration_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_provider_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       delete_secret: {
         Args: {
           secret_id: string
         }
-        Returns: string
+        Returns: number
       }
       insert_secret: {
         Args: {
@@ -226,6 +252,13 @@ export type Database = {
         Args: {
           secret_id: string
           new_secret: string
+        }
+        Returns: string
+      }
+      upsert_secret: {
+        Args: {
+          secret: string
+          name: string
         }
         Returns: string
       }

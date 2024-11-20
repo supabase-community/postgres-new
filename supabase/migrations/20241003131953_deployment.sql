@@ -65,6 +65,24 @@ where status = 'in_progress';
 create trigger deployments_updated_at before update on deployments
   for each row execute procedure moddatetime (updated_at);
 
+-- view for getting deployed databases with their last deployment date
+create view latest_deployed_databases as
+select
+  deployed_databases.*,
+  d.created_at as last_deployment_at
+from
+  deployed_databases
+left join (
+  select
+    deployed_database_id,
+    max(created_at) as created_at
+  from
+    deployments
+  group by
+    deployed_database_id
+) d
+  on d.deployed_database_id = deployed_databases.id;
+
 -- Enable RLS on deployment_provider_integrations
 alter table deployment_provider_integrations enable row level security;
 
@@ -153,6 +171,32 @@ begin
   end if;
  
   return vault.create_secret(secret, name);
+end;
+$$;
+
+create or replace function upsert_secret(secret text, name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  secret_id uuid;
+begin
+  if current_setting('role') != 'service_role' then
+    raise exception 'authentication required';
+  end if;
+
+  -- check if the secret already exists and store the id
+  select id into secret_id from vault.decrypted_secrets where vault.decrypted_secrets.name = upsert_secret.name;
+
+  if secret_id is not null then
+    -- If the secret exists, update it
+    return vault.update_secret(secret_id, secret);
+  else
+    -- If the secret does not exist, create it
+    return vault.create_secret(secret, name);
+  end if;
 end;
 $$;
 

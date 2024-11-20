@@ -1,10 +1,14 @@
 {
+  "name": "@database.build/root",
   "private": true,
+  "packageManager": "npm@10.8.3",
   "scripts": {
-    "dev": "npm run dev --workspace postgres-new"
+    "dev": "turbo watch dev",
+    "build": "turbo run build"
   },
-  "workspaces": ["apps/*"],
+  "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
-    "supabase": "^1.207.9"
+    "supabase": "^1.207.9",
+    "turbo": "^2.3.0"
   }
 }

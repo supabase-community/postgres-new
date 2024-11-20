@@ -1,6 +1,7 @@
 import createClient, { type Middleware } from 'openapi-fetch'
-import type { paths } from './types.ts'
-import { IntegrationRevokedError } from '../../error.ts'
+import type { paths } from './types.js'
+import { IntegrationRevokedError } from '../../error.js'
+import type { SupabasePlatformConfig } from '../types.js'
 
 const integrationRevokedMiddleware: Middleware = {
   async onResponse({ response }) {
@@ -10,9 +11,12 @@ const integrationRevokedMiddleware: Middleware = {
   },
 }
 
-export function createManagementApiClient(accessToken: string) {
+export function createManagementApiClient(
+  ctx: { supabasePlatformConfig: SupabasePlatformConfig },
+  accessToken: string
+) {
   const client = createClient<paths>({
-    baseUrl: 'https://api.supabase.com/',
+    baseUrl: ctx.supabasePlatformConfig.apiUrl,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,

@@ -1,6 +1,6 @@
-import { createClient } from '~/utils/supabase/server'
-import { createClient as createAdminClient } from '~/utils/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '~/utils/supabase/admin'
+import { createClient } from '~/utils/supabase/server'
 
 type Credentials = {
   refreshToken: string
@@ -45,19 +45,22 @@ export async function GET(req: NextRequest) {
   const now = Date.now()
 
   // get tokens
-  const tokensResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-      Authorization: `Basic ${btoa(`${process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
-    }),
-  })
+  const tokensResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/oauth/token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        Authorization: `Basic ${btoa(`${process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: req.nextUrl.origin + '/api/oauth/supabase/callback',
+      }),
+    }
+  )
 
   if (!tokensResponse.ok) {
     return new Response('Failed to get tokens', { status: 500 })
@@ -71,13 +74,16 @@ export async function GET(req: NextRequest) {
     token_type: 'Bearer'
   }
 
-  const organizationsResponse = await fetch('https://api.supabase.com/v1/organizations', {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${tokens.access_token}`,
-    },
-  })
+  const organizationsResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/organizations`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    }
+  )
 
   if (!organizationsResponse.ok) {
     return new Response('Failed to get organizations', { status: 500 })
@@ -120,9 +126,11 @@ export async function GET(req: NextRequest) {
 
   const adminClient = createAdminClient()
 
+  const secretName = `oauth_credentials_supabase_${organization.id}_${user.id}`
+
   // store the tokens as secret
-  const credentialsSecret = await adminClient.rpc('insert_secret', {
-    name: `oauth_credentials_supabase_${organization.id}_${user.id}`,
+  const credentialsSecret = await adminClient.rpc('upsert_secret', {
+    name: secretName,
     secret: JSON.stringify({
       accessToken: tokens.access_token,
       expiresAt: new Date(now + tokens.expires_in * 1000).toISOString(),
@@ -131,12 +139,11 @@ export async function GET(req: NextRequest) {
   })
 
   if (credentialsSecret.error) {
+    console.error(credentialsSecret.error)
     return new Response('Failed to store the integration credentials as secret', { status: 500 })
   }
 
-  let integrationId: number
-
-  // if an existing revoked integration exists, update the tokens and cancel the revokation
+  // if an existing revoked integration exists, update the tokens and cancel the revocation
   if (revokedIntegration) {
     const updateIntegrationResponse = await supabase
       .from('deployment_provider_integrations')
@@ -149,8 +156,6 @@ export async function GET(req: NextRequest) {
     if (updateIntegrationResponse.error) {
       return new Response('Failed to update integration', { status: 500 })
     }
-
-    integrationId = revokedIntegration.id
   } else {
     const createIntegrationResponse = await supabase
       .from('deployment_provider_integrations')
@@ -167,13 +172,9 @@ export async function GET(req: NextRequest) {
     if (createIntegrationResponse.error) {
       return new Response('Failed to create integration', { status: 500 })
     }
-
-    integrationId = createIntegrationResponse.data.id
   }
 
-  const params = new URLSearchParams({
-    integration: integrationId.toString(),
-  })
-
-  return NextResponse.redirect(new URL(`/deploy/${state.databaseId}?${params.toString()}`, req.url))
+  return NextResponse.redirect(
+    new URL(`/db/${state.databaseId}?event=deploy.start&provider=Supabase`, req.url)
+  )
 }

@@ -1,0 +1,30 @@
+{
+  "name": "@database.build/deploy",
+  "version": "0.0.0",
+  "description": "Database deployment utilities",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./supabase": "./dist/supabase/index.js"
+  },
+  "scripts": {
+    "type-check": "tsc",
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "generate:database-types": "supabase gen types --lang=typescript --local > src/supabase/database-types.ts",
+    "generate:management-api-types": "openapi-typescript https://api.supabase.com/api/v1-json -o ./src/supabase/management-api/types.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.1",
+    "neverthrow": "^8.0.0",
+    "openapi-fetch": "^0.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
+    "openapi-typescript": "^7.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}

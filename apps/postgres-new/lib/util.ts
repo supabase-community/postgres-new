@@ -136,5 +136,5 @@ export function getOauthUrl(params: { databaseId: string }) {
       databaseId: params.databaseId,
     }),
   })
-  return `https://api.supabase.com/v1/oauth/authorize?${oauthParams.toString()}`
+  return `${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_API_URL}/v1/oauth/authorize?${oauthParams.toString()}`
 }

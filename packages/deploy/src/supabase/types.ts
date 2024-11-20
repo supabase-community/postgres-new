@@ -1,6 +1,7 @@
-import type { createClient } from './client.ts'
-import type { createManagementApiClient } from './management-api/client.ts'
-import type { paths } from './management-api/types.ts'
+import { SupabaseClient as SupabaseClientGeneric } from '@supabase/supabase-js'
+import type { Database as SupabaseDatabase } from './database-types.js'
+import type { createManagementApiClient } from './management-api/client.js'
+import type { paths } from './management-api/types.js'
 
 export type Credentials = { expiresAt: string; refreshToken: string; accessToken: string }
 
@@ -12,6 +13,9 @@ type Unpacked<T> = T extends (infer U)[] ? U : T
 type Database = Unpacked<
   paths['/v1/projects/{ref}/config/database/pooler']['get']['responses']['200']['content']['application/json']
 >
+
+export type Region =
+  paths['/v1/projects']['post']['requestBody']['content']['application/json']['region']
 
 export type SupabaseProviderMetadata = {
   project: {
@@ -35,6 +39,17 @@ export type SupabaseProviderMetadata = {
   }
 }
 
-export type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+export type SupabaseClient = SupabaseClientGeneric<SupabaseDatabase>
 
 export type ManagementApiClient = Awaited<ReturnType<typeof createManagementApiClient>>
+
+export type SupabasePlatformConfig = {
+  url: string
+  apiUrl: string
+  oauthClientId: string
+  oauthSecret: string
+}
+
+export type SupabaseDeploymentConfig = {
+  region: Region
+}

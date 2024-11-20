@@ -1,0 +1,3 @@
+{
+  "buildCommand": "DO_NOT_TRACK=1 turbo build"
+}

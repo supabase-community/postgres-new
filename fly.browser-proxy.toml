@@ -1,5 +1,8 @@
 primary_region = 'iad'
 
+[build]
+dockerfile = "./apps/browser-proxy/Dockerfile"
+
 [[services]]
 internal_port = 5432
 protocol = "tcp"

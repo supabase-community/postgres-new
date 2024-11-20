@@ -1,15 +1,20 @@
-import { DeployError, IntegrationRevokedError } from '../error.ts'
-import { supabaseAdmin } from './client.ts'
-import type { Credentials } from './types.ts'
+import { DeployError, IntegrationRevokedError } from '../error.js'
+import type { Credentials, SupabaseClient, SupabasePlatformConfig } from './types.js'
 
 /**
  * Get the access token for a given Supabase integration.
  */
-export async function getAccessToken(params: {
-  integrationId: number
-  credentialsSecretId: string
-}): Promise<string> {
-  const credentialsSecret = await supabaseAdmin.rpc('read_secret', {
+export async function getAccessToken(
+  ctx: {
+    supabaseAdmin: SupabaseClient
+    supabasePlatformConfig: SupabasePlatformConfig
+  },
+  params: {
+    integrationId: number
+    credentialsSecretId: string
+  }
+): Promise<string> {
+  const credentialsSecret = await ctx.supabaseAdmin.rpc('read_secret', {
     secret_id: params.credentialsSecretId,
   })
 
@@ -25,18 +30,21 @@ export async function getAccessToken(params: {
   if (new Date(credentials.expiresAt) < new Date(Date.now() + 1 * 60 * 60 * 1000)) {
     const now = Date.now()
 
-    const newCredentialsResponse = await fetch('https://api.supabase.com/v1/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-        Authorization: `Basic ${btoa(`${process.env.SUPABASE_OAUTH_CLIENT_ID}:${process.env.SUPABASE_OAUTH_SECRET}`)}`,
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: credentials.refreshToken,
-      }),
-    })
+    const newCredentialsResponse = await fetch(
+      `${ctx.supabasePlatformConfig.apiUrl}/v1/oauth/token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+          Authorization: `Basic ${btoa(`${ctx.supabasePlatformConfig.oauthClientId}:${ctx.supabasePlatformConfig.oauthSecret}`)}`,
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: credentials.refreshToken,
+        }),
+      }
+    )
 
     if (!newCredentialsResponse.ok) {
       if (newCredentialsResponse.status === 406) {
@@ -61,7 +69,7 @@ export async function getAccessToken(params: {
 
     const expiresAt = new Date(now + newCredentials.expires_in * 1000)
 
-    const updateCredentialsSecret = await supabaseAdmin.rpc('update_secret', {
+    const updateCredentialsSecret = await ctx.supabaseAdmin.rpc('update_secret', {
       secret_id: params.credentialsSecretId,
       new_secret: JSON.stringify({
         accessToken: newCredentials.access_token,

@@ -1,8 +1,10 @@
-import type { SupabaseClient } from './types.ts'
-import { supabaseAdmin } from './client.ts'
+import type { SupabaseClient } from './types.js'
 
 export async function revokeIntegration(
-  ctx: { supabase: SupabaseClient },
+  ctx: {
+    supabase: SupabaseClient
+    supabaseAdmin: SupabaseClient
+  },
   params: { integrationId: number }
 ) {
   const integration = await ctx.supabase
@@ -24,7 +26,7 @@ export async function revokeIntegration(
     throw new Error('Failed to revoke integration')
   }
 
-  const deleteSecret = await supabaseAdmin.rpc('delete_secret', {
+  const deleteSecret = await ctx.supabaseAdmin.rpc('delete_secret', {
     secret_id: integration.data.credentials!,
   })
 

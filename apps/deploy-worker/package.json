@@ -3,16 +3,17 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
-    "dev": "node --watch --env-file=.env --experimental-strip-types src/index.ts",
+    "dev": "npm run start",
+    "build": "echo 'built'",
     "type-check": "tsc",
-    "generate:database-types": "npx supabase gen types --lang=typescript --local > src/supabase/database-types.ts",
-    "generate:management-api-types": "npx openapi-typescript https://api.supabase.com/api/v1-json -o ./src/supabase/management-api/types.ts"
+    "generate:database-types": "npx supabase gen types --lang=typescript --local > ./supabase/database-types.ts",
+    "generate:management-api-types": "npx openapi-typescript https://api.supabase.com/api/v1-json -o ./supabase/management-api/types.ts"
   },
   "dependencies": {
+    "@database.build/deploy": "*",
     "@hono/node-server": "^1.13.2",
     "@hono/zod-validator": "^0.4.1",
     "@supabase/supabase-js": "^2.45.4",
-    "debug": "^4.3.7",
     "hono": "^4.6.5",
     "neverthrow": "^8.0.0",
     "openapi-fetch": "^0.13.0",
@@ -20,7 +21,6 @@
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
-    "@types/debug": "^4.1.12",
     "@types/node": "^22.5.4",
     "openapi-typescript": "^7.4.2",
     "typescript": "^5.5.4"

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turbo.build/schema.v2.json",
+  "ui": "stream",
+  "tasks": {
+    "@database.build/deploy#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": true
+    },
+    "@database.build/deploy-worker#dev": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "interruptible": true,
+      "cache": false
+    },
+    "@database.build/deploy-worker#build": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "@database.build/browser-proxy#dev": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "interruptible": true,
+      "cache": false
+    },
+    "@database.build/web#dev": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "persistent": true,
+      "cache": true
+    },
+    "@database.build/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "cache": true
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    }
+  }
+}

@@ -1,5 +1,8 @@
 primary_region = 'iad'
 
+[build]
+dockerfile = "./apps/deploy-worker/Dockerfile"
+
 [http_service]
 internal_port = 4000
 force_https = true
