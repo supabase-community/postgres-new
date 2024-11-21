@@ -23,7 +23,7 @@ How is this possible? [PGlite](https://pglite.dev/), a WASM version of Postgres 
 
 This is a monorepo split into the following projects:
 
-- [Web](./apps/web/): The primary web app built with Next.js
+- [Web](./apps/postgres-new/): The primary web app built with Next.js
 - [Browser proxy](./apps/browser-proxy/): Proxies Postgres TCP connections back to the browser using [pg-gateway](https://github.com/supabase-community/pg-gateway) and Web Sockets
 - [Deploy worker](./apps/deploy-worker/): Deploys in-browser databases to database platforms (currently Supabase is supported)
 
@@ -41,33 +41,33 @@ From the monorepo root:
    ```shell
    npx supabase start
    ```
-3. Store local Supabase URL/anon key in `./apps/web/.env.local`:
+3. Store local Supabase URL/anon key in `./apps/postgres-new/.env.local`:
    ```shell
    npx supabase status -o env \
      --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
      --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY |
-       grep NEXT_PUBLIC >> ./apps/web/.env.local
+       grep NEXT_PUBLIC >> ./apps/postgres-new/.env.local
    ```
-4. Create an [OpenAI API key](https://platform.openai.com/api-keys) and save to `./apps/web/.env.local`:
+4. Create an [OpenAI API key](https://platform.openai.com/api-keys) and save to `./apps/postgres-new/.env.local`:
    ```shell
-   echo 'OPENAI_API_KEY="<openai-api-key>"' >> ./apps/web/.env.local
+   echo 'OPENAI_API_KEY="<openai-api-key>"' >> ./apps/postgres-new/.env.local
    ```
 5. Store local KV (Redis) vars. Use these exact values:
 
    ```shell
-   echo 'KV_REST_API_URL="http://localhost:8080"' >> ./apps/web/.env.local
-   echo 'KV_REST_API_TOKEN="local_token"' >> ./apps/web/.env.local
+   echo 'KV_REST_API_URL="http://localhost:8080"' >> ./apps/postgres-new/.env.local
+   echo 'KV_REST_API_TOKEN="local_token"' >> ./apps/postgres-new/.env.local
    ```
 
 6. Start local Redis containers (used for rate limiting). Serves an API on port 8080:
 
    ```shell
-   docker compose -f ./apps/web/docker-compose.yml up -d
+   docker compose -f ./apps/postgres-new/docker-compose.yml up -d
    ```
 
 7. Fill in the remaining variables for each app as seen in:
 
-   - `./apps/web/.env.example`
+   - `./apps/postgres-new/.env.example`
    - `./apps/browser-proxy/.env.example`
    - `./apps/deploy-worker/.env.example`
 

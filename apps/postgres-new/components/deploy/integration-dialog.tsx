@@ -3,6 +3,7 @@
 import { DialogProps } from '@radix-ui/react-dialog'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
+import { SupabaseIcon } from '../supabase-icon'
 
 export type IntegrationDialogProps = DialogProps & {
   onConfirm?: () => void
@@ -13,7 +14,10 @@ export function IntegrationDialog({ onConfirm, ...props }: IntegrationDialogProp
     <Dialog {...props}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Connect Supabase</DialogTitle>
+          <DialogTitle className="flex gap-2 items-center">
+            <SupabaseIcon />
+            Connect Supabase
+          </DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
         <div className="flex flex-col gap-6">

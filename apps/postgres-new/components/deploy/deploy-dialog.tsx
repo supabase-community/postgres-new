@@ -7,12 +7,14 @@ import { Button } from '~/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
 import { SupabaseIcon } from '../supabase-icon'
+import { SchemaOverlapWarning } from './schema-overlap-warning'
 
 export type DeployDialogProps = {
   databaseId: string
@@ -34,7 +36,7 @@ export function DeployDialog({ databaseId, open, onOpenChange, onConfirm }: Depl
           </DialogTitle>
           <div className="py-2 border-b" />
         </DialogHeader>
-        <div className="flex flex-col gap-6">
+        <DialogDescription className="flex flex-col gap-4">
           {!integration ? (
             <Loader
               className="animate-spin self-center justify-self-center"
@@ -42,17 +44,18 @@ export function DeployDialog({ databaseId, open, onOpenChange, onConfirm }: Depl
               strokeWidth={0.75}
             />
           ) : (
-            <div className="prose flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               You are about to deploy your in-browser database to Supabase. This will create a new
               Supabase project under your linked organization.
               <DeployCard
                 organization={integration.organization}
                 projectName={generateProjectName(databaseId)}
               />
+              <SchemaOverlapWarning databaseId={databaseId} />
               Would you like to deploy this database?
             </div>
           )}
-        </div>
+        </DialogDescription>
         <DialogFooter className="mt-1">
           <Button
             variant="secondary"
