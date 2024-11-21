@@ -5,6 +5,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
   ArrowRightToLine,
+  Brain,
   Database as DbIcon,
   Download,
   Loader,
@@ -55,6 +56,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { SetModelDialog } from './model/set-model-dialog'
 
 export default function Sidebar() {
   const {
@@ -70,6 +72,7 @@ export default function Sidebar() {
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const [showSidebar, setShowSidebar] = useState(true)
+  const [isSetModelDialogOpen, setIsSetModelDialogOpen] = useState(false)
 
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
 
@@ -106,6 +109,7 @@ export default function Sidebar() {
           </div>
         </DialogContent>
       </Dialog>
+      <SetModelDialog open={isSetModelDialogOpen} onOpenChange={setIsSetModelDialogOpen} />
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
@@ -202,6 +206,18 @@ export default function Sidebar() {
                 )}
               </div>
             )}
+            <m.div layout="position" layoutId="set-external-model-button">
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => {
+                  setIsSetModelDialogOpen(true)
+                }}
+              >
+                <Brain size={18} strokeWidth={2} />
+                Set external model
+              </Button>
+            </m.div>
             <m.div layout="position" layoutId="theme-dropdown">
               <ThemeDropdown className="w-full" />
             </m.div>
@@ -267,6 +283,24 @@ export default function Sidebar() {
             </Tooltip>
           </div>
           <div className="flex flex-col gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <m.div layout="position" layoutId="set-external-model-button">
+                  <Button
+                    size={'icon'}
+                    variant="outline"
+                    onClick={() => {
+                      setIsSetModelDialogOpen(true)
+                    }}
+                  >
+                    <Brain size={16} strokeWidth={2} />
+                  </Button>
+                </m.div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Set external model</p>
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <m.div layout="position" layoutId="theme-dropdown">

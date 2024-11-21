@@ -1,7 +1,7 @@
 import { CoreTool } from 'ai'
 import { codeBlock } from 'common-tags'
 import { z } from 'zod'
-import { reportSchema, resultsSchema, tableSchema, tabsSchema } from './schema'
+import { reportSchema, resultsSchema, tableSchema } from './schema'
 
 const successResultSchema = z.object({
   success: z.literal(true),
