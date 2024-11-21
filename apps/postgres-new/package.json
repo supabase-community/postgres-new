@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:sw": "vite build",
     "start": "next start",
     "lint": "next lint",
     "check-types": "tsc --noEmit",
@@ -95,6 +96,7 @@
     "tailwindcss": "^3.4.6",
     "tailwindcss-radix": "^3.0.3",
     "typescript": "^5.5.2",
+    "vite": "^5.4.11",
     "webpack": "^5.95.0"
   }
 }

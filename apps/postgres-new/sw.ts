@@ -2,7 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import * as kv from 'idb-keyval'
 import { convertToCoreMessages, streamText, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
-import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from '~/lib/tools'
+import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from './lib/tools'
 
 type Message = {
   role: 'user' | 'assistant'

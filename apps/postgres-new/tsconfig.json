@@ -21,6 +21,13 @@
       "~/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "global.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "global.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "vite.config.mts"
+  ],
   "exclude": ["node_modules"]
 }
