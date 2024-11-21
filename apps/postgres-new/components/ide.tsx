@@ -110,7 +110,7 @@ export default function IDE({ children, className }: IDEProps) {
                 'gap-2'
               )}
             >
-              <MessageSquareMore size={14} />
+              <MessageSquareMore size={18} />
               <span className="hidden sm:inline">Chat</span>
             </TabsTrigger>
           )}
@@ -122,7 +122,7 @@ export default function IDE({ children, className }: IDEProps) {
               'gap-2'
             )}
           >
-            <Workflow size={14} />
+            <Workflow size={18} />
             <span className="hidden sm:inline">Diagram</span>
           </TabsTrigger>
           <TabsTrigger
@@ -133,7 +133,7 @@ export default function IDE({ children, className }: IDEProps) {
               'gap-2'
             )}
           >
-            <FileCode size={14} />
+            <FileCode size={18} />
             <span className="hidden sm:inline">Migrations</span>
           </TabsTrigger>
           {/* Temporarily hide seeds until we get pg_dump working */}
@@ -166,7 +166,7 @@ export default function IDE({ children, className }: IDEProps) {
         <TabsContent value="migrations" className="h-full">
           <div className="h-full flex flex-col gap-3">
             <Editor
-              className=" py-4 rounded-md bg-[#1e1e1e]"
+              className="py-4 rounded-md bg-[#1e1e1e]"
               language="pgsql"
               value={migrationsSql}
               theme="vs-dark"
@@ -176,6 +176,7 @@ export default function IDE({ children, className }: IDEProps) {
                   enabled: false,
                 },
                 fontSize: 13,
+                wordWrap: 'on',
                 readOnly: true,
               }}
               onMount={async (editor, monaco) => {

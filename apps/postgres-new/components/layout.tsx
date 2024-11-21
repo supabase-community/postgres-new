@@ -35,11 +35,12 @@ export default function Layout({ children }: LayoutProps) {
     <LazyMotion features={loadFramerFeatures}>
       <TooltipProvider delayDuration={0}>
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {!isLegacyDomain && <LiveShareBanner />}
-          {(isLegacyDomain || isLegacyDomainRedirect) && <RenameBanner />}
+          <div className="hidden lg:flex flex-col">
+            {!isLegacyDomain && <LiveShareBanner />}
+            {(isLegacyDomain || isLegacyDomainRedirect) && <RenameBanner />}
+          </div>
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
-            {/* TODO: make sidebar available on mobile */}
-            {!isSmallBreakpoint && <Sidebar />}
+            <Sidebar />
             <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
               {children}
             </m.div>

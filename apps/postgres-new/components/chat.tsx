@@ -179,7 +179,7 @@ export default function Chat() {
         layoutId={nextMessageId}
         className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
       >
-        <Paperclip size={14} /> Add file to chat
+        <Paperclip size={18} /> Add file to chat
       </m.div>
     ),
   })
@@ -496,7 +496,7 @@ export default function Chat() {
             }}
             disabled={!isChatEnabled}
           >
-            <Paperclip size={16} strokeWidth={1.3} />
+            <Paperclip size={18} strokeWidth={1.3} />
           </Button>
           <textarea
             ref={inputRef}

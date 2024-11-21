@@ -123,8 +123,8 @@ export default function Workspace({
         visibility,
       }}
     >
-      <div className="w-full h-full hidden lg:flex flex-col lg:flex-row gap-8">
-        <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
+      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+        <IDE className="flex-1 h-full p-3 pb-3 lg:py-3">
           <Chat />
         </IDE>
         {!isSmallBreakpoint && (
@@ -132,38 +132,6 @@ export default function Workspace({
             <Chat />
           </div>
         )}
-      </div>
-      <div className="w-full lg:hidden justify-center items-center p-6 ">
-        <div className="grid gap-6 mt-4">
-          <h2 className="text-lg font-bold">Mobile Support Coming Soon</h2>
-          <p>
-            <a className="underline" href="https://database.build">
-              database.build
-            </a>{' '}
-            is in early Alpha and is{' '}
-            <a className="underline" href="https://supabase.com/blog/postgres-new">
-              actively being developed
-            </a>
-            . We are working on mobile support for{' '}
-            <a className="underline" href="https://github.com/electric-sql/pglite">
-              PGlite
-            </a>{' '}
-            right now.
-          </p>
-          <p>
-            In the meantime, please check out the video below or visit from a laptop or desktop.
-          </p>
-          <div className="video-container">
-            <iframe
-              className="w-full min-h-[300px]"
-              src="https://www.youtube-nocookie.com/embed/ooWaPVvljlU"
-              title="I gave AI full control over my database (postgres.new)"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-          <p>We appreciate your patience and interest! Stay tuned for updates!</p>
-        </div>
       </div>
     </WorkspaceContext.Provider>
   )
