@@ -1,4 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai'
+import { ollama } from 'ollama-ai-provider'
 import * as kv from 'idb-keyval'
 import { convertToCoreMessages, streamText, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
@@ -15,7 +16,7 @@ declare const self: ServiceWorkerGlobalScope
 
 async function handleRequest(event: FetchEvent) {
   const url = new URL(event.request.url)
-  const isChatRoute = url.pathname === '/api/chat' && event.request.method === 'POST'
+  const isChatRoute = url.pathname.startsWith('/api/chat') && event.request.method === 'POST'
   if (isChatRoute) {
     const modelProvider = (await kv.get('modelProvider')) as ModelProvider | undefined
 
@@ -23,10 +24,13 @@ async function handleRequest(event: FetchEvent) {
       return fetch(event.request)
     }
 
-    const adapter = createOpenAI({
-      baseURL: modelProvider.baseUrl,
-      apiKey: modelProvider.apiKey,
-    })
+    const adapter =
+      modelProvider.baseUrl === 'http://localhost:11434/api'
+        ? ollama
+        : createOpenAI({
+            baseURL: modelProvider.baseUrl,
+            apiKey: modelProvider.apiKey,
+          })
     const model = adapter(modelProvider.model)
 
     const { messages }: { messages: Message[] } = await event.request.json()
