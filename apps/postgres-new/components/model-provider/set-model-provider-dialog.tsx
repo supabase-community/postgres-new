@@ -19,7 +19,10 @@ import { useApp } from '../app-provider'
 import { Switch } from '../ui/switch'
 
 const formSchema = z.object({
-  apiKey: z.string().min(1).optional(),
+  apiKey: z
+    .string()
+    .transform((str) => (str === '' ? undefined : str))
+    .optional(),
   baseUrl: z.string().min(1),
   model: z.string().min(1),
   enabled: z.boolean().default(true),
@@ -65,7 +68,7 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
             <FormItem>
               <FormLabel>Base URL</FormLabel>
               <FormControl>
-                <Input placeholder="http://localhost:11434/v1" {...field} />
+                <Input placeholder="http://localhost:11434/api" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -117,8 +120,8 @@ export function SetModelProviderDialog(props: SetModelProviderDialogProps) {
             <Brain /> Set an external model provider
           </DialogTitle>
           <DialogDescription className="flex flex-col gap-4">
-            You can set your own external model provider compatible with the OpenAI API. Your model
-            provider informations will be saved in your browser.
+            You can use your own external model provider through Ollama or any provider compatible
+            with the OpenAI API. Your model provider settings will be saved in your browser.
           </DialogDescription>
         </DialogHeader>
         <div className="my-1 border-b" />
