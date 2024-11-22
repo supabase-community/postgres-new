@@ -17,6 +17,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Brain } from 'lucide-react'
 import { useApp } from '../app-provider'
 import { Switch } from '../ui/switch'
+import { getSystemPrompt } from '~/lib/system-prompt'
+import { Textarea } from '../ui/textarea'
 
 const formSchema = z.object({
   apiKey: z
@@ -25,6 +27,7 @@ const formSchema = z.object({
     .optional(),
   baseUrl: z.string().min(1),
   model: z.string().min(1),
+  system: z.string().min(1).default(getSystemPrompt()),
   enabled: z.boolean().default(true),
 })
 
@@ -45,7 +48,7 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
 
   return (
     <Form {...form}>
-      <form id={props.id} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form id={props.id} onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="enabled"
@@ -100,6 +103,19 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="system"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>System Prompt</FormLabel>
+              <FormControl>
+                <Textarea {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   )
@@ -114,7 +130,7 @@ export type SetModelProviderDialogProps = {
 export function SetModelProviderDialog(props: SetModelProviderDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex gap-2 items-center mb-4">
             <Brain /> Set an external model provider

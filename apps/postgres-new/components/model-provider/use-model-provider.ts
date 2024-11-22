@@ -5,6 +5,7 @@ export type ModelProvider = {
   apiKey?: string
   model: string
   baseUrl: string
+  system: string
   enabled: boolean
 }
 
