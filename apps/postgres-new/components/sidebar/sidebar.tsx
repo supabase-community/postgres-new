@@ -5,7 +5,6 @@ import { AnimatePresence, m } from 'framer-motion'
 import {
   ArrowLeftToLine,
   ArrowRightToLine,
-  Brain,
   Database as DbIcon,
   Download,
   Loader,
@@ -34,17 +33,17 @@ import { MergedDatabase, useMergedDatabases } from '~/data/merged-databases/merg
 import { useQueryEvent } from '~/lib/hooks'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
-import { useApp } from './app-provider'
-import { DeployDialog } from './deploy/deploy-dialog'
-import { SupabaseDeploymentInfo } from './deploy/deploy-info'
-import { DeployInfoDialog } from './deploy/deploy-info-dialog'
-import { IntegrationDialog } from './deploy/integration-dialog'
-import { RedeployDialog } from './deploy/redeploy-dialog'
-import { LiveShareIcon } from './live-share-icon'
-import { useIsLocked } from './lock-provider'
-import SignInButton from './sign-in-button'
-import { SupabaseIcon } from './supabase-icon'
-import ThemeDropdown from './theme-dropdown'
+import { useApp } from '../app-provider'
+import { DeployDialog } from '../deploy/deploy-dialog'
+import { SupabaseDeploymentInfo } from '../deploy/deploy-info'
+import { DeployInfoDialog } from '../deploy/deploy-info-dialog'
+import { IntegrationDialog } from '../deploy/integration-dialog'
+import { RedeployDialog } from '../deploy/redeploy-dialog'
+import { LiveShareIcon } from '../live-share-icon'
+import { useIsLocked } from '../lock-provider'
+import SignInButton from '../sign-in-button'
+import { SupabaseIcon } from '../supabase-icon'
+import ThemeDropdown from '../theme-dropdown'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,8 +54,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu'
-import { SetModelDialog } from './model/set-model-dialog'
+} from '../ui/dropdown-menu'
+import { SetExternalModelProviderButton } from './set-external-model-provider-button'
 
 export default function Sidebar() {
   const {
@@ -72,8 +71,6 @@ export default function Sidebar() {
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const [showSidebar, setShowSidebar] = useState(true)
-  const [isSetModelDialogOpen, setIsSetModelDialogOpen] = useState(false)
-
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
 
   return (
@@ -109,7 +106,6 @@ export default function Sidebar() {
           </div>
         </DialogContent>
       </Dialog>
-      <SetModelDialog open={isSetModelDialogOpen} onOpenChange={setIsSetModelDialogOpen} />
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
@@ -206,18 +202,7 @@ export default function Sidebar() {
                 )}
               </div>
             )}
-            <m.div layout="position" layoutId="set-external-model-button">
-              <Button
-                className="w-full gap-2"
-                variant="outline"
-                onClick={() => {
-                  setIsSetModelDialogOpen(true)
-                }}
-              >
-                <Brain size={18} strokeWidth={2} />
-                Set external model
-              </Button>
-            </m.div>
+            <SetExternalModelProviderButton />
             <m.div layout="position" layoutId="theme-dropdown">
               <ThemeDropdown className="w-full" />
             </m.div>
@@ -283,24 +268,7 @@ export default function Sidebar() {
             </Tooltip>
           </div>
           <div className="flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="set-external-model-button">
-                  <Button
-                    size={'icon'}
-                    variant="outline"
-                    onClick={() => {
-                      setIsSetModelDialogOpen(true)
-                    }}
-                  >
-                    <Brain size={16} strokeWidth={2} />
-                  </Button>
-                </m.div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Set external model</p>
-              </TooltipContent>
-            </Tooltip>
+            <SetExternalModelProviderButton collapsed={true} />
             <Tooltip>
               <TooltipTrigger asChild>
                 <m.div layout="position" layoutId="theme-dropdown">

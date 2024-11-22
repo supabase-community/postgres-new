@@ -19,7 +19,7 @@ import {
 } from '~/lib/util'
 import { useApp } from './app-provider'
 import { LiveShareIcon } from './live-share-icon'
-import Sidebar from './sidebar'
+import Sidebar from './sidebar/sidebar'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 

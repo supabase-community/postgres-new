@@ -1,7 +1,5 @@
 'use client'
 
-import * as kv from 'idb-keyval'
-import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +15,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Brain } from 'lucide-react'
+import { useApp } from '../app-provider'
 
 const formSchema = z.object({
   apiKey: z.string().min(1).optional(),
@@ -27,16 +26,15 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>
 
 function SetModelForm(props: { id: string; onSubmit: (values: FormSchema) => void }) {
+  const { modelProvider } = useApp()
+
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
-    defaultValues: async () => {
-      const model = await kv.get('model')
-      return model
-    },
+    defaultValues: modelProvider.state,
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await kv.set('model', values)
+    await modelProvider.set(values)
     props.onSubmit(values)
   }
 

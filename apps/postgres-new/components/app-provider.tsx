@@ -32,6 +32,7 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
+import { useModelProvider } from './model/use-model-provider'
 
 export type AppProps = PropsWithChildren
 
@@ -263,12 +264,15 @@ export default function AppProvider({ children }: AppProps) {
     setIsRenameDialogOpen(isLegacyDomain || isLegacyDomainRedirect)
   }, [])
 
+  const modelProvider = useModelProvider()
+
   return (
     <AppContext.Provider
       value={{
         user,
         isLoadingUser,
         liveShare,
+        modelProvider,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -316,6 +320,7 @@ export type AppContextValues = {
     clientIp: string | null
     isLiveSharing: boolean
   }
+  modelProvider: ReturnType<typeof useModelProvider>
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
 }
