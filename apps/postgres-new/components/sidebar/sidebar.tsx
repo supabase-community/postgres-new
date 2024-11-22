@@ -67,11 +67,13 @@ export default function Sidebar() {
     setIsRenameDialogOpen,
     isLegacyDomain,
     liveShare,
+    modelProvider,
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
   const [showSidebar, setShowSidebar] = useState(true)
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
+  const isAuthRequired = user === undefined && modelProvider.state?.enabled !== true
 
   return (
     <>
@@ -141,7 +143,7 @@ export default function Sidebar() {
               <m.div layout="position" layoutId="new-database-button">
                 <Button
                   onClick={() => {
-                    if (!user) {
+                    if (isAuthRequired) {
                       setIsSignInDialogOpen(true)
                     } else {
                       if (liveShare.isLiveSharing) {
@@ -250,7 +252,7 @@ export default function Sidebar() {
                   <Button
                     size={'icon'}
                     onClick={() => {
-                      if (!user) {
+                      if (isAuthRequired) {
                         setIsSignInDialogOpen(true)
                       } else {
                         router.push('/')

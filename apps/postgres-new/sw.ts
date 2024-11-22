@@ -16,9 +16,13 @@ declare const self: ServiceWorkerGlobalScope
 async function handleRequest(event: FetchEvent) {
   const url = new URL(event.request.url)
   const isChatRoute = url.pathname === '/api/chat' && event.request.method === 'POST'
-  const modelProvider = (await kv.get('modelProvider')) as ModelProvider | undefined
+  if (isChatRoute) {
+    const modelProvider = (await kv.get('modelProvider')) as ModelProvider | undefined
 
-  if (isChatRoute && modelProvider?.enabled) {
+    if (!modelProvider?.enabled) {
+      return fetch(event.request)
+    }
+
     const adapter = createOpenAI({
       baseURL: modelProvider.baseUrl,
       apiKey: modelProvider.apiKey,
@@ -83,7 +87,7 @@ async function handleRequest(event: FetchEvent) {
         console.log('Hello from service worker', event)
       },
     })
-    return result.toAIStreamResponse()
+    return result.toDataStreamResponse()
   }
 
   return fetch(event.request)
