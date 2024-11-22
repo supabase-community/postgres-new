@@ -25,7 +25,7 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>
 
-function SetModelForm(props: { id: string; onSubmit: (values: FormSchema) => void }) {
+function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema) => void }) {
   const { modelProvider } = useApp()
 
   const form = useForm<FormSchema>({
@@ -85,28 +85,28 @@ function SetModelForm(props: { id: string; onSubmit: (values: FormSchema) => voi
   )
 }
 
-export type SetModelDialogProps = {
+export type SetModelProviderDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm?: () => void
 }
 
-export function SetModelDialog(props: SetModelDialogProps) {
+export function SetModelProviderDialog(props: SetModelProviderDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex gap-2 items-center mb-4">
-            <Brain /> Set an external model
+            <Brain /> Set an external model provider
           </DialogTitle>
           <DialogDescription className="flex flex-col gap-4">
-            You can set your own external model compatible with the OpenAI API. Your model
-            informations will be saved in your browser.
+            You can set your own external model provider compatible with the OpenAI API. Your model
+            provider informations will be saved in your browser.
           </DialogDescription>
         </DialogHeader>
         <div className="my-1 border-b" />
-        <SetModelForm
-          id="set-model-form"
+        <SetModelProviderForm
+          id="set-model-provider-form"
           onSubmit={() => {
             props.onOpenChange(false)
           }}
@@ -120,7 +120,7 @@ export function SetModelDialog(props: SetModelDialogProps) {
           >
             Cancel
           </Button>
-          <Button form="set-model-form">Save</Button>
+          <Button form="set-model-provider-form">Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

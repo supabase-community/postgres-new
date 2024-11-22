@@ -3,7 +3,7 @@ import * as kv from 'idb-keyval'
 import { convertToCoreMessages, streamText, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
 import { convertToCoreTools, maxMessageContext, maxRowLimit, tools } from './lib/tools'
-import type { ModelProvider } from './components/model/use-model-provider'
+import type { ModelProvider } from './components/model-provider/use-model-provider'
 
 type Message = {
   role: 'user' | 'assistant'

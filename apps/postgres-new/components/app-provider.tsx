@@ -32,7 +32,7 @@ import {
 import { legacyDomainHostname } from '~/lib/util'
 import { parse, serialize } from '~/lib/websocket-protocol'
 import { createClient } from '~/utils/supabase/client'
-import { useModelProvider } from './model/use-model-provider'
+import { useModelProvider } from './model-provider/use-model-provider'
 
 export type AppProps = PropsWithChildren
 

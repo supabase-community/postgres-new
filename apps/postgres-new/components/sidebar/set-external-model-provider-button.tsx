@@ -3,7 +3,7 @@ import { Button } from '../ui/button'
 import { Brain } from 'lucide-react'
 import { useApp } from '../app-provider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-import { SetModelDialog } from '../model/set-model-dialog'
+import { SetModelProviderDialog } from '../model-provider/set-model-provider-dialog'
 import { useState } from 'react'
 
 type SetExternalModelProviderButtonProps = {
@@ -12,7 +12,7 @@ type SetExternalModelProviderButtonProps = {
 
 export function SetExternalModelProviderButton(props: SetExternalModelProviderButtonProps) {
   const { modelProvider } = useApp()
-  const [isSetModelDialogOpen, setIsSetModelDialogOpen] = useState(false)
+  const [isSetModelProviderDialogOpen, setIsSetModelProviderDialogOpen] = useState(false)
 
   const modelName = modelProvider.state?.model.split('/').at(-1)
   const text = modelName ?? 'Set external model'
@@ -20,7 +20,11 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
     <Tooltip>
       <TooltipTrigger asChild>
         <m.div layout="position" layoutId="set-external-model-button">
-          <Button size={'icon'} variant="outline" onClick={() => setIsSetModelDialogOpen(true)}>
+          <Button
+            size={'icon'}
+            variant="outline"
+            onClick={() => setIsSetModelProviderDialogOpen(true)}
+          >
             <Brain size={16} strokeWidth={2} />
           </Button>
         </m.div>
@@ -34,7 +38,7 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
       <Button
         className="w-full gap-2"
         variant="outline"
-        onClick={() => setIsSetModelDialogOpen(true)}
+        onClick={() => setIsSetModelProviderDialogOpen(true)}
       >
         <Brain size={18} strokeWidth={2} />
         <div className="inline-block whitespace-nowrap overflow-hidden text-ellipsis">{text}</div>
@@ -44,7 +48,10 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
 
   return (
     <>
-      <SetModelDialog open={isSetModelDialogOpen} onOpenChange={setIsSetModelDialogOpen} />
+      <SetModelProviderDialog
+        open={isSetModelProviderDialogOpen}
+        onOpenChange={setIsSetModelProviderDialogOpen}
+      />
       {button}
     </>
   )
