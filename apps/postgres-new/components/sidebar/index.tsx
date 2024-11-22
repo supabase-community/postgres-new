@@ -11,16 +11,16 @@ import {
   PackagePlus,
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '~/components/app-provider'
 import ThemeDropdown from '~/components/theme-dropdown'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMergedDatabases } from '~/data/merged-databases/merged-databases'
-import { SignInDialog } from './sign-in-dialog'
-import { DatabaseMenuItem } from './database-menu-item'
-import { cn } from '~/lib/utils'
 import { useBreakpoint } from '~/lib/use-breakpoint'
+import { cn } from '~/lib/utils'
+import { DatabaseMenuItem } from './database-menu-item'
+import { SignInDialog } from './sign-in-dialog'
 
 export default function Sidebar() {
   const {
@@ -35,8 +35,14 @@ export default function Sidebar() {
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
-  const [showSidebar, setShowSidebar] = useState(true)
   const isSmallBreakpoint = useBreakpoint('lg')
+  const [showSidebar, setShowSidebar] = useState(!isSmallBreakpoint)
+
+  useEffect(() => {
+    if (isSmallBreakpoint) {
+      setShowSidebar(false)
+    }
+  }, [isSmallBreakpoint])
 
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
 
@@ -48,7 +54,7 @@ export default function Sidebar() {
       <AnimatePresence initial={false} mode="popLayout">
         {showSidebar && (
           <m.div
-            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-0 bottom-0 left-0 z-10 lg:static"
+            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-0 bottom-0 left-0 z-20 lg:static"
             variants={{
               hidden: { opacity: 0, x: '-100%' },
               show: { opacity: 1, x: 0 },
@@ -88,6 +94,9 @@ export default function Sidebar() {
                       }
                       router.push('/')
                       focusRef.current?.focus()
+                    }
+                    if (isSmallBreakpoint) {
+                      setShowSidebar(false)
                     }
                   }}
                   className="gap-2"
@@ -275,6 +284,16 @@ export default function Sidebar() {
           </Button>
         </div>
       </div>
+
+      {/* Mobile overlay */}
+      {showSidebar && (
+        <m.div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-10"
+          onClick={() => {
+            setShowSidebar(false)
+          }}
+        />
+      )}
     </>
   )
 }
