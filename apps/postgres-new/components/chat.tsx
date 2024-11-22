@@ -51,8 +51,15 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, liveShare } =
-    useApp()
+  const {
+    user,
+    isLoadingUser,
+    focusRef,
+    setIsSignInDialogOpen,
+    isRateLimited,
+    liveShare,
+    modelProvider,
+  } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -155,7 +162,7 @@ export default function Chat() {
     cursor: dropZoneCursor,
   } = useDropZone({
     async onDrop(files) {
-      if (!user) {
+      if (isAuthRequired) {
         return
       }
 
@@ -223,8 +230,10 @@ export default function Chat() {
 
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
+  const isAuthRequired = user === undefined && modelProvider.state?.enabled !== true
+
   const isChatEnabled =
-    !isLoadingMessages && !isLoadingSchema && user !== undefined && !liveShare.isLiveSharing
+    !isLoadingMessages && !isLoadingSchema && !isAuthRequired && !liveShare.isLiveSharing
 
   const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
@@ -357,7 +366,7 @@ export default function Chat() {
           </div>
         ) : (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
-            {user ? (
+            {!isAuthRequired ? (
               <>
                 <LiveShareOverlay databaseId={databaseId} />
                 <m.h3
@@ -427,7 +436,7 @@ export default function Chat() {
       </div>
       <div className="flex flex-col items-center gap-3 pb-1 relative">
         <AnimatePresence>
-          {!user && !isLoadingUser && isConversationStarted && (
+          {isAuthRequired && !isLoadingUser && isConversationStarted && (
             <m.div
               className="flex flex-col items-center gap-4 max-w-lg my-4"
               variants={{
@@ -487,7 +496,7 @@ export default function Chat() {
             onClick={async (e) => {
               e.preventDefault()
 
-              if (!user) {
+              if (isAuthRequired) {
                 return
               }
 

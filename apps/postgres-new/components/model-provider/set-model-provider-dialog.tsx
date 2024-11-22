@@ -16,11 +16,13 @@ import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Brain } from 'lucide-react'
 import { useApp } from '../app-provider'
+import { Switch } from '../ui/switch'
 
 const formSchema = z.object({
   apiKey: z.string().min(1).optional(),
   baseUrl: z.string().min(1),
   model: z.string().min(1),
+  enabled: z.boolean().default(true),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -41,6 +43,21 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
   return (
     <Form {...form}>
       <form id={props.id} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="enabled"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+                <FormLabel className="cursor-pointer">Enable</FormLabel>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="baseUrl"

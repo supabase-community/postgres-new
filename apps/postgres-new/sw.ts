@@ -14,16 +14,16 @@ type Message = {
 declare const self: ServiceWorkerGlobalScope
 
 async function handleRequest(event: FetchEvent) {
-  const externalModel = (await kv.get('modelProvider')) as ModelProvider | undefined
   const url = new URL(event.request.url)
   const isChatRoute = url.pathname === '/api/chat' && event.request.method === 'POST'
+  const modelProvider = (await kv.get('modelProvider')) as ModelProvider | undefined
 
-  if (externalModel && isChatRoute) {
+  if (isChatRoute && modelProvider?.enabled) {
     const adapter = createOpenAI({
-      baseURL: externalModel.baseUrl,
-      apiKey: externalModel.apiKey,
+      baseURL: modelProvider.baseUrl,
+      apiKey: modelProvider.apiKey,
     })
-    const model = adapter(externalModel.model)
+    const model = adapter(modelProvider.model)
 
     const { messages }: { messages: Message[] } = await event.request.json()
 
