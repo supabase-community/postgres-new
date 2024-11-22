@@ -27,8 +27,8 @@ const formSchema = z.object({
     .optional(),
   baseUrl: z.string().min(1),
   model: z.string().min(1),
-  system: z.string().min(1).default(getSystemPrompt()),
-  enabled: z.boolean().default(true),
+  system: z.string().min(1),
+  enabled: z.boolean(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -38,7 +38,11 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
-    defaultValues: modelProvider.state,
+    defaultValues: {
+      enabled: true,
+      system: getSystemPrompt(),
+      ...modelProvider.state,
+    },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
