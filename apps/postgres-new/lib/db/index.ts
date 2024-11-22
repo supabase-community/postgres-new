@@ -352,6 +352,10 @@ export class DbManager {
 
             getReq.onsuccess = () => {
               const decoder = new TextDecoder()
+              if (!getReq.result) {
+                db.close()
+                reject(`File '${versionPath}' not found in IndexedDB database`)
+              }
               const version = decoder.decode(getReq.result.contents).trim()
               db.close()
               resolve(version)
