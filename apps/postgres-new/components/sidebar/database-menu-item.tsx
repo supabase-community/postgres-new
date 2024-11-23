@@ -256,7 +256,13 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
             />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent side="right" align="start">
+          <DropdownMenuContent
+            side="bottom"
+            align="start"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
             {isRenaming ? (
               <form
                 className="w-72"
@@ -290,7 +296,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
                     setIsRenaming(true)
                   }}
@@ -305,7 +311,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
 
                     if (!dbManager) {
@@ -354,7 +360,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                     <DropdownMenuSubContent>
                       <DropdownMenuItem
                         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                        onSelect={async (e) => {
+                        onClick={async (e) => {
                           e.preventDefault()
                           startDeployFlow()
                         }}
@@ -368,14 +374,21 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                 <LiveShareMenuItem
                   databaseId={database.id}
                   isActive={isActive}
-                  setIsPopoverOpen={setIsPopoverOpen}
+                  onStart={() => {
+                    setIsPopoverOpen(false)
+                    onClick?.()
+                  }}
+                  onStop={() => {
+                    setIsPopoverOpen(false)
+                    onClick?.()
+                  }}
                   disabled={user === undefined || isLocked}
                 />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
                     setIsPopoverOpen(false)
                     await deleteDatabase({ id: database.id })
@@ -405,7 +418,8 @@ type ConnectMenuItemProps = {
   databaseId: string
   isActive: boolean
   disabled?: boolean
-  setIsPopoverOpen: (open: boolean) => void
+  onStart?: () => void
+  onStop?: () => void
 }
 
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
@@ -419,7 +433,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
         onClick={async (e) => {
           e.preventDefault()
           liveShare.stop()
-          props.setIsPopoverOpen(false)
+          props.onStop?.()
         }}
       >
         <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
@@ -439,7 +453,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
         }
         liveShare.start(props.databaseId)
         router.push(`/db/${props.databaseId}`)
-        props.setIsPopoverOpen(false)
+        props.onStart?.()
       }}
     >
       <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
