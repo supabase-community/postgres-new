@@ -1,11 +1,20 @@
 'use client'
 
 import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
+import { TabValue } from '~/lib/schema'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
@@ -107,6 +116,8 @@ export default function Workspace({
     onCancelReply?.(append)
   }, [onCancelReply, stop, append])
 
+  const [tab, setTab] = useState<TabValue>('diagram')
+
   const isConversationStarted =
     initialMessages !== undefined && messages.length > initialMessages.length
 
@@ -121,6 +132,8 @@ export default function Workspace({
         appendMessage,
         stopReply,
         visibility,
+        tab,
+        setTab,
       }}
     >
       <div className="w-full h-full flex flex-col lg:flex-row gap-8">
@@ -144,6 +157,8 @@ export type WorkspaceContextValues = {
   isConversationStarted: boolean
   messages: Message[]
   visibility: Visibility
+  tab: TabValue
+  setTab: Dispatch<SetStateAction<TabValue>>
   appendMessage(message: Message | CreateMessage): Promise<void>
   stopReply(): Promise<void>
 }

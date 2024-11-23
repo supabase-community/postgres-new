@@ -1,7 +1,10 @@
+import { Workflow } from 'lucide-react'
 import { useMemo } from 'react'
-import { formatSql } from '~/lib/sql-util'
+import { useAsyncMemo } from '~/lib/hooks'
+import { assertDefined, formatSql, isMigrationStatement } from '~/lib/sql-util'
 import { ToolInvocation } from '~/lib/tools'
 import CodeAccordion from '../code-accordion'
+import { useWorkspace } from '../workspace'
 
 export type ExecutedSqlProps = {
   toolInvocation: ToolInvocation<'executeSql'>
@@ -10,7 +13,18 @@ export type ExecutedSqlProps = {
 export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
   const { sql } = toolInvocation.args
 
+  const { setTab } = useWorkspace()
   const formattedSql = useMemo(() => formatSql(sql), [sql])
+
+  const { value: containsMigration } = useAsyncMemo(async () => {
+    // Dynamically import (browser-only) to prevent SSR errors
+    const { parseQuery } = await import('libpg-query/wasm')
+
+    const parseResult = await parseQuery(sql)
+    assertDefined(parseResult.stmts, 'Expected stmts to exist in parse result')
+
+    return parseResult.stmts.some(isMigrationStatement)
+  }, [sql])
 
   if (!('result' in toolInvocation)) {
     return null
@@ -29,5 +43,22 @@ export default function ExecutedSql({ toolInvocation }: ExecutedSqlProps) {
     )
   }
 
-  return <CodeAccordion title="Executed SQL" language="sql" code={formattedSql ?? sql} />
+  return (
+    <div className="flex flex-col gap-2">
+      <CodeAccordion title="Executed SQL" language="sql" code={formattedSql ?? sql} />
+      {containsMigration && (
+        <div className="lg:hidden text-xs text-primary/50 flex gap-2 self-end">
+          <div
+            className="flex flex-row items-center gap-[0.125rem] underline cursor-pointer"
+            onClick={() => {
+              setTab('diagram')
+            }}
+          >
+            <Workflow size={12} />
+            See diagram
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
