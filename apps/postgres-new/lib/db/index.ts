@@ -53,8 +53,8 @@ export class DbManager {
       // see: https://webpack.js.org/guides/web-workers/
       new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
       {
-        // If no data dir passed (in-memory), just create a unique ID (leader election purposes)
-        id: options?.dataDir ?? nanoid(),
+        // Opt out of PGlite worker leader election / shared DBs
+        id: nanoid(),
         ...options,
       }
     )
