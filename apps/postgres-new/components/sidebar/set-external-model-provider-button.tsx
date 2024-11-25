@@ -5,6 +5,7 @@ import { useApp } from '../app-provider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { SetModelProviderDialog } from '../model-provider/set-model-provider-dialog'
 import { useState } from 'react'
+import { cn } from '~/lib/utils'
 
 type SetExternalModelProviderButtonProps = {
   collapsed?: boolean
@@ -16,11 +17,13 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
 
   const modelName = modelProvider.state?.model.split('/').at(-1)
   const text = modelName ?? 'Set external model'
+  const disabled = modelProvider.state?.enabled === false
   const button = props.collapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
         <m.div layout="position" layoutId="set-external-model-button">
           <Button
+            className={cn(disabled && 'opacity-50')}
             size={'icon'}
             variant="outline"
             onClick={() => setIsSetModelProviderDialogOpen(true)}
@@ -36,7 +39,7 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
   ) : (
     <m.div layout="position" layoutId="set-external-model-button">
       <Button
-        className="w-full gap-2"
+        className={cn('w-full gap-2', disabled && 'opacity-50')}
         variant="outline"
         onClick={() => setIsSetModelProviderDialogOpen(true)}
       >
