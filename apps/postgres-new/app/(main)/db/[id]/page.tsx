@@ -35,7 +35,7 @@ export default function Page({ params }: { params: { id: string } }) {
     return (
       <div className="relative h-full w-full">
         <NewDatabasePage />
-        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center">
+        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center m-4">
           <p>
             This database is already open in another tab or window.
             <br />

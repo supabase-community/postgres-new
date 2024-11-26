@@ -8,7 +8,7 @@
   },
   "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
-    "supabase": "^1.207.9",
+    "supabase": "^1.223.10",
     "turbo": "^2.3.0"
   }
 }

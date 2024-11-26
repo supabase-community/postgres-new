@@ -24,8 +24,7 @@ export type IDEProps = PropsWithChildren<{
 }>
 
 export default function IDE({ children, className }: IDEProps) {
-  const { databaseId } = useWorkspace()
-  const [tab, setTab] = useState<TabValue>('diagram')
+  const { databaseId, tab, setTab } = useWorkspace()
 
   const isSmallBreakpoint = useBreakpoint('lg')
   const { data: messages } = useMessagesQuery(databaseId)
@@ -36,7 +35,7 @@ export default function IDE({ children, className }: IDEProps) {
     } else {
       setTab('diagram')
     }
-  }, [isSmallBreakpoint])
+  }, [isSmallBreakpoint, setTab])
 
   const { value: migrationStatements } = useAsyncMemo(async () => {
     const sqlExecutions =
@@ -106,35 +105,32 @@ export default function IDE({ children, className }: IDEProps) {
               value="chat"
               className={cn(
                 buttonVariants({ variant: tab === 'chat' ? 'default' : 'ghost' }),
-                tab === 'chat' && '!shadow-sm',
                 'gap-2'
               )}
             >
-              <MessageSquareMore size={14} />
-              <span className="hidden sm:inline">Chat</span>
+              <MessageSquareMore className="hidden sm:block" size={18} />
+              <span>Chat</span>
             </TabsTrigger>
           )}
           <TabsTrigger
             value="diagram"
             className={cn(
               buttonVariants({ variant: tab === 'diagram' ? 'default' : 'ghost' }),
-              tab === 'diagram' && '!shadow-sm',
               'gap-2'
             )}
           >
-            <Workflow size={14} />
-            <span className="hidden sm:inline">Diagram</span>
+            <Workflow className="hidden sm:block" size={18} />
+            <span>Diagram</span>
           </TabsTrigger>
           <TabsTrigger
             value="migrations"
             className={cn(
               buttonVariants({ variant: tab === 'migrations' ? 'default' : 'ghost' }),
-              tab === 'migrations' && '!shadow-sm',
               'gap-2'
             )}
           >
-            <FileCode size={14} />
-            <span className="hidden sm:inline">Migrations</span>
+            <FileCode className="hidden sm:block" size={18} />
+            <span>Migrations</span>
           </TabsTrigger>
           {/* Temporarily hide seeds until we get pg_dump working */}
           {/* {false && (
@@ -166,7 +162,7 @@ export default function IDE({ children, className }: IDEProps) {
         <TabsContent value="migrations" className="h-full">
           <div className="h-full flex flex-col gap-3">
             <Editor
-              className=" py-4 rounded-md bg-[#1e1e1e]"
+              className="py-4 rounded-md bg-[#1e1e1e]"
               language="pgsql"
               value={migrationsSql}
               theme="vs-dark"
@@ -176,6 +172,7 @@ export default function IDE({ children, className }: IDEProps) {
                   enabled: false,
                 },
                 fontSize: 13,
+                wordWrap: 'on',
                 readOnly: true,
               }}
               onMount={async (editor, monaco) => {

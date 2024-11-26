@@ -69,7 +69,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
 
       return (
         <m.div
-          className="ml-4 self-stretch flex flex-col items-stretch gap-6"
+          className="lg:ml-4 self-stretch flex flex-col items-stretch gap-6"
           variants={{
             hidden: {
               opacity: 0,
