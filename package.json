@@ -6,9 +6,12 @@
     "dev": "turbo watch dev",
     "build": "turbo run build"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "devDependencies": {
     "supabase": "^1.223.10",
-    "turbo": "^2.3.0"
+    "turbo": "^2.3.2"
   }
 }
