@@ -562,7 +562,10 @@ interface TemplateContainer {
  * Useful for building SQL queries with a dynamic number
  * of parameters.
  */
-function join(templateContainers: TemplateContainer[], delimiter: string): TemplateContainer {
+export function join(
+  templateContainers: TemplateContainer[],
+  delimiter: string
+): TemplateContainer {
   return templateContainers.reduce(
     (acc, container, i) => (i === 0 ? container : sql`${acc}${raw`${delimiter}`}${container}`),
     sql``

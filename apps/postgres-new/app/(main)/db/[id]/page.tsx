@@ -10,6 +10,7 @@ import NewDatabasePage from '../../page'
 
 export default function Page({ params }: { params: { id: string } }) {
   const databaseId = params.id
+
   const router = useRouter()
   const { dbManager } = useApp()
   useAcquireLock(databaseId)

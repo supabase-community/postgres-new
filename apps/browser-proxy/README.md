@@ -8,17 +8,9 @@ It is using a WebSocket server and a TCP server to make the communication betwee
 
 Copy the `.env.example` file to `.env` and set the correct environment variables.
 
-Install dependencies:
+Run the dev server from the monorepo root. See [Development](../../README.md#development).
 
-```sh
-npm install
-```
-
-Start the proxy in development mode:
-
-```sh
-npm run dev
-```
+The browser proxy will be listening on ports `5432` (Postgres TCP) and `443` (Web Sockets).
 
 ## Deployment
 
