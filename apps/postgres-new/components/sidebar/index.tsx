@@ -182,7 +182,10 @@ export default function Sidebar() {
           <div className="flex-1 flex flex-col gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="sidebar-collapse">
+                <m.div
+                  layout="position"
+                  layoutId={isSmallBreakpoint ? undefined : 'sidebar-collapse'}
+                >
                   <Button
                     variant={'ghost'}
                     size="icon"
@@ -200,7 +203,10 @@ export default function Sidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="new-database-button">
+                <m.div
+                  layout="position"
+                  layoutId={isSmallBreakpoint ? undefined : 'new-database-button'}
+                >
                   <Button
                     size={'icon'}
                     onClick={() => {
@@ -224,7 +230,10 @@ export default function Sidebar() {
           <div className="flex flex-col gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="theme-dropdown">
+                <m.div
+                  layout="position"
+                  layoutId={isSmallBreakpoint ? undefined : 'theme-dropdown'}
+                >
                   <ThemeDropdown iconOnly />
                 </m.div>
               </TooltipTrigger>
@@ -235,7 +244,10 @@ export default function Sidebar() {
             {user && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <m.div layout="position" layoutId="sign-out-button">
+                  <m.div
+                    layout="position"
+                    layoutId={isSmallBreakpoint ? undefined : 'sign-out-button'}
+                  >
                     <Button
                       size={'icon'}
                       variant="secondary"
