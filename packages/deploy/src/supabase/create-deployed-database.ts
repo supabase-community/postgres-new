@@ -60,11 +60,7 @@ export async function createDeployedDatabase(
   const projectName = generateProjectName(params.databaseId)
 
   // check if the project already exists on Supabase
-  const {
-    data: projects,
-    error: getProjectsError,
-    response,
-  } = await managementApiClient.GET('/v1/projects')
+  const { data: projects, error: getProjectsError } = await managementApiClient.GET('/v1/projects')
 
   if (getProjectsError) {
     throw new DeployError('Failed to get projects from Supabase', {
@@ -81,19 +77,27 @@ export async function createDeployedDatabase(
   }
 
   // create a new project on Supabase using the Management API
-  const { data: createdProject, error: createdProjectError } = await managementApiClient.POST(
-    '/v1/projects',
-    {
-      body: {
-        db_pass: databasePassword,
-        name: `database-build-${params.databaseId}`,
-        organization_id: (integration.data.scope as { organizationId: string }).organizationId,
-        region: ctx.supabaseDeploymentConfig.region,
-      },
-    }
-  )
+  const {
+    data: createdProject,
+    error: createdProjectError,
+    response: createdProjectResponse,
+  } = await managementApiClient.POST('/v1/projects', {
+    body: {
+      db_pass: databasePassword,
+      name: `database-build-${params.databaseId}`,
+      organization_id: (integration.data.scope as { organizationId: string }).organizationId,
+      region: ctx.supabaseDeploymentConfig.region,
+    },
+  })
 
   if (createdProjectError) {
+    // @ts-expect-error types are not correct
+    if (createdProjectResponse.status === 400) {
+      throw new DeployError((createdProjectError as unknown as Error).message, {
+        cause: createdProjectError,
+      })
+    }
+
     throw new DeployError('Failed to create project on Supabase', {
       cause: createdProjectError,
     })
