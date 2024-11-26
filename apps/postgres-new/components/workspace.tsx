@@ -1,11 +1,20 @@
 'use client'
 
 import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
-import { createContext, useCallback, useContext, useMemo } from 'react'
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useOnToolCall } from '~/lib/hooks'
+import { TabValue } from '~/lib/schema'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
@@ -107,6 +116,8 @@ export default function Workspace({
     onCancelReply?.(append)
   }, [onCancelReply, stop, append])
 
+  const [tab, setTab] = useState<TabValue>('diagram')
+
   const isConversationStarted =
     initialMessages !== undefined && messages.length > initialMessages.length
 
@@ -121,10 +132,12 @@ export default function Workspace({
         appendMessage,
         stopReply,
         visibility,
+        tab,
+        setTab,
       }}
     >
-      <div className="w-full h-full hidden lg:flex flex-col lg:flex-row gap-8">
-        <IDE className="flex-1 h-full p-3 sm:py-6 sm:pl-6">
+      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
+        <IDE className="flex-1 h-full p-3 pb-3 lg:py-3">
           <Chat />
         </IDE>
         {!isSmallBreakpoint && (
@@ -132,38 +145,6 @@ export default function Workspace({
             <Chat />
           </div>
         )}
-      </div>
-      <div className="w-full lg:hidden justify-center items-center p-6 ">
-        <div className="grid gap-6 mt-4">
-          <h2 className="text-lg font-bold">Mobile Support Coming Soon</h2>
-          <p>
-            <a className="underline" href="https://database.build">
-              database.build
-            </a>{' '}
-            is in early Alpha and is{' '}
-            <a className="underline" href="https://supabase.com/blog/postgres-new">
-              actively being developed
-            </a>
-            . We are working on mobile support for{' '}
-            <a className="underline" href="https://github.com/electric-sql/pglite">
-              PGlite
-            </a>{' '}
-            right now.
-          </p>
-          <p>
-            In the meantime, please check out the video below or visit from a laptop or desktop.
-          </p>
-          <div className="video-container">
-            <iframe
-              className="w-full min-h-[300px]"
-              src="https://www.youtube-nocookie.com/embed/ooWaPVvljlU"
-              title="I gave AI full control over my database (postgres.new)"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-          <p>We appreciate your patience and interest! Stay tuned for updates!</p>
-        </div>
       </div>
     </WorkspaceContext.Provider>
   )
@@ -176,6 +157,8 @@ export type WorkspaceContextValues = {
   isConversationStarted: boolean
   messages: Message[]
   visibility: Visibility
+  tab: TabValue
+  setTab: Dispatch<SetStateAction<TabValue>>
   appendMessage(message: Message | CreateMessage): Promise<void>
   stopReply(): Promise<void>
 }

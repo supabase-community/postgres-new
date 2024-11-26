@@ -1,17 +1,8 @@
-'use client'
-
 import { TooltipPortal } from '@radix-ui/react-tooltip'
-import { AnimatePresence, m } from 'framer-motion'
 import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  Database as DbIcon,
   Download,
-  Loader,
   Loader2,
-  LogOut,
   MoreVertical,
-  PackagePlus,
   Pencil,
   PlugIcon,
   RadioIcon,
@@ -19,31 +10,19 @@ import {
   Upload,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import { useApp } from '~/components/app-provider'
+import { DeployDialog } from '~/components/deploy/deploy-dialog'
 import { DeployFailureDialog } from '~/components/deploy/deploy-failure-dialog'
+import { SupabaseDeploymentInfo } from '~/components/deploy/deploy-info'
+import { DeployInfoDialog } from '~/components/deploy/deploy-info-dialog'
 import { DeploySuccessDialog } from '~/components/deploy/deploy-success-dialog'
-import { Button } from '~/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
-import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
-import { useIntegrationQuery } from '~/data/integrations/integration-query'
-import { MergedDatabase, useMergedDatabases } from '~/data/merged-databases/merged-databases'
-import { useQueryEvent } from '~/lib/hooks'
-import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
-import { cn } from '~/lib/utils'
-import { useApp } from './app-provider'
-import { DeployDialog } from './deploy/deploy-dialog'
-import { SupabaseDeploymentInfo } from './deploy/deploy-info'
-import { DeployInfoDialog } from './deploy/deploy-info-dialog'
-import { IntegrationDialog } from './deploy/integration-dialog'
-import { RedeployDialog } from './deploy/redeploy-dialog'
-import { LiveShareIcon } from './live-share-icon'
-import { useIsLocked } from './lock-provider'
-import SignInButton from './sign-in-button'
-import { SupabaseIcon } from './supabase-icon'
-import ThemeDropdown from './theme-dropdown'
+import { IntegrationDialog } from '~/components/deploy/integration-dialog'
+import { RedeployDialog } from '~/components/deploy/redeploy-dialog'
+import { LiveShareIcon } from '~/components/live-share-icon'
+import { useIsLocked } from '~/components/lock-provider'
+import { SupabaseIcon } from '~/components/supabase-icon'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,262 +33,23 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu'
+} from '~/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
+import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
+import { useIntegrationQuery } from '~/data/integrations/integration-query'
+import { MergedDatabase } from '~/data/merged-databases/merged-databases'
+import { useQueryEvent } from '~/lib/hooks'
+import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
+import { cn } from '~/lib/utils'
 
-export default function Sidebar() {
-  const {
-    user,
-    signOut,
-    focusRef,
-    isSignInDialogOpen,
-    setIsSignInDialogOpen,
-    setIsRenameDialogOpen,
-    isLegacyDomain,
-    liveShare,
-  } = useApp()
-  let { id: currentDatabaseId } = useParams<{ id: string }>()
-  const router = useRouter()
-  const [showSidebar, setShowSidebar] = useState(true)
-
-  const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
-
-  return (
-    <>
-      <Dialog
-        open={isSignInDialogOpen}
-        onOpenChange={(open) => {
-          setIsSignInDialogOpen(open)
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Sign in to create a database</DialogTitle>
-            <div className="py-2 border-b" />
-          </DialogHeader>
-          <h2 className="font-bold">Why do I need to sign in?</h2>
-          <p>
-            Even though your Postgres databases run{' '}
-            <a
-              className="underline"
-              href="https://pglite.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              directly in the browser
-            </a>
-            , we still need to connect to an API that runs the large language model (required for
-            all database interactions).
-          </p>
-          <p>We ask you to sign in to prevent API abuse.</p>
-          <div className="flex justify-center items-center my-3">
-            <SignInButton />
-          </div>
-        </DialogContent>
-      </Dialog>
-      <AnimatePresence initial={false} mode="popLayout">
-        {showSidebar && (
-          <m.div
-            className="max-w-72 w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card"
-            variants={{
-              hidden: { opacity: 0, x: '-100%' },
-              show: { opacity: 1, x: 0 },
-            }}
-            transition={{ duration: 0.25 }}
-            initial="hidden"
-            animate="show"
-            exit={{ opacity: 0, transition: { duration: 0 } }}
-          >
-            <div className="flex justify-between">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <m.div layout="position" layoutId="sidebar-collapse">
-                    <Button
-                      variant={'ghost'}
-                      size={'icon'}
-                      onClick={() => {
-                        setShowSidebar(false)
-                      }}
-                    >
-                      <ArrowLeftToLine size={14} />
-                    </Button>
-                  </m.div>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Close sidebar</p>
-                </TooltipContent>
-              </Tooltip>
-              <m.div layout="position" layoutId="new-database-button">
-                <Button
-                  onClick={() => {
-                    if (!user) {
-                      setIsSignInDialogOpen(true)
-                    } else {
-                      if (liveShare.isLiveSharing) {
-                        liveShare.stop()
-                      }
-                      router.push('/')
-                      focusRef.current?.focus()
-                    }
-                  }}
-                  className="gap-2"
-                >
-                  <PackagePlus size={14} />
-                  New database
-                </Button>
-              </m.div>
-            </div>
-            {databases && databases.length > 0 ? (
-              <m.div
-                className="flex-1 flex flex-col items-stretch overflow-y-auto overflow-x-hidden"
-                transition={{ staggerChildren: 0.03 }}
-                initial="hidden"
-                animate="show"
-              >
-                {databases.map((database) => (
-                  <m.div
-                    key={database.id}
-                    layout="position"
-                    layoutId={`database-menu-item-${database.id}`}
-                    variants={{
-                      hidden: { opacity: 0, x: -20 },
-                      show: { opacity: 1, x: 0 },
-                    }}
-                  >
-                    <DatabaseMenuItem
-                      database={database}
-                      isActive={database.id === currentDatabaseId}
-                    />
-                  </m.div>
-                ))}
-              </m.div>
-            ) : (
-              <div className="flex-1 flex flex-col gap-2 my-10 mx-5 items-center text-base text-neutral-400 opacity-75">
-                {isLoadingDatabases ? (
-                  <Loader className="animate-spin" size={48} strokeWidth={0.75} />
-                ) : (
-                  <>
-                    <DbIcon size={48} strokeWidth={0.75} />
-                    <span>No databases</span>
-                    {!isLegacyDomain && (
-                      <a
-                        className="mt-2 underline cursor-pointer text-xs text-primary/50"
-                        onClick={() => setIsRenameDialogOpen(true)}
-                      >
-                        Where did my databases go?
-                      </a>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-            <m.div layout="position" layoutId="theme-dropdown">
-              <ThemeDropdown className="w-full" />
-            </m.div>
-            {user && (
-              <m.div layout="position" layoutId="sign-out-button">
-                <Button
-                  className="w-full gap-2"
-                  variant="secondary"
-                  onClick={async () => {
-                    await signOut()
-                  }}
-                >
-                  <LogOut size={18} strokeWidth={2} />
-                  Sign out
-                </Button>
-              </m.div>
-            )}
-          </m.div>
-        )}
-      </AnimatePresence>
-      {!showSidebar && (
-        <div className="flex flex-col pl-4 py-4 justify-between">
-          <div className="flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="sidebar-collapse">
-                  <Button
-                    variant={'ghost'}
-                    size="icon"
-                    onClick={() => {
-                      setShowSidebar(true)
-                    }}
-                  >
-                    <ArrowRightToLine size={14} />
-                  </Button>
-                </m.div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Open sidebar</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="new-database-button">
-                  <Button
-                    size={'icon'}
-                    onClick={() => {
-                      if (!user) {
-                        setIsSignInDialogOpen(true)
-                      } else {
-                        router.push('/')
-                        focusRef.current?.focus()
-                      }
-                    }}
-                  >
-                    <PackagePlus size={14} />
-                  </Button>
-                </m.div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>New database</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <m.div layout="position" layoutId="theme-dropdown">
-                  <ThemeDropdown iconOnly />
-                </m.div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Toggle theme</p>
-              </TooltipContent>
-            </Tooltip>
-            {user && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <m.div layout="position" layoutId="sign-out-button">
-                    <Button
-                      size={'icon'}
-                      variant="secondary"
-                      onClick={async () => {
-                        await signOut()
-                      }}
-                    >
-                      <LogOut size={16} strokeWidth={2} />
-                    </Button>
-                  </m.div>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Sign out</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-type DatabaseMenuItemProps = {
+export type DatabaseMenuItemProps = {
   database: MergedDatabase
   isActive: boolean
+  onClick?: () => void
 }
 
-function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
+export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuItemProps) {
   const router = useRouter()
   const { user, dbManager, liveShare } = useApp()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -471,6 +211,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
           'group text-sm w-full relative justify-start bg-card hover:bg-muted/50 flex gap-2 px-3 h-10 items-center rounded-md overflow-hidden data-[active=true]:bg-accent transition'
         )}
         href={`/db/${database.id}`}
+        onClick={onClick}
       >
         {liveShare.isLiveSharing && liveShare.databaseId === database.id && (
           <Tooltip>
@@ -499,6 +240,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
             className="group/trigger outline-none"
             onClick={(e) => {
               e.preventDefault()
+              e.stopPropagation()
               setIsPopoverOpen(true)
             }}
           >
@@ -514,7 +256,13 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
             />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent side="right" align="start">
+          <DropdownMenuContent
+            side="bottom"
+            align="start"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
             {isRenaming ? (
               <form
                 className="w-72"
@@ -548,7 +296,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
                     setIsRenaming(true)
                   }}
@@ -563,7 +311,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
 
                     if (!dbManager) {
@@ -612,7 +360,7 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                     <DropdownMenuSubContent>
                       <DropdownMenuItem
                         className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-                        onSelect={async (e) => {
+                        onClick={async (e) => {
                           e.preventDefault()
                           startDeployFlow()
                         }}
@@ -626,14 +374,21 @@ function DatabaseMenuItem({ database, isActive }: DatabaseMenuItemProps) {
                 <LiveShareMenuItem
                   databaseId={database.id}
                   isActive={isActive}
-                  setIsPopoverOpen={setIsPopoverOpen}
+                  onStart={() => {
+                    setIsPopoverOpen(false)
+                    onClick?.()
+                  }}
+                  onStop={() => {
+                    setIsPopoverOpen(false)
+                    onClick?.()
+                  }}
                   disabled={user === undefined || isLocked}
                 />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={isLocked}
                   className="gap-3"
-                  onSelect={async (e) => {
+                  onClick={async (e) => {
                     e.preventDefault()
                     setIsPopoverOpen(false)
                     await deleteDatabase({ id: database.id })
@@ -663,7 +418,8 @@ type ConnectMenuItemProps = {
   databaseId: string
   isActive: boolean
   disabled?: boolean
-  setIsPopoverOpen: (open: boolean) => void
+  onStart?: () => void
+  onStop?: () => void
 }
 
 function LiveShareMenuItem(props: ConnectMenuItemProps) {
@@ -677,7 +433,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
         onClick={async (e) => {
           e.preventDefault()
           liveShare.stop()
-          props.setIsPopoverOpen(false)
+          props.onStop?.()
         }}
       >
         <PlugIcon size={16} strokeWidth={2} className="flex-shrink-0 text-muted-foreground" />
@@ -697,7 +453,7 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
         }
         liveShare.start(props.databaseId)
         router.push(`/db/${props.databaseId}`)
-        props.setIsPopoverOpen(false)
+        props.onStart?.()
       }}
     >
       <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />

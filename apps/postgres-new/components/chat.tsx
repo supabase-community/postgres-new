@@ -179,7 +179,7 @@ export default function Chat() {
         layoutId={nextMessageId}
         className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
       >
-        <Paperclip size={14} /> Add file to chat
+        <Paperclip size={18} /> Add file to chat
       </m.div>
     ),
   })
@@ -253,7 +253,7 @@ export default function Chat() {
       {dropZoneCursor}
       <div className="flex-1 relative h-full min-h-0">
         {isLoadingMessages || isLoadingSchema ? (
-          <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-10">
+          <div className="h-full w-full max-w-4xl flex flex-col gap-10 p-5 lg:p-10">
             <Skeleton className="self-end h-10 w-1/3 rounded-3xl" />
             <Skeleton className="self-start h-28 w-2/3 rounded-3xl" />
             <Skeleton className="self-end h-10 w-2/3 rounded-3xl" />
@@ -273,7 +273,7 @@ export default function Chat() {
             <LiveShareOverlay databaseId={databaseId} />
             <m.div
               key={databaseId}
-              className="flex flex-col gap-4 w-full max-w-4xl p-10"
+              className="flex flex-col gap-4 w-full max-w-4xl px-2 py-5 lg:p-10"
               variants={{
                 show: {
                   transition: {
@@ -496,7 +496,7 @@ export default function Chat() {
             }}
             disabled={!isChatEnabled}
           >
-            <Paperclip size={16} strokeWidth={1.3} />
+            <Paperclip size={18} strokeWidth={1.3} />
           </Button>
           <textarea
             ref={inputRef}
