@@ -77,6 +77,7 @@ export default function Workspace({
   const { messages, setMessages, append, stop } = useChat({
     id: databaseId,
     api: '/api/chat',
+    maxSteps: 10,
     keepLastMessageOnError: true,
     onToolCall: onToolCall as any, // our `OnToolCall` type is more specific than `ai` SDK's
     body: {
