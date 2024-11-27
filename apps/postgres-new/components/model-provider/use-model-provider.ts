@@ -9,22 +9,32 @@ export type ModelProvider = {
   enabled: boolean
 }
 
+let configStore: kv.UseStore
+
+export function getConfigStore() {
+  if (configStore) {
+    return configStore
+  }
+  configStore = kv.createStore('/database.build/config', 'config')
+  return configStore
+}
+
 export function useModelProvider() {
   const [modelProvider, setModelProvider] = useState<ModelProvider | undefined>()
 
   const set = useCallback(async (modelProvider: ModelProvider) => {
-    await kv.set('modelProvider', modelProvider)
+    await kv.set('modelProvider', modelProvider, getConfigStore())
     setModelProvider(modelProvider)
   }, [])
 
   const remove = useCallback(async () => {
-    await kv.del('modelProvider')
+    await kv.del('modelProvider', getConfigStore())
     setModelProvider(undefined)
   }, [])
 
   useEffect(() => {
     async function init() {
-      const modelProvider = await kv.get('modelProvider')
+      const modelProvider = await kv.get('modelProvider', getConfigStore())
       setModelProvider(modelProvider)
     }
     init()

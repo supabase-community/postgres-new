@@ -10,9 +10,11 @@ import { ThemeProvider } from './theme-provider'
 const queryClient = new QueryClient()
 
 async function registerServiceWorker() {
-  await navigator.serviceWorker.register('/sw.mjs').catch((error) => {
+  try {
+    await navigator.serviceWorker.register('/sw.mjs')
+  } catch (error) {
     console.error('Failed to register service worker', error)
-  })
+  }
 }
 
 export default function Providers({ children }: PropsWithChildren) {

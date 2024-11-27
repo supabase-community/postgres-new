@@ -1,9 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai'
-import { ollama } from 'ollama-ai-provider'
-import * as kv from 'idb-keyval'
 import { convertToCoreMessages, streamText, ToolInvocation } from 'ai'
-import { convertToCoreTools, maxMessageContext, tools } from './lib/tools'
-import type { ModelProvider } from './components/model-provider/use-model-provider'
+import * as kv from 'idb-keyval'
+import { getConfigStore, type ModelProvider } from '~/components/model-provider/use-model-provider'
+import { convertToCoreTools, maxMessageContext, tools } from '~/lib/tools'
 
 type Message = {
   role: 'user' | 'assistant'
@@ -17,19 +16,17 @@ async function handleRequest(event: FetchEvent) {
   const url = new URL(event.request.url)
   const isChatRoute = url.pathname.startsWith('/api/chat') && event.request.method === 'POST'
   if (isChatRoute) {
-    const modelProvider = (await kv.get('modelProvider')) as ModelProvider | undefined
+    const modelProvider = await kv.get<ModelProvider>('modelProvider', getConfigStore())
 
     if (!modelProvider?.enabled) {
       return fetch(event.request)
     }
 
-    const adapter =
-      modelProvider.baseUrl === 'http://localhost:11434/api'
-        ? ollama
-        : createOpenAI({
-            baseURL: modelProvider.baseUrl,
-            apiKey: modelProvider.apiKey,
-          })
+    const adapter = createOpenAI({
+      baseURL: modelProvider.baseUrl,
+      apiKey: modelProvider.apiKey,
+    })
+
     const model = adapter(modelProvider.model)
 
     const { messages }: { messages: Message[] } = await event.request.json()
@@ -40,20 +37,26 @@ async function handleRequest(event: FetchEvent) {
     const coreMessages = convertToCoreMessages(trimmedMessageContext)
     const coreTools = convertToCoreTools(tools)
 
-    const result = streamText({
-      system: modelProvider.system,
-      model,
-      messages: coreMessages,
-      tools: coreTools,
-      onFinish: (event) => {
-        console.log('Hello from service worker', event)
-      },
-    })
-    return result.toDataStreamResponse()
+    try {
+      const result = streamText({
+        system: modelProvider.system,
+        model,
+        messages: coreMessages,
+        tools: coreTools,
+      })
+
+      return result.toDataStreamResponse()
+    } catch (error) {
+      return new Response(`Error streaming LLM from service worker: ${error}`, { status: 500 })
+    }
   }
 
   return fetch(event.request)
 }
+
+self.addEventListener('activate', function (event) {
+  return self.clients.claim()
+})
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event))

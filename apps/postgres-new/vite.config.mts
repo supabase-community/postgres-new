@@ -1,14 +1,22 @@
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  define: {
+    'process.env': {},
+  },
+  resolve: {
+    alias: {
+      '~': fileURLToPath(new URL('.', import.meta.url)),
+    },
+  },
   build: {
     lib: {
-      entry: resolve(__dirname, 'sw.ts'),
+      entry: fileURLToPath(new URL('sw.ts', import.meta.url)),
       fileName: 'sw',
       formats: ['es'],
     },
-    outDir: resolve(__dirname, 'public'),
+    outDir: fileURLToPath(new URL('public', import.meta.url)),
     emptyOutDir: false,
     copyPublicDir: false,
   },
