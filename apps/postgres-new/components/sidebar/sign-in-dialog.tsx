@@ -1,3 +1,4 @@
+import ByoLlmButton from '~/components/byo-llm-button'
 import SignInButton from '~/components/sign-in-button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 
@@ -29,8 +30,15 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
           database interactions).
         </p>
         <p>We ask you to sign in to prevent API abuse.</p>
-        <div className="flex justify-center items-center my-3">
+        <div className="my-1 border-b" />
+        <div className="flex flex-col gap-2 justify-center items-center my-3">
           <SignInButton />
+          or
+          <ByoLlmButton
+            onClick={() => {
+              onOpenChange(false)
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>

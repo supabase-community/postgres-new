@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import GitHubIcon from '~/assets/github-icon'
 import { useApp } from '~/components/app-provider'
 import ThemeDropdown from '~/components/theme-dropdown'
 import { Button } from '~/components/ui/button'
@@ -26,6 +27,7 @@ import { SignInDialog } from './sign-in-dialog'
 export default function Sidebar() {
   const {
     user,
+    signIn,
     signOut,
     focusRef,
     isSignInDialogOpen,
@@ -162,7 +164,7 @@ export default function Sidebar() {
             <m.div layout="position" layoutId="theme-dropdown">
               <ThemeDropdown className="w-full" />
             </m.div>
-            {user && (
+            {user ? (
               <m.div layout="position" layoutId="sign-out-button">
                 <Button
                   className="w-full gap-2"
@@ -173,6 +175,19 @@ export default function Sidebar() {
                 >
                   <LogOut size={18} strokeWidth={2} />
                   Sign out
+                </Button>
+              </m.div>
+            ) : (
+              <m.div layout="position" layoutId="sign-in-button">
+                <Button
+                  className="w-full gap-2"
+                  variant="secondary"
+                  onClick={async () => {
+                    await signIn()
+                  }}
+                >
+                  <GitHubIcon className="text-xl" />
+                  Sign in with GitHub
                 </Button>
               </m.div>
             )}
@@ -237,7 +252,7 @@ export default function Sidebar() {
                 <p>Toggle theme</p>
               </TooltipContent>
             </Tooltip>
-            {user && (
+            {user ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <m.div layout="position" layoutId="sign-out-button">
@@ -254,6 +269,25 @@ export default function Sidebar() {
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>Sign out</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <m.div layout="position" layoutId="sign-in-button">
+                    <Button
+                      size={'icon'}
+                      variant="secondary"
+                      onClick={async () => {
+                        await signIn()
+                      }}
+                    >
+                      <GitHubIcon className="text-xl" />
+                    </Button>
+                  </m.div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Sign in with GitHub</p>
                 </TooltipContent>
               </Tooltip>
             )}

@@ -13,7 +13,7 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
   const { modelProvider, isModelProviderDialogOpen, setIsModelProviderDialogOpen } = useApp()
 
   const modelName = modelProvider.state?.model.split('/').at(-1)
-  const text = modelProvider.state?.enabled ? modelName : 'Use your own LLM'
+  const text = modelProvider.state?.enabled ? modelName : 'Bring your own LLM'
   const button = props.collapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>

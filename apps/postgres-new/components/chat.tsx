@@ -22,6 +22,7 @@ import { requestFileUpload } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
 import { useApp } from './app-provider'
+import ByoLlmButton from './byo-llm-button'
 import ChatMessage from './chat-message'
 import { CopyableField } from './copyable-field'
 import SignInButton from './sign-in-button'
@@ -431,11 +432,10 @@ export default function Chat() {
                 animate="show"
               >
                 <SignInButton />
-                <p className="font-lighter text-center">
-                  To prevent abuse we ask you to sign in before chatting with AI.
-                </p>
+                or
+                <ByoLlmButton />
                 <p
-                  className="underline cursor-pointer text-primary/50"
+                  className="underline cursor-pointer text-sm text-primary/50"
                   onClick={() => {
                     setIsSignInDialogOpen(true)
                   }}
@@ -485,9 +485,8 @@ export default function Chat() {
               exit="hidden"
             >
               <SignInButton />
-              <p className="font-lighter text-center text-sm">
-                To prevent abuse we ask you to sign in before chatting with AI.
-              </p>
+              or
+              <ByoLlmButton />
               <p
                 className="underline cursor-pointer text-sm text-primary/50"
                 onClick={() => {
