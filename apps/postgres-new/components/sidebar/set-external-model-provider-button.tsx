@@ -1,32 +1,27 @@
 import { m } from 'framer-motion'
-import { Button } from '../ui/button'
 import { Brain } from 'lucide-react'
-import { useApp } from '../app-provider'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-import { SetModelProviderDialog } from '../model-provider/set-model-provider-dialog'
-import { useState } from 'react'
-import { cn } from '~/lib/utils'
+import { useApp } from '~/components/app-provider'
+import { SetModelProviderDialog } from '~/components/model-provider/set-model-provider-dialog'
+import { Button } from '~/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type SetExternalModelProviderButtonProps = {
   collapsed?: boolean
 }
 
 export function SetExternalModelProviderButton(props: SetExternalModelProviderButtonProps) {
-  const { modelProvider } = useApp()
-  const [isSetModelProviderDialogOpen, setIsSetModelProviderDialogOpen] = useState(false)
+  const { modelProvider, isModelProviderDialogOpen, setIsModelProviderDialogOpen } = useApp()
 
   const modelName = modelProvider.state?.model.split('/').at(-1)
-  const text = modelName ?? 'Set external model'
-  const disabled = modelProvider.state?.enabled === false
+  const text = modelProvider.state?.enabled ? modelName : 'Use your own LLM'
   const button = props.collapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
         <m.div layout="position" layoutId="set-external-model-button">
           <Button
-            className={cn(disabled && 'opacity-50')}
             size={'icon'}
             variant="outline"
-            onClick={() => setIsSetModelProviderDialogOpen(true)}
+            onClick={() => setIsModelProviderDialogOpen(true)}
           >
             <Brain size={16} strokeWidth={2} />
           </Button>
@@ -39,9 +34,9 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
   ) : (
     <m.div layout="position" layoutId="set-external-model-button">
       <Button
-        className={cn('w-full gap-2', disabled && 'opacity-50')}
+        className="w-full gap-2"
         variant="outline"
-        onClick={() => setIsSetModelProviderDialogOpen(true)}
+        onClick={() => setIsModelProviderDialogOpen(true)}
       >
         <Brain size={18} strokeWidth={2} />
         <div className="inline-block whitespace-nowrap overflow-hidden text-ellipsis">{text}</div>
@@ -52,8 +47,8 @@ export function SetExternalModelProviderButton(props: SetExternalModelProviderBu
   return (
     <>
       <SetModelProviderDialog
-        open={isSetModelProviderDialogOpen}
-        onOpenChange={setIsSetModelProviderDialogOpen}
+        open={isModelProviderDialogOpen}
+        onOpenChange={setIsModelProviderDialogOpen}
       />
       {button}
     </>

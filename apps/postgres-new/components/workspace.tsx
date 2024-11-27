@@ -61,7 +61,7 @@ export default function Workspace({
   onReply,
   onCancelReply,
 }: WorkspaceProps) {
-  const { setIsRateLimited } = useApp()
+  const { setIsRateLimited, modelProvider, setModelProviderError } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -86,9 +86,18 @@ export default function Workspace({
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {
+      setModelProviderError(undefined)
+
       // Order is important here
       await onReply?.(message, append)
       await saveMessage({ message })
+    },
+    onError(error) {
+      if (modelProvider.state?.enabled) {
+        setModelProviderError(error.message)
+      } else {
+        setModelProviderError(undefined)
+      }
     },
     async onResponse(response) {
       setIsRateLimited(response.status === 429)

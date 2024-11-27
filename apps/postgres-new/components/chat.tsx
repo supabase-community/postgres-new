@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
 import {
   FormEventHandler,
   useCallback,
@@ -59,6 +59,8 @@ export default function Chat() {
     isRateLimited,
     liveShare,
     modelProvider,
+    modelProviderError,
+    setIsModelProviderDialogOpen,
   } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
@@ -302,6 +304,42 @@ export default function Chat() {
                   isLast={i === messages.length - 1}
                 />
               ))}
+              <AnimatePresence initial={false}>
+                {modelProviderError && !isLoading && (
+                  <m.div
+                    layout="position"
+                    className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
+                    variants={{
+                      hidden: { scale: 0 },
+                      show: { scale: 1, transition: { delay: 0.5 } },
+                    }}
+                    initial="hidden"
+                    animate="show"
+                    exit="hidden"
+                  >
+                    <AlertCircle size={64} strokeWidth={1} />
+                    <div className="flex flex-col items-center text-start gap-4">
+                      <h3 className="font-bold">Whoops!</h3>
+                      <p className="text-center">
+                        There was an error connecting to your custom model provider:{' '}
+                        {modelProviderError}
+                      </p>
+                      <p>
+                        Double check your{' '}
+                        <a
+                          className="underline cursor-pointer"
+                          onClick={() => {
+                            setIsModelProviderDialogOpen(true)
+                          }}
+                        >
+                          API info
+                        </a>
+                        .
+                      </p>
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
               <AnimatePresence initial={false}>
                 {isRateLimited && !isLoading && (
                   <m.div

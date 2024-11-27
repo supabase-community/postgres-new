@@ -253,6 +253,9 @@ export default function AppProvider({ children }: AppProps) {
   const [isLegacyDomain, setIsLegacyDomain] = useState(false)
   const [isLegacyDomainRedirect, setIsLegacyDomainRedirect] = useState(false)
 
+  const [modelProviderError, setModelProviderError] = useState<string>()
+  const [isModelProviderDialogOpen, setIsModelProviderDialogOpen] = useState(false)
+
   useEffect(() => {
     const isLegacyDomain = window.location.hostname === legacyDomainHostname
     const urlParams = new URLSearchParams(window.location.search)
@@ -273,6 +276,8 @@ export default function AppProvider({ children }: AppProps) {
         isLoadingUser,
         liveShare,
         modelProvider,
+        modelProviderError,
+        setModelProviderError,
         signIn,
         signOut,
         isSignInDialogOpen,
@@ -281,6 +286,8 @@ export default function AppProvider({ children }: AppProps) {
         setIsRenameDialogOpen,
         isRateLimited,
         setIsRateLimited,
+        isModelProviderDialogOpen,
+        setIsModelProviderDialogOpen,
         focusRef,
         dbManager,
         pgliteVersion,
@@ -309,6 +316,8 @@ export type AppContextValues = {
   setIsRenameDialogOpen: (open: boolean) => void
   isRateLimited: boolean
   setIsRateLimited: (limited: boolean) => void
+  isModelProviderDialogOpen: boolean
+  setIsModelProviderDialogOpen: (open: boolean) => void
   focusRef: RefObject<FocusHandle>
   dbManager?: DbManager
   pgliteVersion?: string
@@ -321,6 +330,8 @@ export type AppContextValues = {
     isLiveSharing: boolean
   }
   modelProvider: ReturnType<typeof useModelProvider>
+  modelProviderError?: string
+  setModelProviderError: (error: string | undefined) => void
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
 }
