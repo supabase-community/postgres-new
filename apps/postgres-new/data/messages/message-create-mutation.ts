@@ -1,6 +1,6 @@
 import { useMutation, UseMutationOptions, useQueryClient } from '@tanstack/react-query'
-import { Message } from 'ai'
 import { useApp } from '~/components/app-provider'
+import { Message } from '~/lib/db'
 import { getMessagesQueryKey } from './messages-query'
 
 export type MessageCreateVariables = {

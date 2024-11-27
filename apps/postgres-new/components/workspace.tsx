@@ -66,6 +66,13 @@ export default function Workspace({
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
 
+  const apiInfo = modelProvider.state?.enabled
+    ? {
+        apiUrl: modelProvider.state.baseUrl,
+        model: modelProvider.state.model,
+      }
+    : undefined
+
   const { data: tables, isLoading: isLoadingSchema } = useTablesQuery({
     databaseId,
     schemas: ['public', 'meta'],
@@ -90,7 +97,12 @@ export default function Workspace({
 
       // Order is important here
       await onReply?.(message, append)
-      await saveMessage({ message })
+      await saveMessage({
+        message: {
+          ...message,
+          ...apiInfo,
+        },
+      })
     },
     onError(error) {
       if (modelProvider.state?.enabled) {
@@ -114,7 +126,12 @@ export default function Workspace({
 
       // Intentionally don't await so that framer animations aren't affected
       append(message)
-      saveMessage({ message })
+      saveMessage({
+        message: {
+          ...message,
+          ...apiInfo,
+        },
+      })
       onMessage?.(message, append)
     },
     [onMessage, setMessages, saveMessage, append]
