@@ -42,6 +42,7 @@ import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { useQueryEvent } from '~/lib/hooks'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
+import { pgDump } from '@electric-sql/pglite-tools/pg_dump'
 
 export type DatabaseMenuItemProps = {
   database: MergedDatabase
@@ -319,10 +320,9 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                     }
 
                     const db = await dbManager.getDbInstance(database.id)
-                    const dumpBlob = await db.dumpDataDir()
-
+                    console.log({ db })
                     const fileName = `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}`
-                    const file = new File([dumpBlob], fileName, { type: dumpBlob.type })
+                    const file = await pgDump({ pg: db })
 
                     downloadFile(file)
                   }}
