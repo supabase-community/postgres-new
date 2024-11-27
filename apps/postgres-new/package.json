@@ -15,7 +15,7 @@
     "@dagrejs/dagre": "^1.1.2",
     "@database.build/deploy": "*",
     "@electric-sql/pglite": "^0.2.14",
-    "@electric-sql/pglite-tools": "^0.2.1",
+    "@electric-sql/pglite-tools": "^0.2.2",
     "@gregnr/postgres-meta": "^0.82.0-dev.2",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-accordion": "^1.2.0",

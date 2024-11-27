@@ -4,6 +4,7 @@ import { PGliteWorker } from '@electric-sql/pglite/worker'
 import { Message, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
+import { downloadFileFromUrl } from '../util'
 
 export type Database = {
   id: string
@@ -27,7 +28,10 @@ export class DbManager {
 
   private metaDbInstance: PGliteInterface | undefined
   private metaDbPromise: Promise<PGliteInterface> | undefined
-  private databaseConnections = new Map<string, Promise<PGliteInterface> | undefined>()
+  private databaseConnections = new Map<
+    string,
+    Promise<PGliteInterface & { worker: Worker }> | undefined
+  >()
 
   constructor(metaDb?: PGliteInterface) {
     // Allow passing a custom meta DB (useful for DB imports)
@@ -42,12 +46,22 @@ export class DbManager {
   /**
    * Creates a PGlite instance that runs in a web worker
    */
-  static async createPGlite(options?: PGliteOptions): Promise<PGliteInterface> {
+  static async createPGlite(
+    options?: PGliteOptions
+  ): Promise<PGliteInterface & { worker: Worker }> {
     if (typeof window === 'undefined') {
       throw new Error('PGlite worker instances are only available in the browser')
     }
 
-    const db = await PGliteWorker.create(
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
+
+    worker.addEventListener('message', (event) => {
+      if (event.data.name === 'pg_dump_success') {
+        downloadFileFromUrl(event.data.url, event.data.filename)
+      }
+    })
+
+    const db = (await PGliteWorker.create(
       // Note the below syntax is required by webpack in order to
       // identify the worker properly during static analysis
       // see: https://webpack.js.org/guides/web-workers/
@@ -57,7 +71,9 @@ export class DbManager {
         id: nanoid(),
         ...options,
       }
-    )
+    )) as unknown as PGliteInterface & { worker: Worker }
+
+    db.worker = worker
 
     await db.waitReady
 
@@ -262,7 +278,10 @@ export class DbManager {
     return metaDb.sql`insert into databases (id, name, created_at, is_hidden) values ${join(values, ',')} on conflict (id) do nothing`
   }
 
-  async getDbInstance(id: string, loadDataDir?: Blob | File) {
+  async getDbInstance(
+    id: string,
+    loadDataDir?: Blob | File
+  ): Promise<PGliteInterface & { worker: Worker }> {
     const openDatabasePromise = this.databaseConnections.get(id)
 
     if (openDatabasePromise) {

@@ -320,11 +320,11 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                     }
 
                     const db = await dbManager.getDbInstance(database.id)
-                    console.log({ db })
-                    const fileName = `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}`
-                    const file = await pgDump({ pg: db })
 
-                    downloadFile(file)
+                    db.worker.postMessage({
+                      name: 'pg_dump',
+                      filename: `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}.sql`,
+                    })
                   }}
                 >
                   <Download

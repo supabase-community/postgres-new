@@ -7,16 +7,23 @@ export const currentDomainUrl = process.env.NEXT_PUBLIC_CURRENT_DOMAIN!
 export const currentDomainHostname = new URL(currentDomainUrl).hostname
 
 /**
+ * Programmatically download a `File` from a given URL.
+ */
+export function downloadFileFromUrl(url: string, filename: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+/**
  * Programmatically download a `File`.
  */
 export function downloadFile(file: File) {
   const url = URL.createObjectURL(file)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = file.name
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  downloadFileFromUrl(url, file.name)
 }
 
 export async function requestFileUpload() {
