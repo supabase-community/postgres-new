@@ -61,10 +61,17 @@ export default function Workspace({
   onReply,
   onCancelReply,
 }: WorkspaceProps) {
-  const { setIsRateLimited } = useApp()
+  const { setIsRateLimited, modelProvider, setModelProviderError } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
+
+  const apiInfo = modelProvider.state?.enabled
+    ? {
+        apiUrl: modelProvider.state.baseUrl,
+        model: modelProvider.state.model,
+      }
+    : undefined
 
   const { data: tables, isLoading: isLoadingSchema } = useTablesQuery({
     databaseId,
@@ -77,7 +84,7 @@ export default function Workspace({
   const { messages, setMessages, append, stop } = useChat({
     id: databaseId,
     api: '/api/chat',
-    maxToolRoundtrips: 10,
+    maxSteps: 10,
     keepLastMessageOnError: true,
     onToolCall: onToolCall as any, // our `OnToolCall` type is more specific than `ai` SDK's
     body: {
@@ -86,9 +93,23 @@ export default function Workspace({
     initialMessages:
       existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
     async onFinish(message) {
+      setModelProviderError(undefined)
+
       // Order is important here
       await onReply?.(message, append)
-      await saveMessage({ message })
+      await saveMessage({
+        message: {
+          ...message,
+          ...apiInfo,
+        },
+      })
+    },
+    onError(error) {
+      if (modelProvider.state?.enabled) {
+        setModelProviderError(error.message)
+      } else {
+        setModelProviderError(undefined)
+      }
     },
     async onResponse(response) {
       setIsRateLimited(response.status === 429)
@@ -105,7 +126,12 @@ export default function Workspace({
 
       // Intentionally don't await so that framer animations aren't affected
       append(message)
-      saveMessage({ message })
+      saveMessage({
+        message: {
+          ...message,
+          ...apiInfo,
+        },
+      })
       onMessage?.(message, append)
     },
     [onMessage, setMessages, saveMessage, append]

@@ -3,7 +3,7 @@
 import { Message, generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
 import {
   FormEventHandler,
   useCallback,
@@ -22,6 +22,7 @@ import { requestFileUpload } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { AiIconAnimation } from './ai-icon-animation'
 import { useApp } from './app-provider'
+import ByoLlmButton from './byo-llm-button'
 import ChatMessage from './chat-message'
 import { CopyableField } from './copyable-field'
 import SignInButton from './sign-in-button'
@@ -51,8 +52,17 @@ export function getInitialMessages(tables: TablesData): Message[] {
 }
 
 export default function Chat() {
-  const { user, isLoadingUser, focusRef, setIsSignInDialogOpen, isRateLimited, liveShare } =
-    useApp()
+  const {
+    user,
+    isLoadingUser,
+    focusRef,
+    setIsSignInDialogOpen,
+    isRateLimited,
+    liveShare,
+    modelProvider,
+    modelProviderError,
+    setIsModelProviderDialogOpen,
+  } = useApp()
   const [inputFocusState, setInputFocusState] = useState(false)
 
   const {
@@ -155,7 +165,7 @@ export default function Chat() {
     cursor: dropZoneCursor,
   } = useDropZone({
     async onDrop(files) {
-      if (!user) {
+      if (isAuthRequired) {
         return
       }
 
@@ -223,8 +233,10 @@ export default function Chat() {
 
   const [isMessageAnimationComplete, setIsMessageAnimationComplete] = useState(false)
 
+  const isAuthRequired = user === undefined && modelProvider.state?.enabled !== true
+
   const isChatEnabled =
-    !isLoadingMessages && !isLoadingSchema && user !== undefined && !liveShare.isLiveSharing
+    !isLoadingMessages && !isLoadingSchema && !isAuthRequired && !liveShare.isLiveSharing
 
   const isSubmitEnabled = isChatEnabled && Boolean(input.trim())
 
@@ -294,6 +306,42 @@ export default function Chat() {
                 />
               ))}
               <AnimatePresence initial={false}>
+                {modelProviderError && !isLoading && (
+                  <m.div
+                    layout="position"
+                    className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
+                    variants={{
+                      hidden: { scale: 0 },
+                      show: { scale: 1, transition: { delay: 0.5 } },
+                    }}
+                    initial="hidden"
+                    animate="show"
+                    exit="hidden"
+                  >
+                    <AlertCircle size={64} strokeWidth={1} />
+                    <div className="flex flex-col items-center text-start gap-4">
+                      <h3 className="font-bold">Whoops!</h3>
+                      <p className="text-center">
+                        There was an error connecting to your custom model provider:{' '}
+                        {modelProviderError}
+                      </p>
+                      <p>
+                        Double check your{' '}
+                        <a
+                          className="underline cursor-pointer"
+                          onClick={() => {
+                            setIsModelProviderDialogOpen(true)
+                          }}
+                        >
+                          API info
+                        </a>
+                        .
+                      </p>
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence initial={false}>
                 {isRateLimited && !isLoading && (
                   <m.div
                     layout="position"
@@ -357,7 +405,7 @@ export default function Chat() {
           </div>
         ) : (
           <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
-            {user ? (
+            {!isAuthRequired ? (
               <>
                 <LiveShareOverlay databaseId={databaseId} />
                 <m.h3
@@ -384,11 +432,10 @@ export default function Chat() {
                 animate="show"
               >
                 <SignInButton />
-                <p className="font-lighter text-center">
-                  To prevent abuse we ask you to sign in before chatting with AI.
-                </p>
+                or
+                <ByoLlmButton />
                 <p
-                  className="underline cursor-pointer text-primary/50"
+                  className="underline cursor-pointer text-sm text-primary/50"
                   onClick={() => {
                     setIsSignInDialogOpen(true)
                   }}
@@ -427,7 +474,7 @@ export default function Chat() {
       </div>
       <div className="flex flex-col items-center gap-3 pb-1 relative">
         <AnimatePresence>
-          {!user && !isLoadingUser && isConversationStarted && (
+          {isAuthRequired && !isLoadingUser && isConversationStarted && (
             <m.div
               className="flex flex-col items-center gap-4 max-w-lg my-4"
               variants={{
@@ -438,9 +485,8 @@ export default function Chat() {
               exit="hidden"
             >
               <SignInButton />
-              <p className="font-lighter text-center text-sm">
-                To prevent abuse we ask you to sign in before chatting with AI.
-              </p>
+              or
+              <ByoLlmButton />
               <p
                 className="underline cursor-pointer text-sm text-primary/50"
                 onClick={() => {
@@ -487,7 +533,7 @@ export default function Chat() {
             onClick={async (e) => {
               e.preventDefault()
 
-              if (!user) {
+              if (isAuthRequired) {
                 return
               }
 

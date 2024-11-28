@@ -1,7 +1,7 @@
 import type { PGliteInterface, PGliteOptions, Transaction } from '@electric-sql/pglite'
 import { raw, sql } from '@electric-sql/pglite/template'
 import { PGliteWorker } from '@electric-sql/pglite/worker'
-import { Message, ToolInvocation } from 'ai'
+import { Message as AiMessage, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
 
@@ -19,6 +19,11 @@ export type MetaMessage = {
   content: string
   toolInvocations: ToolInvocation[]
   createdAt: Date
+}
+
+export type Message = AiMessage & {
+  apiUrl?: string
+  model?: string
 }
 
 export class DbManager {
@@ -88,31 +93,38 @@ export class DbManager {
 
   async getMessages(databaseId: string) {
     const metaDb = await this.getMetaDb()
-    const { rows: messages } = await metaDb.query<Message>(
-      codeBlock`
-        select id, role, content, tool_invocations as "toolInvocations", created_at as "createdAt"
-        from messages where database_id = $1
-        order by created_at asc
-      `,
-      [databaseId]
-    )
+    const { rows: messages } = await metaDb.sql<Message>`
+      select
+        id,
+        role,
+        content,
+        tool_invocations as "toolInvocations",
+        created_at as "createdAt",
+        api_url as "apiUrl",
+        model
+      from messages
+      where database_id = ${databaseId}
+      order by created_at asc
+    `
+
     return messages
   }
 
   async createMessage(databaseId: string, message: Message) {
     const metaDb = await this.getMetaDb()
 
-    if (message.toolInvocations) {
-      await metaDb.query(
-        'insert into messages (id, database_id, role, content, tool_invocations) values ($1, $2, $3, $4, $5)',
-        [message.id, databaseId, message.role, message.content, message.toolInvocations]
+    await metaDb.sql`
+      insert into messages (id, database_id, role, content, tool_invocations, api_url, model)
+      values (
+        ${message.id},
+        ${databaseId},
+        ${message.role},
+        ${message.content},
+        ${message.toolInvocations},
+        ${message.apiUrl},
+        ${message.model}
       )
-    } else {
-      await metaDb.query(
-        'insert into messages (id, database_id, role, content) values ($1, $2, $3, $4)',
-        [message.id, databaseId, message.role, message.content]
-      )
-    }
+    `
   }
 
   async exportMessages() {
@@ -491,6 +503,14 @@ const metaMigrations: Migration[] = [
         role text not null check (role in ('user', 'assistant', 'tool')),
         tool_invocations jsonb
       );
+    `,
+  },
+  {
+    version: '202411250001',
+    name: 'message_model',
+    sql: codeBlock`
+      alter table messages add column api_url text;
+      alter table messages add column model text;
     `,
   },
 ].sort()

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import GitHubIcon from '~/assets/github-icon'
 import { useApp } from '~/components/app-provider'
 import ThemeDropdown from '~/components/theme-dropdown'
 import { Button } from '~/components/ui/button'
@@ -20,11 +21,13 @@ import { useMergedDatabases } from '~/data/merged-databases/merged-databases'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { cn } from '~/lib/utils'
 import { DatabaseMenuItem } from './database-menu-item'
+import { SetExternalModelProviderButton } from './set-external-model-provider-button'
 import { SignInDialog } from './sign-in-dialog'
 
 export default function Sidebar() {
   const {
     user,
+    signIn,
     signOut,
     focusRef,
     isSignInDialogOpen,
@@ -32,6 +35,7 @@ export default function Sidebar() {
     setIsRenameDialogOpen,
     isLegacyDomain,
     liveShare,
+    modelProvider,
   } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const router = useRouter()
@@ -45,6 +49,7 @@ export default function Sidebar() {
   }, [isSmallBreakpoint])
 
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()
+  const isAuthRequired = user === undefined && modelProvider.state?.enabled !== true
 
   return (
     <>
@@ -86,7 +91,7 @@ export default function Sidebar() {
               <m.div layout="position" layoutId="new-database-button">
                 <Button
                   onClick={() => {
-                    if (!user) {
+                    if (isAuthRequired) {
                       setIsSignInDialogOpen(true)
                     } else {
                       if (liveShare.isLiveSharing) {
@@ -155,10 +160,11 @@ export default function Sidebar() {
                 )}
               </div>
             )}
+            <SetExternalModelProviderButton />
             <m.div layout="position" layoutId="theme-dropdown">
               <ThemeDropdown className="w-full" />
             </m.div>
-            {user && (
+            {user ? (
               <m.div layout="position" layoutId="sign-out-button">
                 <Button
                   className="w-full gap-2"
@@ -169,6 +175,19 @@ export default function Sidebar() {
                 >
                   <LogOut size={18} strokeWidth={2} />
                   Sign out
+                </Button>
+              </m.div>
+            ) : (
+              <m.div layout="position" layoutId="sign-in-button">
+                <Button
+                  className="w-full gap-2"
+                  variant="secondary"
+                  onClick={async () => {
+                    await signIn()
+                  }}
+                >
+                  <GitHubIcon className="text-xl" />
+                  Sign in with GitHub
                 </Button>
               </m.div>
             )}
@@ -210,7 +229,7 @@ export default function Sidebar() {
                   <Button
                     size={'icon'}
                     onClick={() => {
-                      if (!user) {
+                      if (isAuthRequired) {
                         setIsSignInDialogOpen(true)
                       } else {
                         router.push('/')
@@ -228,6 +247,7 @@ export default function Sidebar() {
             </Tooltip>
           </div>
           <div className="flex flex-col gap-2">
+            <SetExternalModelProviderButton collapsed={true} />
             <Tooltip>
               <TooltipTrigger asChild>
                 <m.div
@@ -241,7 +261,7 @@ export default function Sidebar() {
                 <p>Toggle theme</p>
               </TooltipContent>
             </Tooltip>
-            {user && (
+            {user ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <m.div
@@ -261,6 +281,25 @@ export default function Sidebar() {
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>Sign out</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <m.div layout="position" layoutId="sign-in-button">
+                    <Button
+                      size={'icon'}
+                      variant="secondary"
+                      onClick={async () => {
+                        await signIn()
+                      }}
+                    >
+                      <GitHubIcon className="text-xl" />
+                    </Button>
+                  </m.div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Sign in with GitHub</p>
                 </TooltipContent>
               </Tooltip>
             )}

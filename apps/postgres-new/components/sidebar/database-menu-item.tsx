@@ -337,26 +337,33 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                   <span>Download</span>
                 </DropdownMenuItem>
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger
-                    disabled={!user}
-                    className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3 cursor-pointer"
-                    chevronRightClassName="text-muted-foreground"
-                  >
-                    {isDeploying ? (
-                      <Loader2
-                        className="animate-spin flex-shrink-0 text-muted-foreground"
-                        size={16}
-                        strokeWidth={2}
-                      />
-                    ) : (
-                      <Upload
-                        size={16}
-                        strokeWidth={2}
-                        className="flex-shrink-0 text-muted-foreground"
-                      />
-                    )}
-                    <span>Deploy</span>
-                  </DropdownMenuSubTrigger>
+                  <Tooltip>
+                    <TooltipTrigger className="cursor-default">
+                      <DropdownMenuSubTrigger
+                        disabled={!user}
+                        className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3 cursor-pointer"
+                        chevronRightClassName="text-muted-foreground"
+                      >
+                        {isDeploying ? (
+                          <Loader2
+                            className="animate-spin flex-shrink-0 text-muted-foreground"
+                            size={16}
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <Upload
+                            size={16}
+                            strokeWidth={2}
+                            className="flex-shrink-0 text-muted-foreground"
+                          />
+                        )}
+                        <span>Deploy</span>
+                      </DropdownMenuSubTrigger>
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      {!user && <TooltipContent side="right">Sign in to deploy</TooltipContent>}
+                    </TooltipPortal>
+                  </Tooltip>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
                       <DropdownMenuItem
@@ -453,21 +460,28 @@ function LiveShareMenuItem(props: ConnectMenuItemProps) {
   }
 
   return (
-    <DropdownMenuItem
-      disabled={props.disabled}
-      className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
-      onClick={async (e) => {
-        e.preventDefault()
-        if (liveShare.isLiveSharing) {
-          liveShare.stop()
-        }
-        liveShare.start(props.databaseId)
-        router.push(`/db/${props.databaseId}`)
-        props.onStart?.()
-      }}
-    >
-      <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
-      <span>Live Share</span>
-    </DropdownMenuItem>
+    <Tooltip>
+      <TooltipTrigger className="cursor-default">
+        <DropdownMenuItem
+          disabled={props.disabled}
+          className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+          onClick={async (e) => {
+            e.preventDefault()
+            if (liveShare.isLiveSharing) {
+              liveShare.stop()
+            }
+            liveShare.start(props.databaseId)
+            router.push(`/db/${props.databaseId}`)
+            props.onStart?.()
+          }}
+        >
+          <LiveShareIcon size={16} className="flex-shrink-0 text-muted-foreground" />
+          <span>Live Share</span>
+        </DropdownMenuItem>
+      </TooltipTrigger>
+      <TooltipPortal>
+        {!user && <TooltipContent side="right">Sign in to live share</TooltipContent>}
+      </TooltipPortal>
+    </Tooltip>
   )
 }
