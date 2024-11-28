@@ -14,19 +14,21 @@ worker({
         vector,
       },
     })
-    self.addEventListener('message', async (event) => {
-      console.log('event', event)
-      if (event.data.name === 'pg_dump') {
-        console.log('pg_dump db', db)
-        const file = await pgDump({ pg: db, fileName: event.data.filename })
-        const url = URL.createObjectURL(file)
-        self.postMessage({
-          name: 'pg_dump_success',
-          url,
+
+    const bc = new BroadcastChannel(`${options.id}:pg-dump`)
+
+    bc.addEventListener('message', async (event) => {
+      if (event.data.action === 'execute-dump') {
+        const dump = await pgDump({ pg: db })
+        const url = URL.createObjectURL(dump)
+        bc.postMessage({
+          action: 'dump-result',
           filename: event.data.filename,
+          url,
         })
       }
     })
+
     return db
   },
 })

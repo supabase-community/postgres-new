@@ -40,9 +40,8 @@ import { useDatabaseUpdateMutation } from '~/data/databases/database-update-muta
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
 import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { useQueryEvent } from '~/lib/hooks'
-import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
+import { downloadFileFromUrl, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
-import { pgDump } from '@electric-sql/pglite-tools/pg_dump'
 
 export type DatabaseMenuItemProps = {
   database: MergedDatabase
@@ -319,10 +318,20 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                       throw new Error('dbManager is not available')
                     }
 
-                    const db = await dbManager.getDbInstance(database.id)
+                    // Ensure the db worker is ready
+                    await dbManager.getDbInstance(database.id)
 
-                    db.worker.postMessage({
-                      name: 'pg_dump',
+                    const bc = new BroadcastChannel(`${database.id}:pg-dump`)
+
+                    bc.addEventListener('message', (event) => {
+                      if (event.data.action === 'dump-result') {
+                        downloadFileFromUrl(event.data.url, event.data.filename)
+                        bc.close()
+                      }
+                    })
+
+                    bc.postMessage({
+                      action: 'execute-dump',
                       filename: `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}.sql`,
                     })
                   }}
