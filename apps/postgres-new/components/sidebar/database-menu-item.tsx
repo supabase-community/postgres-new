@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import AwsIcon from '~/assets/aws-icon'
 import { useApp } from '~/components/app-provider'
 import { DeployDialog } from '~/components/deploy/deploy-dialog'
 import { DeployFailureDialog } from '~/components/deploy/deploy-failure-dialog'
@@ -367,6 +368,15 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                       >
                         <SupabaseIcon />
                         <span>Supabase</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="bg-inherit justify-start hover:bg-neutral-200 flex gap-3"
+                        disabled
+                      >
+                        <AwsIcon />
+                        <span>
+                          AWS <span className="text-xs text-foreground/75">(coming soon)</span>
+                        </span>
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
