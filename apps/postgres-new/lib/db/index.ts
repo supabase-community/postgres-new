@@ -47,7 +47,7 @@ export class DbManager {
     if (typeof window === 'undefined') {
       throw new Error('PGlite worker instances are only available in the browser')
     }
-    console.log('creating pglite worker', options)
+
     const db = await PGliteWorker.create(
       // Note the below syntax is required by webpack in order to
       // identify the worker properly during static analysis
