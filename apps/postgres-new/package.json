@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run build:sw && next dev",
     "build": "npm run build:sw && next build",
     "build:sw": "vite build",
     "start": "next start",
