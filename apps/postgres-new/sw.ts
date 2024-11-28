@@ -54,10 +54,6 @@ async function handleRequest(event: FetchEvent) {
   return fetch(event.request)
 }
 
-self.addEventListener('activate', function (event) {
-  return self.clients.claim()
-})
-
 self.addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event))
 })
