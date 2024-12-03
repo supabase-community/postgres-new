@@ -28,13 +28,13 @@ export function DeployButton(props: { database: Database }) {
           <TabsContent value="supabase" className="flex flex-col">
             <div className="h-px bg-border" />
             <div className="flex flex-col gap-4 pt-2">
-              <p className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <h1 className="text-sm font-semibold">Connect Supabase</h1>
                 <p className="text-sm text-muted-foreground">
                   To deploy your database, you need to connect your Supabase account. If you don't
                   already have a Supabase account, you can create one for free.
                 </p>
-              </p>
+              </div>
               <Button variant="default" size="sm" className="gap-2">
                 <SupabaseIcon size={14} /> Deploy
               </Button>
