@@ -58,12 +58,7 @@ export function Breadcrumbs(props: { database?: Database }) {
                 </Button>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem className="gap-2">
-                <GitHubIcon className="text-xl" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
+            <DropdownMenuContent>{user ? <SignOutButton /> : <SignInButton />}</DropdownMenuContent>
           </DropdownMenu>
         </BreadcrumbItem>
         {props.database ? <BreadcrumbSeparator>/</BreadcrumbSeparator> : null}
@@ -111,6 +106,36 @@ function RenameDatabaseButton(props: { onClick: () => void }) {
       </TooltipTrigger>
       <TooltipContent>Rename database</TooltipContent>
     </Tooltip>
+  )
+}
+
+function SignInButton() {
+  const { signIn } = useApp()
+  return (
+    <DropdownMenuItem
+      className="gap-2"
+      onClick={() => {
+        signIn()
+      }}
+    >
+      <GitHubIcon className="text-xl" />
+      Sign in with GitHub
+    </DropdownMenuItem>
+  )
+}
+
+function SignOutButton() {
+  const { signOut } = useApp()
+  return (
+    <DropdownMenuItem
+      className="gap-2"
+      onClick={() => {
+        signOut()
+      }}
+    >
+      <GitHubIcon className="text-xl" />
+      Sign out
+    </DropdownMenuItem>
   )
 }
 
