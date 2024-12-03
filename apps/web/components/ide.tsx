@@ -252,7 +252,7 @@ function Footer() {
     <div className="flex flex-row gap-1 pb-1 text-xs text-neutral-500 text-center justify-center">
       <a
         className="underline cursor-pointer"
-        href="https://github.com/supabase-community/postgres-new"
+        href="https://github.com/supabase-community/database-build"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -261,7 +261,7 @@ function Footer() {
       |{' '}
       <a
         className="underline cursor-pointer"
-        href="https://github.com/supabase-community/postgres-new/issues/new/choose"
+        href="https://github.com/supabase-community/database-build/issues/new/choose"
         target="_blank"
         rel="noopener noreferrer"
       >

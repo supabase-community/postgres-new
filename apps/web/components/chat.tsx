@@ -755,7 +755,7 @@ function LiveShareOverlay(props: { databaseId: string }) {
                 <p>
                   We host a{' '}
                   <a
-                    href="https://github.com/supabase-community/postgres-new/tree/main/apps/browser-proxy"
+                    href="https://github.com/supabase-community/database-build/tree/main/apps/browser-proxy"
                     target="__blank"
                     rel="noopener noreferrer"
                   >
