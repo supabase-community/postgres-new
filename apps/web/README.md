@@ -1,4 +1,4 @@
-# postgres-new
+# @database.build/web
 
 In-browser Postgres sandbox with AI assistance. Built on Next.js.
 
