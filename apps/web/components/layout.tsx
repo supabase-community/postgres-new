@@ -19,6 +19,7 @@ import { useApp } from './app-provider'
 import Sidebar from './sidebar'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Header } from './layout/header/header'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -34,6 +35,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="hidden lg:flex flex-col">
             {(isLegacyDomain || isLegacyDomainRedirect) && <RenameBanner />}
           </div>
+          <Header />
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             <Sidebar />
             <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
