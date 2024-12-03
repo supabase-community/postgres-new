@@ -6,8 +6,25 @@ import { SupabaseIcon } from '~/components/supabase-icon'
 import { Button } from '~/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { useApp } from '~/components/app-provider'
 
 export function DeployButton(props: { database: Database }) {
+  const { user } = useApp()
+
+  if (!user) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="default" size="sm" className="gap-2 opacity-50 cursor-default">
+            Deploy <ChevronDown size={14} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Sign in to deploy</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
     <Popover>
       <PopoverTrigger asChild>
