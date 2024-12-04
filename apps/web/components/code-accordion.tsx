@@ -56,9 +56,12 @@ export default function CodeAccordion({
             <span className={cn(error ? 'text-destructive-foreground' : undefined)}>{title}</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent className="py-2 [&_>div]:pb-0 flex flex-col gap-2 bg-background px-3">
+        <AccordionContent className="text-foreground [&_>div]:pb-0 flex flex-col gap-2 bg-muted border-t p-3">
           <CodeBlock
-            className={cn(`language-${language}`, 'border-none px-0 pb-4 !bg-inherit')}
+            className={cn(
+              `language-${language}`,
+              'border-none px-0 py-0 !bg-inherit text-xs !text-foreground'
+            )}
             hideLineNumbers
             hideCopy
           >

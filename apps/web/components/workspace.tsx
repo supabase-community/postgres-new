@@ -20,6 +20,10 @@ import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
 import Chat, { getInitialMessages } from './chat'
 import IDE from './ide'
+import Sidebar from './sidebar'
+import LiveShareOverlay from './live-share'
+import Image from 'next/image'
+import emptyState from '~/public/images/empty.png'
 
 // TODO: support public/private DBs that live in the cloud
 export type Visibility = 'local'
@@ -61,7 +65,7 @@ export default function Workspace({
   onReply,
   onCancelReply,
 }: WorkspaceProps) {
-  const { setIsRateLimited, modelProvider, setModelProviderError } = useApp()
+  const { setIsRateLimited, modelProvider, setModelProviderError, liveShare } = useApp()
   const isSmallBreakpoint = useBreakpoint('lg')
   const onToolCall = useOnToolCall(databaseId)
   const { mutateAsync: saveMessage } = useMessageCreateMutation(databaseId)
@@ -162,13 +166,31 @@ export default function Workspace({
         setTab,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row gap-8">
-        <IDE className="flex-1 h-full p-3 pb-3 lg:py-3">
-          <Chat />
-        </IDE>
-        {!isSmallBreakpoint && (
-          <div className="flex-1 h-full overflow-x-auto pb-6 pr-6">
+      <div className="w-full h-full flex flex-col lg:flex-row">
+        <Sidebar />
+
+        {!isSmallBreakpoint && !liveShare.isLiveSharing && (
+          <div className="flex-1 h-full overflow-x-auto max-w-lg border-r">
             <Chat />
+          </div>
+        )}
+        {isConversationStarted ? (
+          <IDE className="flex-1 h-full">
+            <Chat />
+          </IDE>
+        ) : (
+          <div className="p-12 bg-muted flex items-center justify-center flex-1 w-full h-full relative flex items-center justify-center">
+            <Image
+              src={emptyState}
+              alt="Start a conversation"
+              objectPosition="center"
+              className="object-contain mix-blend-darken dark:inverse dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0"
+            />
+          </div>
+        )}
+        {liveShare.isLiveSharing && liveShare.databaseId === databaseId && (
+          <div className="max-w-full w-[500px] shrink-0 border-l">
+            <LiveShareOverlay databaseId={databaseId} />
           </div>
         )}
       </div>

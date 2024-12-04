@@ -9,13 +9,13 @@ import { z } from 'zod'
 import { useApp } from '~/components/app-provider'
 import { Button, ButtonProps } from '~/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
 import {
   Form,
   FormControl,
@@ -66,28 +66,26 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
 
   return (
     <Form {...form}>
-      <form
-        id={props.id}
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 min-w-0"
-      >
-        <FormField
-          control={form.control}
-          name="enabled"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center gap-2">
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel className="cursor-pointer">Enable</FormLabel>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form id={props.id} onSubmit={form.handleSubmit(onSubmit)} className="min-w-0">
+        <div className="mt-4">
+          <FormField
+            control={form.control}
+            name="enabled"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer">Enable</FormLabel>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         {isEnabled && (
-          <>
+          <div className="mt-8 pt-8 border-t space-y-4">
             <FormField
               control={form.control}
               name="baseUrl"
@@ -179,7 +177,7 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
                         <Expand size={16} />
                       </m.div>
                       {isPromptExpanded && (
-                        <div className="absolute inset-0 p-4 pt-8 bg-background flex flex-col gap-2 items-end">
+                        <div className="absolute inset-0 bg-background z-20 flex flex-col items-end !mt-0">
                           <m.div
                             variants={{
                               hidden: { opacity: 0, y: 20 },
@@ -189,17 +187,23 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
                             animate="show"
                             className="flex-1 self-stretch flex"
                           >
-                            <Textarea {...field} className="resize-none" />
+                            <Textarea
+                              {...field}
+                              autoFocus
+                              className="resize-none border-none bg-muted rounded-none focus-visible:ring-0 p-8 focus-visible:outline-none focus-visible:ring-offset-0 focus-visible:border-none"
+                            />
                           </m.div>
-                          <Button
-                            variant="outline"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              setIsPromptExpanded(false)
-                            }}
-                          >
-                            Set prompt
-                          </Button>
+                          <div className="w-full p-8 border-t">
+                            <Button
+                              className="w-full"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setIsPromptExpanded(false)
+                              }}
+                            >
+                              Set Prompt
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </>
@@ -208,7 +212,7 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
                 </FormItem>
               )}
             />
-          </>
+          </div>
         )}
       </form>
     </Form>
@@ -231,36 +235,36 @@ export type SetModelProviderDialogProps = {
 
 export function SetModelProviderDialog(props: SetModelProviderDialogProps) {
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex gap-2 items-center mb-4">
-            <Brain /> Bring your own LLM
-          </DialogTitle>
-          <DialogDescription>
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent className="sm:max-w-full w-[500px]">
+        <SheetHeader>
+          <SheetTitle>Bring your own LLM</SheetTitle>
+          <SheetDescription className="mt-2 text-muted-foreground">
             Bring your own OpenAI-compatible API. All settings and credentials are saved locally in
             your browser.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="my-1 border-b" />
+          </SheetDescription>
+        </SheetHeader>
         <SetModelProviderForm
           id="set-model-provider-form"
           onSubmit={() => {
             props.onOpenChange(false)
           }}
         />
-        <DialogFooter className="mt-1">
+        <SheetFooter className="mt-8 pt-8 border-t">
           <Button
             variant="secondary"
+            className="w-full"
             onClick={() => {
               props.onOpenChange(false)
             }}
           >
             Cancel
           </Button>
-          <Button form="set-model-provider-form">Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button className="w-full" form="set-model-provider-form">
+            Save
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

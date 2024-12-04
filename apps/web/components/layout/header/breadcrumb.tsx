@@ -16,15 +16,25 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '~/components/ui/dropdown-menu'
 import { Database } from '~/lib/db'
 import { Input } from '~/components/ui/input'
 import { useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
+import { useTheme } from 'next-themes'
+import { SunIcon } from 'lucide-react'
+import { UserAvatar } from './user'
 
 export function Breadcrumbs(props: { database?: Database }) {
   const { user } = useApp()
+  const { theme, setTheme } = useTheme()
   const [isRenaming, setIsRenaming] = useState(false)
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
 
@@ -44,50 +54,35 @@ export function Breadcrumbs(props: { database?: Database }) {
   }
 
   return (
-    <Breadcrumb className="flex-1 flex items-center">
+    <Breadcrumb className="flex-1 flex items-center ml-2">
       <BreadcrumbList className="flex items-center">
-        <BreadcrumbItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar asChild className="w-8 h-8 border-2 border-accent">
-                <Button variant="ghost" size="icon">
-                  <AvatarImage src={avatarUrl} alt={username} />
-                  <AvatarFallback>
-                    <UserIcon />
-                  </AvatarFallback>
-                </Button>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>{user ? <SignOutButton /> : <SignInButton />}</DropdownMenuContent>
-          </DropdownMenu>
-        </BreadcrumbItem>
-        {props.database ? <BreadcrumbSeparator>/</BreadcrumbSeparator> : null}
         {props.database ? (
           <BreadcrumbItem>
             {isRenaming ? (
-              <form id="rename-database-form" onSubmit={handleSubmit}>
+              <form
+                id="rename-database-form"
+                onSubmit={handleSubmit}
+                className="flex items-center gap-1 border rounded-md pr-1"
+              >
                 <Input
-                  className="h-8 focus-visible:ring-1"
+                  className="h-9 focus-visible:ring-0 border-none focus-visible:ring-offset-0"
                   autoFocus
                   defaultValue={props.database!.name ?? 'My database'}
                   name="name"
                   ref={(input) => input?.select()}
                 />
-              </form>
-            ) : (
-              <BreadcrumbLink asChild>
-                <Link className="text-foreground" href={`/db/${props.database.id}`}>
-                  {props.database.name}
-                </Link>
-              </BreadcrumbLink>
-            )}
-            {isRenaming ? (
-              <div className="flex gap-2">
                 <CancelRenameDatabaseButton onClick={() => setIsRenaming(false)} />
                 <SubmitRenameDatabaseButton />
-              </div>
+              </form>
             ) : (
-              <RenameDatabaseButton onClick={() => setIsRenaming(true)} />
+              <>
+                <BreadcrumbLink asChild>
+                  <Link className="text-foreground" href={`/db/${props.database.id}`}>
+                    {props.database.name}
+                  </Link>
+                </BreadcrumbLink>
+                <RenameDatabaseButton onClick={() => setIsRenaming(true)} />
+              </>
             )}
           </BreadcrumbItem>
         ) : null}
@@ -109,41 +104,17 @@ function RenameDatabaseButton(props: { onClick: () => void }) {
   )
 }
 
-function SignInButton() {
-  const { signIn } = useApp()
-  return (
-    <DropdownMenuItem
-      className="gap-2"
-      onClick={() => {
-        signIn()
-      }}
-    >
-      <GitHubIcon className="text-xl" />
-      Sign in with GitHub
-    </DropdownMenuItem>
-  )
-}
-
-function SignOutButton() {
-  const { signOut } = useApp()
-  return (
-    <DropdownMenuItem
-      className="gap-2"
-      onClick={() => {
-        signOut()
-      }}
-    >
-      <GitHubIcon className="text-xl" />
-      Sign out
-    </DropdownMenuItem>
-  )
-}
-
 function SubmitRenameDatabaseButton() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="default" size="sm" type="submit" form="rename-database-form">
+        <Button
+          variant="default"
+          className="w-6 h-6 shrink-0"
+          size="icon"
+          type="submit"
+          form="rename-database-form"
+        >
           <CheckIcon size={14} />
         </Button>
       </TooltipTrigger>
@@ -156,7 +127,7 @@ function CancelRenameDatabaseButton(props: { onClick: () => void }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="sm" onClick={props.onClick}>
+        <Button variant="ghost" className="w-6 h-6 shrink-0" size="icon" onClick={props.onClick}>
           <XIcon size={14} />
         </Button>
       </TooltipTrigger>

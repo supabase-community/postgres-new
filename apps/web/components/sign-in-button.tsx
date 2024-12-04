@@ -1,17 +1,18 @@
 import GitHubIcon from '~/assets/github-icon'
 import { useApp } from './app-provider'
+import { Button } from './ui/button'
 
 export default function SignInButton() {
   const { signIn } = useApp()
   return (
-    <button
-      className="bg-foreground text-background text-md px-4 py-2 rounded-sm flex gap-3 items-center"
+    <Button
+      className="w-full text-sm rounded-sm flex gap-2 items-center justify-center"
       onClick={async () => {
         await signIn()
       }}
     >
-      <GitHubIcon className="text-xl" />
+      <GitHubIcon className="w-4 h-4 text-xl" />
       Sign in with GitHub
-    </button>
+    </Button>
   )
 }

@@ -45,6 +45,7 @@ export default function AppProvider({ children }: AppProps) {
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [isRateLimited, setIsRateLimited] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(false)
 
   const focusRef = useRef<FocusHandle>(null)
 
@@ -294,6 +295,8 @@ export default function AppProvider({ children }: AppProps) {
         pgVersion,
         isLegacyDomain,
         isLegacyDomainRedirect,
+        showSidebar,
+        setShowSidebar,
       }}
     >
       {children}
@@ -334,6 +337,8 @@ export type AppContextValues = {
   setModelProviderError: (error: string | undefined) => void
   isLegacyDomain: boolean
   isLegacyDomainRedirect: boolean
+  showSidebar: boolean
+  setShowSidebar: (show: boolean) => void
 }
 
 export const AppContext = createContext<AppContextValues | undefined>(undefined)

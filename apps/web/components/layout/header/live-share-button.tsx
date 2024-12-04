@@ -20,11 +20,11 @@ export function LiveShareButton(props: { database: Database }) {
           variant="outline"
           size="sm"
           onClick={handleClick}
-          className={cn(
-            !user && 'opacity-50 cursor-default',
-            liveShare.isLiveSharing && 'bg-green-200 dark:bg-green-900'
-          )}
+          className={cn('relative', !user && 'opacity-50 cursor-default')}
         >
+          {liveShare.isLiveSharing && (
+            <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500" />
+          )}
           <LiveShareIcon size={14} />
         </Button>
       </TooltipTrigger>

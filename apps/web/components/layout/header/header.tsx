@@ -8,18 +8,22 @@ import { CreateDatabaseButton } from './create-database-button'
 import { DeployButton } from './deploy-button'
 import { LiveShareButton } from './live-share-button'
 import { ExtraDatabaseActionsButton } from './extra-database-actions-button'
+import ByoLlmButton from '~/components/byo-llm-button'
+import { UserAvatar } from './user'
 
 export function Header() {
   const { id } = useParams<{ id: string }>()
   const { data: database } = useDatabaseQuery(id)
 
   return (
-    <div className="flex p-1 gap-2 border-b">
+    <div className="flex p-2 gap-2 border-b">
+      <div className="-m-2 p-2 border-r mr-2 flex justify-center items-center gap-2">
+        <UserAvatar />
+        <ByoLlmButton iconOnly size="sm" />
+      </div>
       <MenuButton />
       <CreateDatabaseButton />
       <Breadcrumbs database={database} />
-      <ThemeToggleButton />
-      <BringYourOwnLLMButton />
       {database ? (
         <>
           <LiveShareButton database={database} />

@@ -82,7 +82,7 @@ export default function TablesGraph({
   }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
 
   return (
-    <div className="flex flex-col w-full h-full bg-muted/50 rounded-md border overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-muted/50 overflow-hidden">
       <ReactFlow
         className=""
         defaultNodes={[]}
@@ -153,32 +153,6 @@ export default function TablesGraph({
 
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col"></div>
       </ReactFlow>
-      <div className="p-2.5 flex gap-2 justify-center bg-muted text-xs text-muted-foreground/75 border-t">
-        {pgVersion && (
-          <>
-            <span>PG {pgVersion}</span> |
-          </>
-        )}
-        {visibility === 'local' && (
-          <Tooltip>
-            <TooltipTrigger className="group flex gap-1 items-center cursor-default">
-              <span className="group-data-[state=delayed-open]:text-foreground transition">
-                Local-only database
-              </span>
-              <Info
-                size={12}
-                className="group-data-[state=delayed-open]:text-foreground transition"
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-[28rem] text-center">
-                This Postgres database lives directly in your browser&apos;s IndexedDB storage and
-                not in the cloud, so it is only accessible to you.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
       <SchemaGraphLegend />
     </div>
   )

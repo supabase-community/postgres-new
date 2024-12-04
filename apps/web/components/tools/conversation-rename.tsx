@@ -26,7 +26,7 @@ export default function ConversationRename({ toolInvocation }: CsvRequestProps) 
   const { name } = args
 
   return (
-    <div className="self-stretch my-4 text-xs flex gap-3 justify-center items-center text-neutral-400 before:h-[1px] before:flex-grow before:bg-neutral-300 after:h-[1px] after:flex-grow after:bg-neutral-300">
+    <div className="text-xs py-2 border-t border-b text-center">
       <div>
         <span>Conversation renamed to</span> <strong>{name}</strong>{' '}
         {user && (

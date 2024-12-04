@@ -42,17 +42,14 @@ export function DeployButton(props: { database: Database }) {
               <AwsIcon className="text-xl" /> AWS (soon)
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="supabase" className="flex flex-col">
-            <div className="h-px bg-border" />
-            <div className="flex flex-col gap-4 pt-2">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-sm font-semibold">Connect Supabase</h1>
-                <p className="text-sm text-muted-foreground">
-                  To deploy your database, you need to connect your Supabase account. If you don't
-                  already have a Supabase account, you can create one for free.
-                </p>
-              </div>
-              <Button variant="default" size="sm" className="gap-2">
+          <TabsContent value="supabase" className="flex flex-col pt-4 mt-4 border-t">
+            <div>
+              <h1 className="text-sm font-semibold mb-1">Connect Supabase</h1>
+              <p className="text-sm text-muted-foreground">
+                To deploy your database, you need to connect your Supabase account. If you don't
+                already have a Supabase account, you can create one for free.
+              </p>
+              <Button variant="default" size="sm" className="gap-2 w-full mt-4">
                 <SupabaseIcon size={14} /> Deploy
               </Button>
             </div>
