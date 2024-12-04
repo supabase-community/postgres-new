@@ -49,9 +49,10 @@ export default function Layout({ children }: LayoutProps) {
           {!isAuthRequired || (!!databases?.length && databases.length > 0) ? (
             <Header />
           ) : (
-            <span className="fixed top-8 left-8 text-sm text-muted-foreground border-b">
-              database.build
-            </span>
+            <div className="fixed top-8 left-8 w-[419px] max-w-full flex justify-between z-20">
+              <span className="text-sm text-muted-foreground">database.build</span>
+              <span className="text-sm text-muted-foreground border-b">a Supabase project</span>
+            </div>
           )}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
             <m.div layout="position" className="w-full h-full min-w-0 min-h-0">
