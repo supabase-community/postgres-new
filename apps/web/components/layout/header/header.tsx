@@ -21,9 +21,11 @@ export function Header() {
         <UserAvatar />
         <ByoLlmButton iconOnly size="sm" />
       </div>
-      <MenuButton />
-      <CreateDatabaseButton />
-      <Breadcrumbs database={database} />
+      <div className="flex items-center gap-2 flex-1">
+        <MenuButton />
+        <CreateDatabaseButton />
+        <Breadcrumbs database={database} />
+      </div>
       {database ? (
         <>
           <LiveShareButton database={database} />

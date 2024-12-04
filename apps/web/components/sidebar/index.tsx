@@ -50,7 +50,7 @@ export default function Sidebar() {
   return (
     <AnimatePresence initial={false} mode="popLayout">
       <m.div
-        className="max-w-64 border-r w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-0 bottom-0 left-0 z-20 lg:static"
+        className="max-w-full w-full md:max-w-64 border-r w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-[50px] bottom-0 left-0 z-20 xl:static"
         variants={{
           hidden: { opacity: 0, x: '-100%' },
           show: { opacity: 1, x: 0 },

@@ -166,7 +166,7 @@ export default function Workspace({
         setTab,
       }}
     >
-      <div className="w-full h-full flex flex-col lg:flex-row">
+      <div className="w-full h-full flex flex-row">
         <Sidebar />
 
         {!isSmallBreakpoint && !liveShare.isLiveSharing && (

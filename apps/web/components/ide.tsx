@@ -111,7 +111,7 @@ export default function IDE({ children, className }: IDEProps) {
                 value="chat"
                 className={cn(
                   buttonVariants({ variant: tab === 'chat' ? 'default' : 'ghost' }),
-                  'gap-2'
+                  'gap-2 w-full md:w-auto'
                 )}
               >
                 <MessageSquareMore className="hidden sm:block" size={18} />
@@ -122,7 +122,7 @@ export default function IDE({ children, className }: IDEProps) {
               value="diagram"
               className={cn(
                 buttonVariants({ variant: tab === 'diagram' ? 'default' : 'ghost' }),
-                'gap-2'
+                'gap-2 w-full md:w-auto'
               )}
             >
               <Workflow className="hidden sm:block" size={18} />
@@ -132,7 +132,7 @@ export default function IDE({ children, className }: IDEProps) {
               value="migrations"
               className={cn(
                 buttonVariants({ variant: tab === 'migrations' ? 'default' : 'ghost' }),
-                'gap-2'
+                'gap-2 w-full md:w-auto'
               )}
             >
               <FileCode className="hidden sm:block" size={18} />
@@ -153,7 +153,7 @@ export default function IDE({ children, className }: IDEProps) {
                 </TabsTrigger>
               )} */}
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
+          <div className="items-center gap-2 text-sm text-muted-foreground mr-4 md:flex hidden">
             {pgVersion && (
               <>
                 <span>PG {pgVersion}</span>
@@ -182,7 +182,10 @@ export default function IDE({ children, className }: IDEProps) {
         </TabsList>
 
         {isSmallBreakpoint && (
-          <TabsContent value="chat" className="flex-1 h-full min-h-0 overflow-y-auto mt-0">
+          <TabsContent
+            value="chat"
+            className="flex-1 h-full min-h-0 overflow-y-auto mt-0 bg-background"
+          >
             {children}
           </TabsContent>
         )}

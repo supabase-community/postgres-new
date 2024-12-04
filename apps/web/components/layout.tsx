@@ -52,7 +52,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="fixed top-8 left-8 w-[419px] max-w-full flex justify-between z-20">
               <span className="text-sm text-muted-foreground font-mono">database.build</span>
               <span className="text-sm text-muted-foreground border-b font-mono">
-                a Supabase project
+                a Supabase experiment
               </span>
             </div>
           )}

@@ -54,7 +54,7 @@ export function Breadcrumbs(props: { database?: Database }) {
   }
 
   return (
-    <Breadcrumb className="flex-1 flex items-center ml-2">
+    <Breadcrumb className="flex-1 items-center ml-2 hidden md:flex">
       <BreadcrumbList className="flex items-center">
         {props.database ? (
           <BreadcrumbItem>
