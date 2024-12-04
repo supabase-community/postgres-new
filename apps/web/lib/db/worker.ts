@@ -21,6 +21,8 @@ worker({
     bc.addEventListener('message', async (event) => {
       if (event.data.action === 'execute-dump') {
         let dump = await pgDump({ pg: db })
+        // clear prepared statements
+        await db.query('deallocate all')
         let dumpContent = await dump.text()
         // patch for old PGlite versions where the vector extension was not included in the dump
         if (!dumpContent.includes('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;')) {

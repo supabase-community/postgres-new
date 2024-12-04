@@ -328,6 +328,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                       if (event.data.action === 'dump-result') {
                         downloadFileFromUrl(event.data.url, event.data.filename)
                         bc.close()
+                        setIsPopoverOpen(false)
                       }
                     })
 
