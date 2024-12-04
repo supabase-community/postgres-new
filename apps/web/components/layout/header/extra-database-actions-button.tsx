@@ -7,9 +7,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { Database } from '~/lib/db'
+import { MergedDatabase } from '~/data/merged-databases/merged-database'
 
-export function ExtraDatabaseActionsButton(props: { database: Database }) {
+export function ExtraDatabaseActionsButton(props: { database: MergedDatabase }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

@@ -2,10 +2,10 @@ import { useApp } from '~/components/app-provider'
 import { LiveShareIcon } from '~/components/live-share-icon'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import { Database } from '~/lib/db'
+import type { MergedDatabase } from '~/data/merged-databases/merged-database'
 import { cn } from '~/lib/utils'
 
-export function LiveShareButton(props: { database: Database }) {
+export function LiveShareButton(props: { database: MergedDatabase }) {
   const { liveShare, user } = useApp()
 
   const handleClick = () => {

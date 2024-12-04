@@ -21,8 +21,8 @@ export function SupabaseDeployInfo({ info, isRedeploy = false }: DeployInfoProps
   const deployText = isRedeploy ? 'redeployed' : 'deployed'
 
   return (
-    <div className="flex flex-col gap-8">
-      <p>
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-muted-foreground">
         Your in-browser database was {deployText} to the Supabase project{' '}
         <Link
           target="_blank"

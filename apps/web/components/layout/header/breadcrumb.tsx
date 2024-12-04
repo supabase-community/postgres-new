@@ -1,45 +1,16 @@
-import { CheckIcon, PenIcon, UserIcon, XIcon } from 'lucide-react'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from '../../ui/breadcrumb'
+import { CheckIcon, PenIcon, XIcon } from 'lucide-react'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '../../ui/breadcrumb'
 import { Button } from '~/components/ui/button'
-import { useApp } from '~/components/app-provider'
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import Link from 'next/link'
-import GitHubIcon from '~/assets/github-icon'
-import { DropdownMenu } from '@radix-ui/react-dropdown-menu'
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from '~/components/ui/dropdown-menu'
-import { Database } from '~/lib/db'
 import { Input } from '~/components/ui/input'
 import { useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
-import { useTheme } from 'next-themes'
-import { SunIcon } from 'lucide-react'
-import { UserAvatar } from './user'
+import { MergedDatabase } from '~/data/merged-databases/merged-database'
 
-export function Breadcrumbs(props: { database?: Database }) {
-  const { user } = useApp()
-  const { theme, setTheme } = useTheme()
+export function Breadcrumbs(props: { database?: MergedDatabase }) {
   const [isRenaming, setIsRenaming] = useState(false)
   const { mutateAsync: updateDatabase } = useDatabaseUpdateMutation()
-
-  const avatarUrl = user?.user_metadata.avatar_url ?? null
-  const username = user?.user_metadata.user_name ?? null
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

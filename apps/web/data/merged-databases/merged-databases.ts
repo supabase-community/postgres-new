@@ -1,16 +1,5 @@
-import { Database } from '~/lib/db'
 import { useDatabasesQuery } from '../databases/databases-query'
-import {
-  DeployedDatabase,
-  useDeployedDatabasesQuery,
-} from '../deployed-databases/deployed-databases-query'
-
-/**
- * A local database with remote deployment information.
- */
-export type MergedDatabase = Database & {
-  deployments: DeployedDatabase[]
-}
+import { useDeployedDatabasesQuery } from '../deployed-databases/deployed-databases-query'
 
 /**
  * Merges local databases with remote deployed databases.

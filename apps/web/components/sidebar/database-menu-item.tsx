@@ -39,7 +39,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useDatabaseDeleteMutation } from '~/data/databases/database-delete-mutation'
 import { useDatabaseUpdateMutation } from '~/data/databases/database-update-mutation'
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
-import { MergedDatabase } from '~/data/merged-databases/merged-databases'
+import type { MergedDatabase } from '~/data/merged-databases/merged-database'
 import { useQueryEvent } from '~/lib/hooks'
 import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'

@@ -1,42 +1,18 @@
 'use client'
 
 import { AnimatePresence, m } from 'framer-motion'
-import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  Database as DbIcon,
-  Loader,
-  LogOut,
-  Menu,
-  PackagePlus,
-} from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import GitHubIcon from '~/assets/github-icon'
+import { Database as DbIcon, Loader } from 'lucide-react'
+import { useParams } from 'next/navigation'
+
 import { useApp } from '~/components/app-provider'
-import ThemeDropdown from '~/components/theme-dropdown'
-import { Button } from '~/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+
 import { useMergedDatabases } from '~/data/merged-databases/merged-databases'
 import { useBreakpoint } from '~/lib/use-breakpoint'
-import { cn } from '~/lib/utils'
+
 import { DatabaseMenuItem } from './database-menu-item'
-import { SetExternalModelProviderButton } from './set-external-model-provider-button'
-import { SignInDialog } from './sign-in-dialog'
 
 export default function Sidebar() {
-  const {
-    user,
-    signIn,
-    signOut,
-    focusRef,
-    isSignInDialogOpen,
-    setIsSignInDialogOpen,
-    setIsRenameDialogOpen,
-    isLegacyDomain,
-    liveShare,
-    modelProvider,
-  } = useApp()
+  const { setIsRenameDialogOpen, isLegacyDomain } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
   const isSmallBreakpoint = useBreakpoint('lg')
   const { showSidebar } = useApp()
@@ -50,7 +26,7 @@ export default function Sidebar() {
   return (
     <AnimatePresence initial={false} mode="popLayout">
       <m.div
-        className="max-w-full w-full md:max-w-64 border-r w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-[50px] bottom-0 left-0 z-20 xl:static"
+        className="max-w-full md:max-w-64 border-r w-full h-full flex flex-col gap-2 items-stretch p-4 bg-card absolute top-[50px] bottom-0 left-0 z-20 xl:static"
         variants={{
           hidden: { opacity: 0, x: '-100%' },
           show: { opacity: 1, x: 0 },
@@ -80,11 +56,6 @@ export default function Sidebar() {
                 <DatabaseMenuItem
                   database={database}
                   isActive={database.id === currentDatabaseId}
-                  onClick={() => {
-                    if (isSmallBreakpoint) {
-                      setShowSidebar(false)
-                    }
-                  }}
                 />
               </m.div>
             ))}
