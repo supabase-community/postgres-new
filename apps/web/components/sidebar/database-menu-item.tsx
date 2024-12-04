@@ -237,7 +237,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
           }}
           open={isPopoverOpen}
         >
-          <DropdownMenuTrigger
+          {/* <DropdownMenuTrigger
             className="group/trigger outline-none"
             onClick={(e) => {
               e.preventDefault()
@@ -255,7 +255,7 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                 'transition'
               )}
             />
-          </DropdownMenuTrigger>
+          </DropdownMenuTrigger> */}
 
           <DropdownMenuContent
             side="bottom"
