@@ -4,6 +4,7 @@ import { PGliteWorker } from '@electric-sql/pglite/worker'
 import { Message as AiMessage, ToolInvocation } from 'ai'
 import { codeBlock } from 'common-tags'
 import { nanoid } from 'nanoid'
+import { downloadFileFromUrl } from '../util'
 
 export type Database = {
   id: string
@@ -47,7 +48,7 @@ export class DbManager {
   /**
    * Creates a PGlite instance that runs in a web worker
    */
-  static async createPGlite(options?: PGliteOptions): Promise<PGliteInterface> {
+  static async createPGlite(options?: PGliteOptions & { id?: string }) {
     if (typeof window === 'undefined') {
       throw new Error('PGlite worker instances are only available in the browser')
     }
@@ -59,7 +60,7 @@ export class DbManager {
       new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
       {
         // Opt out of PGlite worker leader election / shared DBs
-        id: nanoid(),
+        id: options?.id ?? nanoid(),
         ...options,
       }
     )
@@ -274,7 +275,7 @@ export class DbManager {
     return metaDb.sql`insert into databases (id, name, created_at, is_hidden) values ${join(values, ',')} on conflict (id) do nothing`
   }
 
-  async getDbInstance(id: string, loadDataDir?: Blob | File) {
+  async getDbInstance(id: string, loadDataDir?: Blob | File): Promise<PGliteInterface> {
     const openDatabasePromise = this.databaseConnections.get(id)
 
     if (openDatabasePromise) {
@@ -292,7 +293,7 @@ export class DbManager {
 
       await this.handleUnsupportedPGVersion(dbPath)
 
-      const db = await DbManager.createPGlite({ dataDir: `idb://${dbPath}`, loadDataDir })
+      const db = await DbManager.createPGlite({ dataDir: `idb://${dbPath}`, loadDataDir, id })
       await runMigrations(db, migrations)
 
       return db

@@ -41,7 +41,7 @@ import { useDatabaseUpdateMutation } from '~/data/databases/database-update-muta
 import { useIntegrationQuery } from '~/data/integrations/integration-query'
 import type { MergedDatabase } from '~/data/merged-databases/merged-database'
 import { useQueryEvent } from '~/lib/hooks'
-import { downloadFile, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
+import { downloadFileFromUrl, getDeployUrl, getOauthUrl, titleToKebabCase } from '~/lib/util'
 import { cn } from '~/lib/utils'
 
 export type DatabaseMenuItemProps = {
@@ -319,13 +319,23 @@ export function DatabaseMenuItem({ database, isActive, onClick }: DatabaseMenuIt
                       throw new Error('dbManager is not available')
                     }
 
-                    const db = await dbManager.getDbInstance(database.id)
-                    const dumpBlob = await db.dumpDataDir()
+                    // Ensure the db worker is ready
+                    await dbManager.getDbInstance(database.id)
 
-                    const fileName = `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}`
-                    const file = new File([dumpBlob], fileName, { type: dumpBlob.type })
+                    const bc = new BroadcastChannel(`${database.id}:pg-dump`)
 
-                    downloadFile(file)
+                    bc.addEventListener('message', (event) => {
+                      if (event.data.action === 'dump-result') {
+                        downloadFileFromUrl(event.data.url, event.data.filename)
+                        bc.close()
+                        setIsPopoverOpen(false)
+                      }
+                    })
+
+                    bc.postMessage({
+                      action: 'execute-dump',
+                      filename: `${titleToKebabCase(database.name ?? 'My Database')}-${Date.now()}.sql`,
+                    })
                   }}
                 >
                   <Download
