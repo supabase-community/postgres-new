@@ -184,7 +184,7 @@ export default function Workspace({
               src={emptyState}
               alt="Start a conversation"
               objectPosition="center"
-              className="object-contain mix-blend-darken dark:inverse dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0"
+              className="object-contain mix-blend-darken dark:invert dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0"
             />
           </div>
         )}

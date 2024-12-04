@@ -16,7 +16,7 @@ export function Header() {
   const { data: database } = useDatabaseQuery(id)
 
   return (
-    <div className="flex p-2 gap-2 border-b">
+    <div className="flex p-2 gap-2 border-b bg-popover">
       <div className="-m-2 p-2 border-r mr-2 flex justify-center items-center gap-2">
         <UserAvatar />
         <ByoLlmButton iconOnly size="sm" />
