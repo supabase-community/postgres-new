@@ -50,8 +50,10 @@ export default function Layout({ children }: LayoutProps) {
             <Header />
           ) : (
             <div className="fixed top-8 left-8 w-[419px] max-w-full flex justify-between z-20">
-              <span className="text-sm text-muted-foreground">database.build</span>
-              <span className="text-sm text-muted-foreground border-b">a Supabase project</span>
+              <span className="text-sm text-muted-foreground font-mono">database.build</span>
+              <span className="text-sm text-muted-foreground border-b font-mono">
+                a Supabase project
+              </span>
             </div>
           )}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
