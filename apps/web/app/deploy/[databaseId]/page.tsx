@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
 import { createClient } from '~/utils/supabase/client'
-import { Loader2 } from 'lucide-react'
 import { getOauthUrl } from '~/lib/util'
 import { SupabaseIcon } from '~/components/supabase-icon'
 import LineAnimation from '~/components/lines'
@@ -23,7 +22,7 @@ export default function Page() {
   const { liveShare } = useApp()
   const searchParams = useSearchParams()
 
-  const { mutate: deploy, error } = useMutation({
+  const { mutate: deploy } = useMutation({
     mutationFn: async () => {
       // make the database available to the deployment worker
       const localDatabaseUrl = await liveShare.start(params.databaseId)
@@ -116,7 +115,6 @@ export default function Page() {
           </h1>
           <div className="flex flex-col gap-6 p-6">
             <div className="flex items-center gap-4">
-              <Loader2 className="animate-spin" />
               <div>
                 <p>Your database is being deployed. This process typically takes a few minutes.</p>
                 <p>Please keep this page open to ensure successful deployment.</p>
