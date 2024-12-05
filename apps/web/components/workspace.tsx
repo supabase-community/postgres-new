@@ -175,18 +175,15 @@ export default function Workspace({
             <Chat />
           </div>
         )}
-        {!(isSmallBreakpoint && liveShare.isLiveSharing) && (
-          <>
-            {isConversationStarted || isSmallBreakpoint ? (
-              <IDE className="flex-1 h-full">
-                <Chat />
-              </IDE>
-            ) : (
-              <div className="bg-muted flex flex-1 w-full relative flex items-center justify-center overflow-hidden">
-                <EmptyStateGraph />
-              </div>
-            )}
-          </>
+        {(isConversationStarted || isSmallBreakpoint) &&
+        !(isSmallBreakpoint && liveShare.isLiveSharing) ? (
+          <IDE className="flex-1 h-full">
+            <Chat />
+          </IDE>
+        ) : (
+          <div className="bg-muted flex flex-1 w-full relative flex items-center justify-center overflow-hidden">
+            <EmptyStateGraph />
+          </div>
         )}
         {liveShare.isLiveSharing && liveShare.databaseId === databaseId && (
           <div className="max-w-full w-full lg:w-[500px] shrink-0 border-l">
