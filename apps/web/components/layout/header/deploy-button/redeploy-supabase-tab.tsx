@@ -62,7 +62,7 @@ export function RedeploySupabaseTab(props: {
   }
 
   return (
-    <TabsContent value="supabase" className="flex flex-col gap-4">
+    <TabsContent value="supabase" className="pt-4 mt-4 border-t">
       <h1 className="text-sm font-semibold mb-1">Redeploy to Supabase</h1>
       <SupabaseDeployInfo info={deployInfo} />
       <Button

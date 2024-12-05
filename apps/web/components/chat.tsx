@@ -305,7 +305,7 @@ export default function Chat() {
                 <AnimatePresence initial={false}>
                   {modelProviderError && !isLoading && (
                     <m.div
-                      className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
+                      className="flex items-center gap-4 w-full p-4 bg-destructive/10 text-red-900 rounded-md text-sm"
                       variants={{
                         hidden: { scale: 0 },
                         show: { scale: 1, transition: { delay: 0.5 } },
@@ -314,26 +314,23 @@ export default function Chat() {
                       animate="show"
                       exit="hidden"
                     >
-                      <AlertCircle size={64} strokeWidth={1} />
-                      <div className="flex flex-col items-center text-start gap-4">
+                      <AlertCircle size={24} strokeWidth={1} className="shrink-0" />
+                      <div>
                         <h3 className="font-bold">Whoops!</h3>
-                        <p className="text-center">
+                        <p className="mb-2">
                           There was an error connecting to your custom model provider:{' '}
-                          {modelProviderError}
-                        </p>
-                        <p>
-                          Double check your{' '}
-                          <a
-                            className="underline cursor-pointer"
-                            onClick={() => {
-                              setIsModelProviderDialogOpen(true)
-                            }}
-                          >
-                            API info
-                          </a>
-                          .
+                          {modelProviderError}.
                         </p>
                       </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setIsModelProviderDialogOpen(true)
+                        }}
+                      >
+                        Check info
+                      </Button>
                     </m.div>
                   )}
                 </AnimatePresence>

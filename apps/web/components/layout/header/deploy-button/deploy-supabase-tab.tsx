@@ -24,7 +24,7 @@ export function DeploySupabaseTab(props: { database: MergedDatabase }) {
   }
 
   return (
-    <TabsContent value="supabase" className="flex flex-col gap-4">
+    <TabsContent value="supabase" className="pt-4 mt-4 border-t">
       <h1 className="text-sm font-semibold mb-1">Deploy to Supabase</h1>
       {!integration ? (
         <Loader
@@ -33,7 +33,7 @@ export function DeploySupabaseTab(props: { database: MergedDatabase }) {
           strokeWidth={0.75}
         />
       ) : (
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground">
           You are about to deploy your in-browser database to Supabase. This will create a new
           Supabase project under your linked organization.
           <DeployCard
@@ -63,8 +63,9 @@ type DeployCardProps = {
 
 function DeployCard({ organization, projectName }: DeployCardProps) {
   return (
-    <div className="flex flex-col gap-0 rounded-md my-3 p-1 border border-primary/25 text-primary">
-      <DeployCardRow label="Organization">
+    <dl className="text-primary text-sm grid grid-cols-[auto_1fr] gap-4 mt-4">
+      <dt className="font-bold">Organization</dt>
+      <dd>
         <a
           href={`${process.env.NEXT_PUBLIC_SUPABASE_PLATFORM_URL}/dashboard/org/${organization.id}/general`}
           target="_blank"
@@ -72,24 +73,10 @@ function DeployCard({ organization, projectName }: DeployCardProps) {
         >
           {organization.name}
         </a>{' '}
-        <span className="text-sm italic">({organization.id})</span>
-      </DeployCardRow>
-      <div className="my-1 border-b border-primary/10" />
-      <DeployCardRow label="New project name">{projectName}</DeployCardRow>
-    </div>
-  )
-}
-
-type DeployCardRowProps = PropsWithChildren<{
-  label: string
-}>
-
-function DeployCardRow({ label, children }: DeployCardRowProps) {
-  return (
-    <div className="flex items-center gap-2 p-2">
-      <div className="font-bold w-36 text-right">{label}</div>
-      <div className="mx-1 border-r border-primary/10 self-stretch" />
-      <div>{children}</div>
-    </div>
+        <span className="text-muted-foreground">({organization.id})</span>
+      </dd>
+      <dt className="font-bold">Project name</dt>
+      <dd>{projectName}</dd>
+    </dl>
   )
 }

@@ -104,7 +104,7 @@ export default function IDE({ children, className }: IDEProps) {
         value={tab}
         onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
       >
-        <TabsList className="flex w-full justify-between p-2 h-auto border-b">
+        <TabsList className="flex w-full justify-between p-2 h-auto border-b bg-background md:bg-transparent">
           <div className="flex items-center flex-1 gap-2">
             {isSmallBreakpoint && (
               <TabsTrigger

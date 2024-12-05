@@ -87,7 +87,7 @@ export function DeployButton(props: { database: MergedDatabase }) {
             Deploy <ChevronDown size={14} />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-96">
+        <PopoverContent align="end" className="w-[400px] max-w-full">
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="flex p-0 bg-inherit">
               <TabsTrigger value="supabase" className="flex-1 gap-2 data-[state=active]:bg-accent">

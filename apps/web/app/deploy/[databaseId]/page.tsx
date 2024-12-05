@@ -4,12 +4,11 @@ import { useMutation } from '@tanstack/react-query'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useApp } from '~/components/app-provider'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { createClient } from '~/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
-import { ParticlesBackground } from '~/components/particles-background'
 import { getOauthUrl } from '~/lib/util'
 import { SupabaseIcon } from '~/components/supabase-icon'
+import LineAnimation from '~/components/lines'
 
 class IntegrationRevokedError extends Error {
   constructor() {
@@ -108,21 +107,14 @@ export default function Page() {
   }, [deploy])
 
   return (
-    <ParticlesBackground>
-      <Dialog open>
-        <DialogContent
-          className="max-w-3xl bg-background/70 backdrop-blur-sm"
-          showCloseButton={false}
-          overlay={false}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex gap-2 items-center">
-              <SupabaseIcon />
-              Deploying your database
-            </DialogTitle>
-            <div className="py-2 border-b" />
-          </DialogHeader>
-          <div className="flex flex-col gap-6">
+    <div className="flex items-center justify-center h-full w-full bg-muted">
+      <div className="w-full h-full max-h-[400px] border border rounded-lg overflow-hidden relative flex justify-center items-center">
+        <div className="bg-background border rounded-md relative z-10 max-w-full">
+          <h1 className="flex gap-2 items-center border-b px-6 py-4 font-semibold">
+            <SupabaseIcon />
+            Deploying your database
+          </h1>
+          <div className="flex flex-col gap-6 p-6">
             <div className="flex items-center gap-4">
               <Loader2 className="animate-spin" />
               <div>
@@ -131,8 +123,9 @@ export default function Page() {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </ParticlesBackground>
+        </div>
+        <LineAnimation />
+      </div>
+    </div>
   )
 }
