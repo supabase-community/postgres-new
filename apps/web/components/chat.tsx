@@ -436,7 +436,7 @@ export default function Chat() {
             <>
               {isAuthRequired ? (
                 <m.div
-                  className="p-4 border rounded-md bg-background w-full"
+                  className="bg-background w-full mb-4 pt-4"
                   variants={{
                     hidden: { opacity: 0, y: 100 },
                     show: { opacity: 1, y: 0 },
@@ -444,6 +444,12 @@ export default function Chat() {
                   animate="show"
                   exit="hidden"
                 >
+                  <m.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none"
+                  />
                   <h3 className="font-medium">Sign in to create a database</h3>
                   <p className="text-foreground-muted mb-4">
                     We ask you to sign in to prevent API abuse.
