@@ -75,7 +75,7 @@ export default function Chat() {
     stopReply,
   } = useWorkspace()
 
-  const { input, setInput, handleInputChange, isLoading } = useChat({
+  const { input, setInput, isLoading } = useChat({
     id: databaseId,
     api: '/api/chat',
   })
@@ -192,6 +192,26 @@ export default function Chat() {
   })
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Add this function to handle textarea resizing
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = inputRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [])
+
+  // Update the handleInputChange to include height adjustment
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    adjustTextareaHeight()
+  }
+
+  // Add useEffect to adjust height on input changes
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [input, adjustTextareaHeight])
 
   // Scroll to end when chat is first mounted
   useEffect(() => {
@@ -480,13 +500,37 @@ export default function Chat() {
                         Describe what you want to build and add any specific database requirements.
                       </p>
                       <div className="flex gap-2 flex-wrap mt-4 justify-start">
-                        <Button variant="secondary" className="rounded-full">
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a Slack clone with channels, direct messages, and user profiles. Include tables for users, channels, messages, and channel memberships.'
+                            )
+                          }
+                        >
                           A Slack clone
                         </Button>
-                        <Button variant="secondary" className="rounded-full">
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a document database schema with support for hierarchical document storage, versioning, and metadata. Include tables for documents, versions, and tags.'
+                            )
+                          }
+                        >
                           Document database
                         </Button>
-                        <Button variant="secondary" className="rounded-full">
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a todo list application with support for multiple lists, due dates, priorities, and task categories. Include tables for users, lists, tasks, and categories.'
+                            )
+                          }
+                        >
                           Todo list
                         </Button>
                       </div>
@@ -499,7 +543,7 @@ export default function Chat() {
         </AnimatePresence>
         <form
           className={cn(
-            'p-1 rounded-lg bg-muted/50 border w-full max-w-4xl gap-3',
+            'p-1 rounded-lg bg-muted/50 border w-full',
             inputFocusState && 'border-muted-foreground',
             'transition'
           )}
@@ -510,7 +554,7 @@ export default function Chat() {
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none p-2"
+            className="w-full border-none focus-visible:ring-0 h-auto min-h-[2.5rem] placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none p-2"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
