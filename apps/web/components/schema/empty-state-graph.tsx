@@ -52,7 +52,7 @@ const EmptyNode = ({ data }: { data: { text: string } }) => {
   }
 
   const textStyle: React.CSSProperties = {
-    background: 'linear-gradient(to bottom, hsl(var(--foreground)/.7), hsl(var(--foreground)))',
+    background: 'linear-gradient(to bottom, hsl(var(--foreground)/.6), hsl(var(--foreground)))',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
