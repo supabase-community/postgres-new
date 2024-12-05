@@ -24,6 +24,7 @@ import Sidebar from './sidebar'
 import LiveShareOverlay from './live-share'
 import Image from 'next/image'
 import emptyState from '~/public/images/empty.png'
+import EmptyStateGraph from './schema/empty-state-graph'
 
 // TODO: support public/private DBs that live in the cloud
 export type Visibility = 'local'
@@ -181,13 +182,8 @@ export default function Workspace({
                 <Chat />
               </IDE>
             ) : (
-              <div className="p-12 bg-muted flex items-center justify-center flex-1 w-full h-full relative flex items-center justify-center overflow-hidden">
-                <Image
-                  src={emptyState}
-                  alt="Start a conversation"
-                  objectPosition="center"
-                  className="object-contain mix-blend-darken dark:invert dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0 max-h-3/4"
-                />
+              <div className="bg-muted flex items-center justify-center flex-1 w-full h-full relative flex items-center justify-center overflow-hidden">
+                <EmptyStateGraph />
               </div>
             )}
           </>
