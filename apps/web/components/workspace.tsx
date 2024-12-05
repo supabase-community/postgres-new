@@ -174,22 +174,26 @@ export default function Workspace({
             <Chat />
           </div>
         )}
-        {isConversationStarted ? (
-          <IDE className="flex-1 h-full">
-            <Chat />
-          </IDE>
-        ) : (
-          <div className="p-12 bg-muted flex items-center justify-center flex-1 w-full h-full relative flex items-center justify-center">
-            <Image
-              src={emptyState}
-              alt="Start a conversation"
-              objectPosition="center"
-              className="object-contain mix-blend-darken dark:invert dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0"
-            />
-          </div>
+        {!(isSmallBreakpoint && liveShare.isLiveSharing) && (
+          <>
+            {isConversationStarted ? (
+              <IDE className="flex-1 h-full">
+                <Chat />
+              </IDE>
+            ) : (
+              <div className="p-12 bg-muted flex items-center justify-center flex-1 w-full h-full relative flex items-center justify-center overflow-hidden">
+                <Image
+                  src={emptyState}
+                  alt="Start a conversation"
+                  objectPosition="center"
+                  className="object-contain mix-blend-darken dark:invert dark:mix-blend-lighten opacity-50 grayscale max-w-2xl relative z-0 max-h-3/4"
+                />
+              </div>
+            )}
+          </>
         )}
         {liveShare.isLiveSharing && liveShare.databaseId === databaseId && (
-          <div className="max-w-full w-[500px] shrink-0 border-l">
+          <div className="max-w-full w-full lg:w-[500px] shrink-0 border-l">
             <LiveShareOverlay databaseId={databaseId} />
           </div>
         )}
