@@ -1,7 +1,7 @@
 import dagre from '@dagrejs/dagre'
 import { PostgresTable } from '@gregnr/postgres-meta/base'
 import { uniqBy } from 'lodash'
-import { Info, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
@@ -14,12 +14,9 @@ import ReactFlow, {
   useReactFlow,
   useStore,
 } from 'reactflow'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useDebounce } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
-import { useApp } from '../app-provider'
-import { useWorkspace } from '../workspace'
 import SchemaGraphLegend from './legend'
 import { TABLE_NODE_ROW_HEIGHT, TABLE_NODE_WIDTH, TableEdge, TableNode } from './table-node'
 
@@ -30,9 +27,7 @@ export default function TablesGraph({
   databaseId: string
   schemas: string[]
 }) {
-  const { pgVersion } = useApp()
   const { resolvedTheme } = useTheme()
-  const { visibility } = useWorkspace()
   const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const { data: allTables, error, isError, isLoading } = useTablesQuery({ databaseId, schemas })
