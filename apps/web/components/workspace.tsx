@@ -181,7 +181,7 @@ export default function Workspace({
             <Chat />
           </IDE>
         ) : (
-          <div className="bg-muted flex flex-1 w-full relative flex items-center justify-center overflow-hidden">
+          <div className="bg-muted flex-1 w-full relative flex items-center justify-center overflow-hidden">
             <EmptyStateGraph />
           </div>
         )}

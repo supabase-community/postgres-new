@@ -108,7 +108,7 @@ export default function Page() {
 
   return (
     <div className="flex items-center justify-center h-full w-full bg-muted">
-      <div className="w-full h-full max-h-[400px] border border rounded-lg overflow-hidden relative flex justify-center items-center">
+      <div className="w-full h-full max-h-[400px] border rounded-lg overflow-hidden relative flex justify-center items-center">
         <div className="bg-background border rounded-md relative z-10 max-w-full">
           <h1 className="flex gap-2 items-center border-b px-6 py-4 font-semibold">
             <SupabaseIcon />

@@ -7,14 +7,12 @@ import { useParams } from 'next/navigation'
 import { useApp } from '~/components/app-provider'
 
 import { useMergedDatabases } from '~/data/merged-databases/merged-databases'
-import { useBreakpoint } from '~/lib/use-breakpoint'
 
 import { DatabaseMenuItem } from './database-menu-item'
 
 export default function Sidebar() {
   const { setIsRenameDialogOpen, isLegacyDomain } = useApp()
   let { id: currentDatabaseId } = useParams<{ id: string }>()
-  const isSmallBreakpoint = useBreakpoint('lg')
   const { showSidebar } = useApp()
 
   const { data: databases, isLoading: isLoadingDatabases } = useMergedDatabases()

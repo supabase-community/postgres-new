@@ -15,7 +15,6 @@ import {
   legacyDomainUrl,
 } from '~/lib/util'
 import { useApp } from './app-provider'
-import Sidebar from './sidebar'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Header } from './layout/header/header'

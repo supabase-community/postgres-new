@@ -47,6 +47,14 @@ export default function AppProvider({ children }: AppProps) {
   const [isRateLimited, setIsRateLimited] = useState(false)
   const [showSidebar, setShowSidebar] = useState(false)
 
+  useEffect(() => {
+    dbManager?.getDatabases().then((databases) => {
+      if (databases.length > 0) {
+        setShowSidebar(true)
+      }
+    })
+  }, [])
+
   const focusRef = useRef<FocusHandle>(null)
 
   const supabase = createClient()

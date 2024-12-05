@@ -1,12 +1,15 @@
+import { useEffect, useState } from 'react'
 import ReactFlow, {
   Background,
   BackgroundVariant,
-  Controls,
   Node,
   Edge,
   Position,
   Handle,
+  useReactFlow,
+  ReactFlowInstance,
 } from 'reactflow'
+import { useApp } from '../app-provider'
 
 const initialNodes: Node[] = [
   {
@@ -80,8 +83,22 @@ export default function EmptyStateGraph() {
     empty: EmptyNode,
   }
 
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+
+  const { showSidebar } = useApp()
+
+  useEffect(() => {
+    if (reactFlowInstance) {
+      // it needs to happen on the next tick
+      setTimeout(() => {
+        reactFlowInstance.fitView()
+      }, 0)
+    }
+  }, [reactFlowInstance, showSidebar])
+
   return (
     <ReactFlow
+      onInit={(instance) => setReactFlowInstance(instance)}
       defaultNodes={initialNodes}
       defaultEdges={initialEdges}
       nodeTypes={nodeTypes}
