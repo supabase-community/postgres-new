@@ -11,10 +11,10 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
-import { MergedDatabase } from '~/data/merged-databases/merged-databases'
 import { Button } from '../ui/button'
 import { SupabaseIcon } from '../supabase-icon'
 import { SchemaOverlapWarning } from './schema-overlap-warning'
+import type { MergedDatabase } from '~/data/merged-databases/merged-database'
 
 export type RedeployDialogProps = {
   database: MergedDatabase
