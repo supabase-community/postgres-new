@@ -47,14 +47,20 @@ const EmptyNode = ({ data }: { data: { text: string } }) => {
     fontSize: '88px',
     lineHeight: 1,
     letterSpacing: '-3px',
-    color: 'hsl(var(--foreground))',
     fontFamily: 'var(--font-mono)',
     fontWeight: 600,
   }
 
+  const textStyle: React.CSSProperties = {
+    background: 'linear-gradient(to bottom, hsl(var(--foreground)/.7), hsl(var(--foreground)))',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+  }
+
   return (
     <div style={nodeStyle}>
-      {data.text}
+      <div style={textStyle}>{data.text}</div>
       <div
         style={{ position: 'absolute', top: '50%', left: '-10px', transform: 'translateY(-50%)' }}
       >
