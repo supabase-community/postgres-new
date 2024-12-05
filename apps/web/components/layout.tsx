@@ -5,7 +5,6 @@ import 'chartjs-adapter-date-fns'
 
 import { LazyMotion, m } from 'framer-motion'
 import { Loader } from 'lucide-react'
-import Link from 'next/link'
 import { PropsWithChildren } from 'react'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { useDatabasesQuery } from '~/data/databases/databases-query'
@@ -21,6 +20,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Header } from './layout/header/header'
 import { SetModelProviderDialog } from '~/components/model-provider/set-model-provider-dialog'
+import Link from 'next/link'
+import { SupabaseIcon } from './supabase-icon'
 
 const loadFramerFeatures = () => import('./framer-features').then((res) => res.default)
 
@@ -51,9 +52,13 @@ export default function Layout({ children }: LayoutProps) {
           ) : (
             <div className="fixed top-8 left-8 w-[419px] max-w-full flex justify-between z-20">
               <span className="text-sm text-muted-foreground font-mono">database.build</span>
-              <span className="text-sm text-muted-foreground border-b font-mono">
-                a Supabase experiment
-              </span>
+              <Link
+                href="https://supabase.com"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground font-mono cursor-pointer hover:text-foreground"
+              >
+                <SupabaseIcon className="w-4 h-4" />
+                <span className="border-b">a Supabase experiment</span>
+              </Link>
             </div>
           )}
           <main className="flex-1 flex flex-col lg:flex-row min-h-0">
