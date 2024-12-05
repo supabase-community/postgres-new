@@ -19,6 +19,7 @@ import { useTheme } from 'next-themes'
 
 export function UserAvatar() {
   const { user, signIn } = useApp()
+  const { theme, setTheme } = useTheme()
 
   if (!user) {
     return (
@@ -29,7 +30,6 @@ export function UserAvatar() {
     )
   }
 
-  const { theme, setTheme } = useTheme()
   const avatarUrl = user.user_metadata.avatar_url ?? null
   const username = user.user_metadata.user_name ?? null
 
