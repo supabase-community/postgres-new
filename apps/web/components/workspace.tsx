@@ -176,7 +176,7 @@ export default function Workspace({
         )}
         {!(isSmallBreakpoint && liveShare.isLiveSharing) && (
           <>
-            {isConversationStarted ? (
+            {isConversationStarted || isSmallBreakpoint ? (
               <IDE className="flex-1 h-full">
                 <Chat />
               </IDE>
