@@ -92,7 +92,7 @@ export default function EmptyStateGraph() {
       // it needs to happen on the next tick
       setTimeout(() => {
         reactFlowInstance.fitView({ padding: 1 })
-      }, 0)
+      }, 200)
     }
   }, [reactFlowInstance, showSidebar])
 
