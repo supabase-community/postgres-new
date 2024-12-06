@@ -10,7 +10,7 @@ import ReactFlow, {
   ReactFlowInstance,
 } from 'reactflow'
 import { useApp } from '../app-provider'
-
+import { motion } from 'framer-motion'
 const initialNodes: Node[] = [
   {
     id: 'build',
@@ -47,9 +47,9 @@ const EmptyNode = ({ data }: { data: { text: string } }) => {
     borderRadius: '4px',
     border: '1px solid hsl(var(--foreground)/.07)',
     position: 'relative',
-    fontSize: '88px',
+    fontSize: '64px',
     lineHeight: 1,
-    letterSpacing: '-3px',
+    letterSpacing: '-2px',
     fontFamily: 'var(--font-mono)',
     fontWeight: 600,
   }
@@ -91,39 +91,45 @@ export default function EmptyStateGraph() {
     if (reactFlowInstance) {
       // it needs to happen on the next tick
       setTimeout(() => {
-        reactFlowInstance.fitView()
+        reactFlowInstance.fitView({ padding: 1 })
       }, 0)
     }
   }, [reactFlowInstance, showSidebar])
 
   return (
-    <ReactFlow
-      onInit={(instance) => setReactFlowInstance(instance)}
-      defaultNodes={initialNodes}
-      defaultEdges={initialEdges}
-      nodeTypes={nodeTypes}
-      defaultEdgeOptions={{
-        style: {
-          stroke: 'hsl(var(--muted-foreground)/.2)',
-          strokeWidth: 2,
-        },
-      }}
-      panOnScroll
-      fitView
-      fitViewOptions={{ padding: 0.5 }}
-      minZoom={0.5}
-      maxZoom={2}
-      draggable={false}
-      nodesDraggable={true}
-      panOnDrag={true}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+      className="h-full w-full"
     >
-      <Background
-        gap={32}
-        className="text-foreground"
-        variant={BackgroundVariant.Dots}
-        size={1}
-        color="hsl(var(--muted-foreground))"
-      />
-    </ReactFlow>
+      <ReactFlow
+        onInit={(instance) => setReactFlowInstance(instance)}
+        defaultNodes={initialNodes}
+        defaultEdges={initialEdges}
+        nodeTypes={nodeTypes}
+        defaultEdgeOptions={{
+          style: {
+            stroke: 'hsl(var(--muted-foreground)/.2)',
+            strokeWidth: 2,
+          },
+        }}
+        panOnScroll
+        fitView
+        fitViewOptions={{ padding: 1 }}
+        draggable={false}
+        proOptions={{ hideAttribution: true }}
+        nodesDraggable={true}
+        panOnDrag={true}
+      >
+        <Background
+          gap={32}
+          className="text-foreground"
+          variant={BackgroundVariant.Dots}
+          size={1}
+          color="hsl(var(--muted-foreground))"
+        />
+      </ReactFlow>
+    </motion.div>
   )
 }
