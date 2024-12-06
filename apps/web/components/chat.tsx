@@ -602,23 +602,24 @@ export default function Chat() {
             </Button>
             {isLoading ? (
               <Button
-                className="rounded-full w-8 h-8 text-neutral-50 bg-neutral-800"
+                className="rounded-full w-8 h-8 p-0 justify-center items-center"
+                size="icon"
                 type="submit"
                 onClick={(e) => {
                   e.preventDefault()
                   stopReply()
                 }}
               >
-                <Square fill="white" strokeWidth={0} className="w-3.5 h-3.5" />
+                <Square size={16} />
               </Button>
             ) : (
-              <button
-                className="rounded-full w-8 h-8 text-neutral-50 bg-neutral-800 disabled:bg-neutral-500 flex justify-center items-center"
+              <Button
+                className="rounded-full w-8 h-8 p-0 justify-center items-center"
                 type="submit"
                 disabled={!isSubmitEnabled}
               >
-                <ArrowUp />
-              </button>
+                <ArrowUp size={16} className="text-primary-foreground" />
+              </Button>
             )}
           </div>
         </form>

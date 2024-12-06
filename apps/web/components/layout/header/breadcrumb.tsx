@@ -41,6 +41,7 @@ export function Breadcrumbs(props: { database?: MergedDatabase }) {
                   defaultValue={props.database!.name ?? 'My database'}
                   name="name"
                   ref={(input) => input?.select()}
+                  form="rename-database-form"
                 />
                 <CancelRenameDatabaseButton onClick={() => setIsRenaming(false)} />
                 <SubmitRenameDatabaseButton />
@@ -98,7 +99,13 @@ function CancelRenameDatabaseButton(props: { onClick: () => void }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" className="w-6 h-6 shrink-0" size="icon" onClick={props.onClick}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-6 h-6 shrink-0"
+          size="icon"
+          onClick={props.onClick}
+        >
           <XIcon size={14} />
         </Button>
       </TooltipTrigger>
