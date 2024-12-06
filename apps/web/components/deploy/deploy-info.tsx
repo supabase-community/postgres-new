@@ -21,8 +21,8 @@ export function SupabaseDeployInfo({ info, isRedeploy = false }: DeployInfoProps
   const deployText = isRedeploy ? 'redeployed' : 'deployed'
 
   return (
-    <div className="flex flex-col gap-8">
-      <p>
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-muted-foreground">
         Your in-browser database was {deployText} to the Supabase project{' '}
         <Link
           target="_blank"
@@ -40,18 +40,18 @@ export function SupabaseDeployInfo({ info, isRedeploy = false }: DeployInfoProps
       <p className="flex flex-col gap-4">
         <CopyableField
           label={
-            <>
+            <div className="flex items-center gap-2">
               Database Connection URL{' '}
               <Badge variant="outline" className="text-muted-foreground">
                 IPv6
               </Badge>
-            </>
+            </div>
           }
           value={info.databaseUrl}
         />
         <CopyableField
           label={
-            <>
+            <div className="flex items-center gap-2">
               Pooler Connection URL{' '}
               <span className="inline-flex gap-1">
                 <Badge variant="outline" className="text-muted-foreground">
@@ -61,7 +61,7 @@ export function SupabaseDeployInfo({ info, isRedeploy = false }: DeployInfoProps
                   IPv6
                 </Badge>
               </span>
-            </>
+            </div>
           }
           value={info.poolerUrl}
         />

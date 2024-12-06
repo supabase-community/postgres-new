@@ -1,7 +1,7 @@
 import dagre from '@dagrejs/dagre'
 import { PostgresTable } from '@gregnr/postgres-meta/base'
 import { uniqBy } from 'lodash'
-import { Info, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
@@ -14,12 +14,9 @@ import ReactFlow, {
   useReactFlow,
   useStore,
 } from 'reactflow'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useTablesQuery } from '~/data/tables/tables-query'
 import { useDebounce } from '~/lib/hooks'
 import { cn } from '~/lib/utils'
-import { useApp } from '../app-provider'
-import { useWorkspace } from '../workspace'
 import SchemaGraphLegend from './legend'
 import { TABLE_NODE_ROW_HEIGHT, TABLE_NODE_WIDTH, TableEdge, TableNode } from './table-node'
 
@@ -30,9 +27,7 @@ export default function TablesGraph({
   databaseId: string
   schemas: string[]
 }) {
-  const { pgVersion } = useApp()
   const { resolvedTheme } = useTheme()
-  const { visibility } = useWorkspace()
   const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const { data: allTables, error, isError, isLoading } = useTablesQuery({ databaseId, schemas })
@@ -82,7 +77,7 @@ export default function TablesGraph({
   }, [reactFlowInstance, tables, resolvedTheme, fitView, isFirstLoad])
 
   return (
-    <div className="flex flex-col w-full h-full bg-muted/50 rounded-md border overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-muted/50 overflow-hidden">
       <ReactFlow
         className=""
         defaultNodes={[]}
@@ -153,32 +148,6 @@ export default function TablesGraph({
 
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col"></div>
       </ReactFlow>
-      <div className="p-2.5 flex gap-2 justify-center bg-muted text-xs text-muted-foreground/75 border-t">
-        {pgVersion && (
-          <>
-            <span>PG {pgVersion}</span> |
-          </>
-        )}
-        {visibility === 'local' && (
-          <Tooltip>
-            <TooltipTrigger className="group flex gap-1 items-center cursor-default">
-              <span className="group-data-[state=delayed-open]:text-foreground transition">
-                Local-only database
-              </span>
-              <Info
-                size={12}
-                className="group-data-[state=delayed-open]:text-foreground transition"
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-[28rem] text-center">
-                This Postgres database lives directly in your browser&apos;s IndexedDB storage and
-                not in the cloud, so it is only accessible to you.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
       <SchemaGraphLegend />
     </div>
   )

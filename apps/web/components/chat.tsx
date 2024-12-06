@@ -75,7 +75,7 @@ export default function Chat() {
     stopReply,
   } = useWorkspace()
 
-  const { input, setInput, handleInputChange, isLoading } = useChat({
+  const { input, setInput, isLoading } = useChat({
     id: databaseId,
     api: '/api/chat',
   })
@@ -185,16 +185,33 @@ export default function Chat() {
       }
     },
     cursorElement: (
-      <m.div
-        layoutId={nextMessageId}
-        className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50"
-      >
+      <m.div className="px-5 py-2.5 text-foreground rounded-full bg-border flex gap-2 items-center shadow-xl z-50">
         <Paperclip size={18} /> Add file to chat
       </m.div>
     ),
   })
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Add this function to handle textarea resizing
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = inputRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [])
+
+  // Update the handleInputChange to include height adjustment
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    adjustTextareaHeight()
+  }
+
+  // Add useEffect to adjust height on input changes
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [input, adjustTextareaHeight])
 
   // Scroll to end when chat is first mounted
   useEffect(() => {
@@ -273,283 +290,271 @@ export default function Chat() {
             <Skeleton className="self-end h-10 w-1/2 rounded-3xl" />
             <Skeleton className="self-start h-20 w-3/4 rounded-3xl" />
           </div>
-        ) : isConversationStarted ? (
-          <div
-            className={cn(
-              'h-full flex flex-col items-center overflow-y-auto',
-              !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
-              liveShare.isLiveSharing ? 'overflow-y-hidden' : undefined
-            )}
-            ref={scrollRef}
-          >
-            <LiveShareOverlay databaseId={databaseId} />
-            <m.div
-              key={databaseId}
-              className="flex flex-col gap-4 w-full max-w-4xl px-2 py-5 lg:p-10"
-              variants={{
-                show: {
-                  transition: {
-                    staggerChildren: 0.01,
-                  },
-                },
-              }}
-              onAnimationStart={() => setIsMessageAnimationComplete(false)}
-              onAnimationComplete={() => setIsMessageAnimationComplete(true)}
-              initial="show"
-              animate="show"
-            >
-              {messages.map((message, i) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isLast={i === messages.length - 1}
-                />
-              ))}
-              <AnimatePresence initial={false}>
-                {modelProviderError && !isLoading && (
-                  <m.div
-                    layout="position"
-                    className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
-                    variants={{
-                      hidden: { scale: 0 },
-                      show: { scale: 1, transition: { delay: 0.5 } },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                  >
-                    <AlertCircle size={64} strokeWidth={1} />
-                    <div className="flex flex-col items-center text-start gap-4">
-                      <h3 className="font-bold">Whoops!</h3>
-                      <p className="text-center">
-                        There was an error connecting to your custom model provider:{' '}
-                        {modelProviderError}
-                      </p>
-                      <p>
-                        Double check your{' '}
-                        <a
-                          className="underline cursor-pointer"
-                          onClick={() => {
-                            setIsModelProviderDialogOpen(true)
-                          }}
-                        >
-                          API info
-                        </a>
-                        .
-                      </p>
-                    </div>
-                  </m.div>
-                )}
-              </AnimatePresence>
-              <AnimatePresence initial={false}>
-                {isRateLimited && !isLoading && (
-                  <m.div
-                    layout="position"
-                    className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
-                    variants={{
-                      hidden: { scale: 0 },
-                      show: { scale: 1, transition: { delay: 0.5 } },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                  >
-                    <Flame size={64} strokeWidth={1} />
-                    <div className="flex flex-col items-center text-start gap-4">
-                      <h3 className="font-bold">Hang tight!</h3>
-                      <p>
-                        We&apos;re seeing a lot of AI traffic from your end and need to temporarily
-                        pause your chats to make sure our servers don&apos;t melt.
-                      </p>
-
-                      <p>Have a quick coffee break and try again in a few minutes!</p>
-                    </div>
-                  </m.div>
-                )}
-              </AnimatePresence>
-              <AnimatePresence>
-                {isLoading && (
-                  <m.div
-                    className="-translate-x-8 flex gap-4 justify-start items-center"
-                    variants={{
-                      hidden: { opacity: 0 },
-                      show: { opacity: 1 },
-                    }}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                  >
-                    <m.div layoutId="ai-loading-icon">
-                      <AiIconAnimation loading />
-                    </m.div>
-                    {lastMessage &&
-                      (lastMessage.role === 'user' ||
-                        (lastMessage.role === 'assistant' && !lastMessage.content)) && (
-                        <m.div
-                          layout
-                          className="text-neutral-400 italic"
-                          variants={{
-                            hidden: { opacity: 0 },
-                            show: { opacity: 1, transition: { delay: 1.5 } },
-                          }}
-                          initial="hidden"
-                          animate="show"
-                        >
-                          Working on it...
-                        </m.div>
-                      )}
-                  </m.div>
-                )}
-              </AnimatePresence>
-            </m.div>
-          </div>
         ) : (
-          <div className="h-full w-full max-w-4xl flex flex-col gap-10 justify-center items-center">
-            {!isAuthRequired ? (
-              <>
-                <LiveShareOverlay databaseId={databaseId} />
-                <m.h3
-                  layout
-                  className="text-2xl font-light text-center"
-                  variants={{
-                    hidden: { opacity: 0, y: 10 },
-                    show: { opacity: 1, y: 0 },
-                  }}
-                  initial="hidden"
-                  animate="show"
-                >
-                  What would you like to create?
-                </m.h3>
-              </>
-            ) : (
+          isConversationStarted && (
+            <div
+              className={cn(
+                'h-full flex flex-col items-center overflow-y-auto',
+                !isMessageAnimationComplete ? 'overflow-x-hidden' : undefined,
+                liveShare.isLiveSharing ? 'overflow-y-hidden' : undefined
+              )}
+              ref={scrollRef}
+            >
               <m.div
-                className="flex flex-col items-center gap-4 max-w-lg"
+                key={databaseId}
+                className="flex flex-col gap-8 p-8 w-full max-w-4xl"
                 variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 },
+                  show: {
+                    transition: {
+                      staggerChildren: 0.01,
+                    },
+                  },
                 }}
-                initial="hidden"
+                onAnimationStart={() => setIsMessageAnimationComplete(false)}
+                onAnimationComplete={() => setIsMessageAnimationComplete(true)}
+                initial="show"
                 animate="show"
               >
-                <SignInButton />
-                or
-                <ByoLlmButton />
-                <p
-                  className="underline cursor-pointer text-sm text-primary/50"
-                  onClick={() => {
-                    setIsSignInDialogOpen(true)
-                  }}
-                >
-                  Why do I need to sign in?
-                </p>
+                {messages.map((message, i) => (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isLast={i === messages.length - 1}
+                  />
+                ))}
+                <AnimatePresence initial={false}>
+                  {modelProviderError && !isLoading && (
+                    <m.div
+                      className="flex items-center gap-4 w-full p-4 bg-destructive/10 text-red-900 rounded-md text-sm"
+                      variants={{
+                        hidden: { scale: 0 },
+                        show: { scale: 1, transition: { delay: 0.5 } },
+                      }}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                    >
+                      <AlertCircle size={24} strokeWidth={1} className="shrink-0" />
+                      <div>
+                        <h3 className="font-bold">Whoops!</h3>
+                        <p className="mb-2">
+                          There was an error connecting to your custom model provider:{' '}
+                          {modelProviderError}.
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setIsModelProviderDialogOpen(true)
+                        }}
+                      >
+                        Check info
+                      </Button>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+                <AnimatePresence initial={false}>
+                  {isRateLimited && !isLoading && (
+                    <m.div
+                      className="flex flex-col gap-4 justify-start items-center max-w-96 p-4 bg-destructive rounded-md text-sm"
+                      variants={{
+                        hidden: { scale: 0 },
+                        show: { scale: 1, transition: { delay: 0.5 } },
+                      }}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                    >
+                      <Flame size={64} strokeWidth={1} />
+                      <div className="flex flex-col items-center text-start gap-4">
+                        <h3 className="font-bold">Hang tight!</h3>
+                        <p>
+                          We&apos;re seeing a lot of AI traffic from your end and need to
+                          temporarily pause your chats to make sure our servers don&apos;t melt.
+                        </p>
+
+                        <p>Have a quick coffee break and try again in a few minutes!</p>
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+                <AnimatePresence>
+                  {isLoading && (
+                    <m.div
+                      className="-translate-x-8 flex gap-4 justify-start items-center"
+                      variants={{
+                        hidden: { opacity: 0 },
+                        show: { opacity: 1 },
+                      }}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                    >
+                      <m.div>
+                        <AiIconAnimation loading />
+                      </m.div>
+                      {lastMessage &&
+                        (lastMessage.role === 'user' ||
+                          (lastMessage.role === 'assistant' && !lastMessage.content)) && (
+                          <m.div
+                            className="text-neutral-400 italic"
+                            variants={{
+                              hidden: { opacity: 0 },
+                              show: { opacity: 1, transition: { delay: 1.5 } },
+                            }}
+                            initial="hidden"
+                            animate="show"
+                          >
+                            Working on it...
+                          </m.div>
+                        )}
+                    </m.div>
+                  )}
+                </AnimatePresence>
               </m.div>
-            )}
-          </div>
+            </div>
+          )
         )}
         <AnimatePresence>
           {!isSticky && (
-            <m.div
-              className="absolute bottom-5 left-1/2"
-              variants={{
-                hidden: { scale: 0 },
-                show: { scale: 1 },
-              }}
-              transition={{ duration: 0.1 }}
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-            >
-              <Button
-                className="rounded-full w-8 h-8 p-1.5 text-neutral-50 bg-neutral-900"
-                onClick={() => {
-                  scrollToEnd()
-                  inputRef.current?.focus()
+            <>
+              <m.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none"
+              />
+              <m.div
+                className="absolute bottom-4 left-1/2"
+                variants={{
+                  hidden: { y: 5, opacity: 0 },
+                  show: { y: 0, opacity: 1 },
                 }}
+                transition={{ duration: 0.1 }}
+                initial="hidden"
+                animate="show"
+                exit="hidden"
               >
-                <ArrowDown />
-              </Button>
-            </m.div>
+                <Button
+                  className="rounded-full w-8 h-8 p-1.5 text-neutral-50 bg-neutral-900"
+                  onClick={() => {
+                    scrollToEnd()
+                    inputRef.current?.focus()
+                  }}
+                >
+                  <ArrowDown />
+                </Button>
+              </m.div>
+            </>
           )}
         </AnimatePresence>
       </div>
-      <div className="flex flex-col items-center gap-3 pb-1 relative">
+      <div className="flex flex-col items-center gap-3 relative p-8 pt-0">
         <AnimatePresence>
-          {isAuthRequired && !isLoadingUser && isConversationStarted && (
-            <m.div
-              className="flex flex-col items-center gap-4 max-w-lg my-4"
-              variants={{
-                hidden: { opacity: 0, y: 100 },
-                show: { opacity: 1, y: 0 },
-              }}
-              animate="show"
-              exit="hidden"
-            >
-              <SignInButton />
-              or
-              <ByoLlmButton />
-              <p
-                className="underline cursor-pointer text-sm text-primary/50"
-                onClick={() => {
-                  setIsSignInDialogOpen(true)
-                }}
-              >
-                Why do I need to sign in?
-              </p>
-            </m.div>
+          {!isLoadingUser && (
+            <>
+              {isAuthRequired ? (
+                <m.div
+                  className="bg-background w-full mb-4 pt-4"
+                  variants={{
+                    hidden: { opacity: 0, y: 100 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  animate="show"
+                  exit="hidden"
+                >
+                  <m.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none"
+                  />
+                  <h3 className="font-medium">Sign in to create a database</h3>
+                  <p className="text-foreground-muted mb-4">
+                    We ask you to sign in to prevent API abuse.
+                  </p>
+                  <div className="space-y-1">
+                    <SignInButton />
+                    <ByoLlmButton className="w-full" />
+                  </div>
+                </m.div>
+              ) : (
+                !isConversationStarted &&
+                !isLoadingMessages &&
+                !isLoadingSchema && (
+                  <div className="h-full w-full max-w-4xl flex flex-col gap-10 mb-8">
+                    <div>
+                      <m.h3
+                        className="font-medium"
+                        variants={{
+                          hidden: { opacity: 0, y: 10 },
+                          show: { opacity: 1, y: 0 },
+                        }}
+                        initial="hidden"
+                        animate="show"
+                      >
+                        What would you like to create?
+                      </m.h3>
+                      <p className="text-muted-foreground">
+                        Describe what you want to build and add any specific database requirements.
+                      </p>
+                      <div className="flex gap-2 flex-wrap mt-4 justify-start">
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a Slack clone with channels, direct messages, and user profiles. Include tables for users, channels, messages, and channel memberships.'
+                            )
+                          }
+                        >
+                          A Slack clone
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a document database schema with support for hierarchical document storage, versioning, and metadata. Include tables for documents, versions, and tags.'
+                            )
+                          }
+                        >
+                          Document database
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="rounded-full"
+                          onClick={() =>
+                            setInput(
+                              'Create a todo list application with support for multiple lists, due dates, priorities, and task categories. Include tables for users, lists, tasks, and categories.'
+                            )
+                          }
+                        >
+                          Todo list
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
+            </>
           )}
         </AnimatePresence>
         <form
           className={cn(
-            'flex py-2 px-3 rounded-[28px] bg-muted/50 border w-full max-w-4xl items-center gap-3',
+            'p-1 rounded-lg bg-muted/50 border w-full',
             inputFocusState && 'border-muted-foreground',
             'transition'
           )}
           onSubmit={handleFormSubmit}
         >
-          {/*
-           * This is a hidden dummy message acting as an animation anchor
-           * before the real message is added to the chat.
-           *
-           * The animation starts in this element's position and moves over to
-           * the location of the real message after submit.
-           *
-           * It works by sharing the same `layoutId` between both message elements
-           * which framer motion requires to animate between them.
-           */}
-          {input && (
-            <m.div
-              layout="position"
-              layoutId={nextMessageId}
-              className="absolute invisible -top-12 px-5 py-2.5 text-base rounded-3xl bg-neutral-100 whitespace-pre-wrap"
-            >
-              {input}
-            </m.div>
-          )}
-          <Button
-            type="button"
-            variant={'ghost'}
-            className="w-8 h-8 text-muted-foreground hover:text-foreground focus:text-foreground"
-            size="icon"
-            onClick={async (e) => {
-              e.preventDefault()
-
-              if (isAuthRequired) {
-                return
-              }
-
-              const file = await requestFileUpload()
-              await sendCsv(file)
-            }}
-            disabled={!isChatEnabled}
-          >
-            <Paperclip size={18} strokeWidth={1.3} />
-          </Button>
           <textarea
             ref={inputRef}
             id="input"
             name="prompt"
             autoComplete="off"
-            className="flex-grow border-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none"
+            className="w-full border-none focus-visible:ring-0 h-auto min-h-[2.5rem] placeholder:text-muted-foreground/50 bg-transparent resize-none outline-none p-2"
             value={input}
             onChange={handleInputChange}
             placeholder="Message AI or write SQL"
@@ -561,7 +566,7 @@ export default function Chat() {
             }}
             autoFocus
             disabled={!isChatEnabled}
-            rows={Math.min(input.split('\n').length, 10)}
+            rows={Math.max(2, Math.min(input.split('\n').length, 10))}
             onKeyDown={(e) => {
               if (!(e.target instanceof HTMLTextAreaElement)) {
                 return
@@ -575,210 +580,50 @@ export default function Chat() {
               }
             }}
           />
-          {isLoading ? (
+          <div className="flex justify-between gap-3">
             <Button
-              className="rounded-full w-8 h-8 p-1.5 my-1 text-neutral-50 bg-neutral-800"
-              type="submit"
-              onClick={(e) => {
+              type="button"
+              variant={'ghost'}
+              className="w-8 h-8 text-muted-foreground hover:text-foreground focus:text-foreground rounded-full"
+              size="icon"
+              onClick={async (e) => {
                 e.preventDefault()
-                stopReply()
+
+                if (isAuthRequired) {
+                  return
+                }
+
+                const file = await requestFileUpload()
+                await sendCsv(file)
               }}
+              disabled={!isChatEnabled}
             >
-              <Square fill="white" strokeWidth={0} className="w-3.5 h-3.5" />
+              <Paperclip size={18} strokeWidth={1.3} />
             </Button>
-          ) : (
-            <button
-              className="rounded-full w-8 h-8 p-1.5 my-1 text-neutral-50 bg-neutral-800 disabled:bg-neutral-500 flex justify-center items-center"
-              type="submit"
-              disabled={!isSubmitEnabled}
-            >
-              <ArrowUp />
-            </button>
-          )}
+            {isLoading ? (
+              <Button
+                className="rounded-full w-8 h-8 p-0 justify-center items-center"
+                size="icon"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault()
+                  stopReply()
+                }}
+              >
+                <Square size={16} />
+              </Button>
+            ) : (
+              <Button
+                className="rounded-full w-8 h-8 p-0 justify-center items-center"
+                type="submit"
+                disabled={!isSubmitEnabled}
+              >
+                <ArrowUp size={16} className="text-primary-foreground" />
+              </Button>
+            )}
+          </div>
         </form>
-        <div className="text-xs text-neutral-500">
-          AI can make mistakes. Check important information.
-        </div>
       </div>
     </div>
   )
-}
-
-function LiveShareOverlay(props: { databaseId: string }) {
-  const { liveShare } = useApp()
-
-  if (liveShare.isLiveSharing && liveShare.databaseId === props.databaseId) {
-    return (
-      <div className="h-full w-full max-w-4xl absolute flex flex-col items-stretch justify-center backdrop-blur-sm bg-card/90 z-10">
-        <div className="flex flex-col items-center justify-start gap-y-7 overflow-y-auto pt-20 pb-10">
-          <div className="w-full text-left">
-            <p className="text-lg">Access your in-browser database</p>
-            <p className="text-xs text-muted-foreground">
-              Closing the window will stop the Live Share session
-            </p>
-          </div>
-          <Tabs defaultValue="uri" className="w-full justify-between bg-muted/50 rounded-md border">
-            <TabsList className="w-full flex justify-start bg-transparent px-3">
-              <TabsTrigger
-                value="uri"
-                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
-              >
-                URI
-              </TabsTrigger>
-              <TabsTrigger
-                value="psql"
-                className="hover:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:bg-none! data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none relative cursor-pointer text-foreground-lighter flex items-center space-x-2 text-center transition focus:outline-none focus-visible:ring focus-visible:ring-foreground-muted focus-visible:border-foreground-muted  text-xs px-2.5 py-1"
-              >
-                PSQL
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="uri" className="px-2 pb-2">
-              <CopyableField
-                value={`postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require`}
-              />
-            </TabsContent>
-            <TabsContent value="psql" className="px-2 pb-2">
-              <CopyableField
-                value={`psql "postgres://postgres@${liveShare.databaseId}.${process.env.NEXT_PUBLIC_BROWSER_PROXY_DOMAIN}/postgres?sslmode=require"`}
-              />
-            </TabsContent>
-          </Tabs>
-
-          {liveShare.clientIp ? (
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-              </span>
-              <span>
-                Connected from <span className="text-card-foreground">{liveShare.clientIp}</span>
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-muted-foreground"></span>
-              <span>No client connected</span>
-            </p>
-          )}
-          <Button
-            className="w-full gap-2"
-            variant="outline"
-            onClick={() => {
-              liveShare.stop()
-            }}
-          >
-            <PlugIcon size={16} />
-            <span>Stop sharing database</span>
-          </Button>
-
-          <div className="self-stretch border-b border-b-foreground/15 my-4" />
-
-          <Accordion type="single" collapsible className="self-stretch flex flex-col gap-2">
-            <AccordionItem value="postgres-clients" className="border rounded-md">
-              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>Can I connect using any Postgres client?</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-3 prose prose-sm">
-                <p>
-                  Yes! Any standard Postgres client that communicates using the Postgres wire
-                  protocol is supported. Connections are established over an encrypted TLS channel
-                  using the SNI extension, so your client will also need to support TLS with SNI
-                  (most modern clients support this).
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="concurrent-connections" className="border rounded-md">
-              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>How many concurrent connections can I have?</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-3 prose prose-sm">
-                <p>
-                  PGlite operates in single-user mode, so you can only establish one connection at a
-                  time per database. If you attempt to establish more than one connection using the
-                  Live Share connection string, you will receive a &quot;too many clients&quot;
-                  error.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="orms" className="border rounded-md">
-              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>Does this work with ORMs?</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-3 prose prose-sm">
-                <p>
-                  Yes, as long as your ORM doesn&apos;t require multiple concurrent connections.
-                  Some ORMs like Prisma run a shadow database in parallel to your main database in
-                  order to generate migrations. In order to use Prisma, you will need to{' '}
-                  <a
-                    href="https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/shadow-database#manually-configuring-the-shadow-database"
-                    target="__blank"
-                    rel="noopener noreferrer"
-                  >
-                    manually configure
-                  </a>{' '}
-                  your shadow database to point to another temporary database.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="connection-length" className="border rounded-md">
-              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>How long will connections last?</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-3 prose prose-sm">
-                <p>
-                  You can connect over Live Share for as long as your browser tab is active. Once
-                  your tab is closed, the any existing connection will terminate and you will no
-                  longer be able to connect to your database using the connection string.
-                </p>
-                <p>
-                  To prevent overloading the system, we also enforce a 5 minute idle timeout per
-                  client connection and 1 hour total timeout per database. If you need to
-                  communicate longer than these limits, simply reconnect after the timeout.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="under-the-hood" className="border rounded-md">
-              <AccordionTrigger className="p-0 gap-2 px-3 py-2">
-                <div className="flex gap-2 items-center font-normal text-lighter text-sm">
-                  <span>How does this work under the hood?</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-3 prose prose-sm">
-                <p>
-                  We host a{' '}
-                  <a
-                    href="https://github.com/supabase-community/database-build/tree/main/apps/browser-proxy"
-                    target="__blank"
-                    rel="noopener noreferrer"
-                  >
-                    lightweight proxy
-                  </a>{' '}
-                  between your Postgres client and your in-browser PGlite database. It uses{' '}
-                  <a
-                    href="https://github.com/supabase-community/pg-gateway"
-                    target="__blank"
-                    rel="noopener noreferrer"
-                  >
-                    pg-gateway
-                  </a>{' '}
-                  to proxy inbound TCP connections to the corresponding browser instance via a Web
-                  Socket reverse tunnel.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      </div>
-    )
-
-    return null
-  }
 }

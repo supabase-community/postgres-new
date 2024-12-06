@@ -2,20 +2,20 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { m } from 'framer-motion'
-import { Brain, Expand } from 'lucide-react'
+import { Expand } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { useApp } from '~/components/app-provider'
 import { Button, ButtonProps } from '~/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
 import {
   Form,
   FormControl,
@@ -29,6 +29,7 @@ import { Switch } from '~/components/ui/switch'
 import { Textarea } from '~/components/ui/textarea'
 import { getProviderUrl } from '~/lib/llm-provider'
 import { getSystemPrompt } from '~/lib/system-prompt'
+import { cn } from '~/lib/utils'
 
 const formSchema = z.object({
   apiKey: z
@@ -48,6 +49,7 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
+    reValidateMode: 'onSubmit',
     defaultValues: {
       enabled: false,
       system: getSystemPrompt(),
@@ -59,157 +61,167 @@ function SetModelProviderForm(props: { id: string; onSubmit: (values: FormSchema
 
   const [isPromptExpanded, setIsPromptExpanded] = useState(false)
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormSchema) {
     await modelProvider.set(values)
     props.onSubmit(values)
   }
 
+  async function onError() {
+    const values = form.getValues()
+    if (values.enabled === false) {
+      await modelProvider.set(values)
+      props.onSubmit(values)
+    }
+  }
+
   return (
     <Form {...form}>
-      <form
-        id={props.id}
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 min-w-0"
-      >
-        <FormField
-          control={form.control}
-          name="enabled"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center gap-2">
+      <form id={props.id} onSubmit={form.handleSubmit(onSubmit, onError)} className="min-w-0">
+        <div className="mt-4">
+          <FormField
+            control={form.control}
+            name="enabled"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-2">
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer">Enable</FormLabel>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className={cn('mt-8 pt-8 border-t space-y-4', !isEnabled && 'hidden')}>
+          <FormField
+            control={form.control}
+            name="baseUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Base URL</FormLabel>
                 <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel className="cursor-pointer">Enable</FormLabel>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {isEnabled && (
-          <>
-            <FormField
-              control={form.control}
-              name="baseUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Base URL</FormLabel>
-                  <FormControl>
-                    <>
-                      <Input placeholder="OpenAI compatible base URL" {...field} />
-                      <div className="flex gap-2">
-                        <MiniButton
-                          onClick={(e) => {
-                            e.preventDefault()
-                            form.setValue('baseUrl', getProviderUrl('openai'))
-                            form.setValue('model', 'gpt-4o')
-                          }}
-                        >
-                          OpenAI
-                        </MiniButton>
-                        <MiniButton
-                          onClick={(e) => {
-                            e.preventDefault()
-                            form.setValue('baseUrl', getProviderUrl('x-ai'))
-                            form.setValue('model', 'grok-beta')
-                          }}
-                        >
-                          xAI
-                        </MiniButton>
-                        <MiniButton
-                          onClick={(e) => {
-                            e.preventDefault()
-                            field.onChange({ target: { value: getProviderUrl('openrouter') } })
-                            form.setValue('model', '')
-                          }}
-                        >
-                          OpenRouter
-                        </MiniButton>
-                      </div>
-                    </>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="apiKey"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>API key</FormLabel>
-                  <FormControl>
-                    <Input placeholder="API key" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Model</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Model" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="system"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>System prompt</FormLabel>
-                  <FormControl>
-                    <>
-                      <m.div
-                        className="flex gap-2 rounded-md bg-secondary p-4 text-sm text-primary/50 cursor-pointer"
-                        onClick={() => {
-                          setIsPromptExpanded(true)
+                  <>
+                    <Input placeholder="OpenAI compatible base URL" {...field} />
+                    <div className="flex gap-2">
+                      <MiniButton
+                        onClick={(e) => {
+                          e.preventDefault()
+                          form.setValue('baseUrl', getProviderUrl('openai'))
+                          form.setValue('model', 'gpt-4o')
                         }}
                       >
-                        <div className="flex-1 max-h-24 overflow-hidden relative">
-                          {field.value}
-                          <div className="absolute inset-x-0 -bottom-6 h-16 bg-gradient-to-t from-secondary to-transparent" />
-                        </div>
-                        <Expand size={16} />
-                      </m.div>
-                      {isPromptExpanded && (
-                        <div className="absolute inset-0 p-4 pt-8 bg-background flex flex-col gap-2 items-end">
-                          <m.div
-                            variants={{
-                              hidden: { opacity: 0, y: 20 },
-                              show: { opacity: 1, y: 0 },
-                            }}
-                            initial="hidden"
-                            animate="show"
-                            className="flex-1 self-stretch flex"
-                          >
-                            <Textarea {...field} className="resize-none" />
-                          </m.div>
+                        OpenAI
+                      </MiniButton>
+                      <MiniButton
+                        onClick={(e) => {
+                          e.preventDefault()
+                          form.setValue('baseUrl', getProviderUrl('x-ai'))
+                          form.setValue('model', 'grok-beta')
+                        }}
+                      >
+                        xAI
+                      </MiniButton>
+                      <MiniButton
+                        onClick={(e) => {
+                          e.preventDefault()
+                          field.onChange({ target: { value: getProviderUrl('openrouter') } })
+                          form.setValue('model', '')
+                        }}
+                      >
+                        OpenRouter
+                      </MiniButton>
+                    </div>
+                  </>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="apiKey"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>API key</FormLabel>
+                <FormControl>
+                  <Input placeholder="API key" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="model"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Model</FormLabel>
+                <FormControl>
+                  <Input placeholder="Model" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="system"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>System prompt</FormLabel>
+                <FormControl>
+                  <>
+                    <m.div
+                      className="flex gap-2 rounded-md bg-secondary p-4 text-sm text-primary/50 cursor-pointer"
+                      onClick={() => {
+                        setIsPromptExpanded(true)
+                      }}
+                    >
+                      <div className="flex-1 max-h-24 overflow-hidden relative">
+                        {field.value}
+                        <div className="absolute inset-x-0 -bottom-6 h-16 bg-gradient-to-t from-secondary to-transparent" />
+                      </div>
+                      <Expand size={16} />
+                    </m.div>
+                    {isPromptExpanded && (
+                      <div className="absolute inset-0 bg-background z-20 flex flex-col items-end !mt-0">
+                        <m.div
+                          variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            show: { opacity: 1, y: 0 },
+                          }}
+                          initial="hidden"
+                          animate="show"
+                          className="flex-1 self-stretch flex"
+                        >
+                          <Textarea
+                            {...field}
+                            autoFocus
+                            className="resize-none border-none bg-muted rounded-none focus-visible:ring-0 p-8 focus-visible:outline-none focus-visible:ring-offset-0 focus-visible:border-none"
+                          />
+                        </m.div>
+                        <div className="w-full p-8 border-t">
                           <Button
-                            variant="outline"
+                            className="w-full"
                             onClick={(e) => {
                               e.preventDefault()
                               setIsPromptExpanded(false)
                             }}
                           >
-                            Set prompt
+                            Set Prompt
                           </Button>
                         </div>
-                      )}
-                    </>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        )}
+                      </div>
+                    )}
+                  </>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </form>
     </Form>
   )
@@ -231,36 +243,36 @@ export type SetModelProviderDialogProps = {
 
 export function SetModelProviderDialog(props: SetModelProviderDialogProps) {
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex gap-2 items-center mb-4">
-            <Brain /> Bring your own LLM
-          </DialogTitle>
-          <DialogDescription>
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent className="sm:max-w-full w-[500px]">
+        <SheetHeader>
+          <SheetTitle>Bring your own LLM</SheetTitle>
+          <SheetDescription className="mt-2 text-muted-foreground">
             Bring your own OpenAI-compatible API. All settings and credentials are saved locally in
             your browser.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="my-1 border-b" />
+          </SheetDescription>
+        </SheetHeader>
         <SetModelProviderForm
           id="set-model-provider-form"
           onSubmit={() => {
             props.onOpenChange(false)
           }}
         />
-        <DialogFooter className="mt-1">
+        <SheetFooter className="mt-8 pt-8 border-t">
           <Button
             variant="secondary"
+            className="w-full"
             onClick={() => {
               props.onOpenChange(false)
             }}
           >
             Cancel
           </Button>
-          <Button form="set-model-provider-form">Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button className="w-full" form="set-model-provider-form">
+            Save
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

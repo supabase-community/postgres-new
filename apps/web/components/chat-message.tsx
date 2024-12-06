@@ -12,6 +12,9 @@ import { isAutomatedUserMessage } from '~/lib/util'
 import { cn } from '~/lib/utils'
 import { CodeBlock } from './code-block'
 import { ToolUi } from './tools'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { useApp } from './app-provider'
+import { UserIcon } from 'lucide-react'
 
 export type ChatMessageProps = {
   message: Message
@@ -19,6 +22,10 @@ export type ChatMessageProps = {
 }
 
 function ChatMessage({ message, isLast }: ChatMessageProps) {
+  const { user } = useApp()
+  const avatarUrl = user?.user_metadata.avatar_url ?? null
+  const username = user?.user_metadata.user_name ?? null
+
   switch (message.role) {
     case 'user':
       if (isAutomatedUserMessage(message)) {
@@ -28,7 +35,6 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
       return (
         <m.div
           // Only track layout on the last message to improve performance
-          layoutId={isLast ? message.id : undefined}
           variants={{
             hidden: {
               opacity: 0,
@@ -39,7 +45,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
               x: 0,
             },
           }}
-          className="self-end px-5 py-2.5 text-base rounded-3xl bg-border text-foreground whitespace-pre-wrap"
+          className="self-end px-5 py-2 flex rounded-3xl bg-muted text-foreground whitespace-pre-wrap"
         >
           {message.content}
         </m.div>
@@ -50,7 +56,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
           remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
           rehypePlugins={[[rehypeKatex, { output: 'html' }]]}
           components={{ ...markdownComponents, img: () => null }}
-          className="prose prose-xs text-base [&_.katex-display>.katex]:text-left"
+          className="prose prose-xs prose-h3:text-md [&_.katex-display>.katex]:text-left prose-ol:my-4"
         >
           {message.content}
         </ReactMarkdown>
@@ -69,7 +75,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
 
       return (
         <m.div
-          className="lg:ml-4 self-stretch flex flex-col items-stretch gap-6"
+          className="self-stretch flex flex-col items-stretch gap-6"
           variants={{
             hidden: {
               opacity: 0,
@@ -111,7 +117,7 @@ const NextImageHandler = (props: any) => {
 }
 
 const markdownComponents = {
-  mono: (props: any) => <code className="text-sm not-prose">{props.children}</code>,
+  mono: (props: any) => <code className="not-prose">{props.children}</code>,
   code: (props: any) => <CodeBlock {...props} />,
   pre: (props: any) => (
     <pre className="not-prose">

@@ -35,13 +35,7 @@ export function SchemaOverlapWarning({ databaseId }: SchemaOverlapWarningProps) 
   }, [databaseId])
 
   if (isLoadingSchemas || !overlappingSchemas) {
-    return (
-      <Loader
-        className="animate-spin self-center justify-self-center my-4"
-        size={36}
-        strokeWidth={0.75}
-      />
-    )
+    return null
   }
 
   if (overlappingSchemas.length > 0) {

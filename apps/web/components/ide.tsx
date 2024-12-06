@@ -2,7 +2,7 @@
 
 import { Editor } from '@monaco-editor/react'
 import { ParseResult } from 'libpg-query/wasm'
-import { FileCode, MessageSquareMore, Workflow } from 'lucide-react'
+import { FileCode, Info, MessageSquareMore, Workflow } from 'lucide-react'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { useMessagesQuery } from '~/data/messages/messages-query'
@@ -15,6 +15,9 @@ import { cn } from '~/lib/utils'
 import SchemaGraph from './schema/graph'
 import { buttonVariants } from './ui/button'
 import { useWorkspace } from './workspace'
+import { useApp } from './app-provider'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { useTheme } from 'next-themes'
 
 const initialMigrationSql = '-- Migrations will appear here as you chat with AI\n'
 const initialSeedSql = '-- Seeds will appear here as you chat with AI\n'
@@ -24,8 +27,10 @@ export type IDEProps = PropsWithChildren<{
 }>
 
 export default function IDE({ children, className }: IDEProps) {
-  const { databaseId, tab, setTab } = useWorkspace()
-
+  const { databaseId, tab, visibility, setTab } = useWorkspace()
+  const { pgVersion } = useApp()
+  const { resolvedTheme } = useTheme()
+  const isDarkTheme = resolvedTheme?.includes('dark')!
   const isSmallBreakpoint = useBreakpoint('lg')
   const { data: messages } = useMessagesQuery(databaseId)
 
@@ -93,79 +98,109 @@ export default function IDE({ children, className }: IDEProps) {
   const migrationsSql = (initialMigrationSql + '\n' + migrationStatements?.join('\n\n')).trim()
 
   return (
-    <div className={cn('flex flex-col items-stretch gap-3', className)}>
+    <div className={cn('flex flex-col items-stretch bg-muted', className)}>
       <Tabs
-        className="h-full flex-1 flex flex-col items-stretch"
+        className="h-full flex-1 flex flex-col items-stretch shrink-0"
         value={tab}
         onValueChange={(tab) => setTab(tabsSchema.parse(tab))}
       >
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-2 !h-min bg-muted">
-          {isSmallBreakpoint && (
+        <TabsList className="flex w-full justify-between p-2 h-auto border-b bg-background md:bg-transparent">
+          <div className="flex items-center flex-1 gap-2">
+            {isSmallBreakpoint && (
+              <TabsTrigger
+                value="chat"
+                className={cn(
+                  buttonVariants({ variant: tab === 'chat' ? 'default' : 'ghost' }),
+                  'gap-2 w-full md:w-auto'
+                )}
+              >
+                <MessageSquareMore className="hidden sm:block" size={18} />
+                <span>Chat</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger
-              value="chat"
+              value="diagram"
               className={cn(
-                buttonVariants({ variant: tab === 'chat' ? 'default' : 'ghost' }),
-                'gap-2'
+                buttonVariants({ variant: tab === 'diagram' ? 'default' : 'ghost' }),
+                'gap-2 w-full md:w-auto'
               )}
             >
-              <MessageSquareMore className="hidden sm:block" size={18} />
-              <span>Chat</span>
+              <Workflow className="hidden sm:block" size={18} />
+              <span>Diagram</span>
             </TabsTrigger>
-          )}
-          <TabsTrigger
-            value="diagram"
-            className={cn(
-              buttonVariants({ variant: tab === 'diagram' ? 'default' : 'ghost' }),
-              'gap-2'
-            )}
-          >
-            <Workflow className="hidden sm:block" size={18} />
-            <span>Diagram</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="migrations"
-            className={cn(
-              buttonVariants({ variant: tab === 'migrations' ? 'default' : 'ghost' }),
-              'gap-2'
-            )}
-          >
-            <FileCode className="hidden sm:block" size={18} />
-            <span>Migrations</span>
-          </TabsTrigger>
-          {/* Temporarily hide seeds until we get pg_dump working */}
-          {/* {false && (
             <TabsTrigger
-              value="seeds"
+              value="migrations"
               className={cn(
-                buttonVariants({ variant: tab === 'seeds' ? 'default' : 'ghost' }),
-                tab === 'seeds' && '!shadow-sm',
-                'gap-2'
+                buttonVariants({ variant: tab === 'migrations' ? 'default' : 'ghost' }),
+                'gap-2 w-full md:w-auto'
               )}
             >
-              <Sprout size={14} />
-              <span className="hidden sm:inline">Seeds</span>
+              <FileCode className="hidden sm:block" size={18} />
+              <span>Migrations</span>
             </TabsTrigger>
-          )} */}
+            {/* Temporarily hide seeds until we get pg_dump working */}
+            {/* {false && (
+                <TabsTrigger
+                  value="seeds"
+                  className={cn(
+                    buttonVariants({ variant: tab === 'seeds' ? 'default' : 'ghost' }),
+                    tab === 'seeds' && '!shadow-sm',
+                    'gap-2'
+                  )}
+                >
+                  <Sprout size={14} />
+                  <span className="hidden sm:inline">Seeds</span>
+                </TabsTrigger>
+              )} */}
+          </div>
+          <div className="items-center gap-2 text-sm text-muted-foreground mr-4 md:flex hidden">
+            {pgVersion && (
+              <>
+                <span>PG {pgVersion}</span>
+              </>
+            )}
+            {visibility === 'local' && (
+              <Tooltip>
+                <TooltipTrigger className="group flex gap-1 items-center cursor-default">
+                  <span className="group-data-[state=delayed-open]:text-foreground transition">
+                    Local-only database
+                  </span>
+                  <Info
+                    size={12}
+                    className="group-data-[state=delayed-open]:text-foreground transition"
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end">
+                  <p className="max-w-[28rem] text-center">
+                    This Postgres database lives directly in your browser&apos;s IndexedDB storage
+                    and not in the cloud, so it is only accessible to you.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </TabsList>
 
         {isSmallBreakpoint && (
-          <TabsContent value="chat" className="flex-1 h-full min-h-0 overflow-y-auto">
+          <TabsContent
+            value="chat"
+            className="flex-1 h-full min-h-0 overflow-y-auto mt-0 bg-background"
+          >
             {children}
           </TabsContent>
         )}
-        <TabsContent value="diagram" className="h-full">
+        <TabsContent value="diagram" className="h-full mt-0">
           <div className="h-full flex flex-col gap-3">
             <SchemaGraph databaseId={databaseId} schemas={['public', 'meta']} />
-            <Footer />
           </div>
         </TabsContent>
-        <TabsContent value="migrations" className="h-full">
-          <div className="h-full flex flex-col gap-3">
+        <TabsContent value="migrations" className="h-full mt-0">
+          <div className="h-full flex flex-col">
             <Editor
-              className="py-4 rounded-md bg-[#1e1e1e]"
+              className="py-4 mix-blend-darken dark:mix-blend-lighten"
               language="pgsql"
               value={migrationsSql}
-              theme="vs-dark"
+              theme={isDarkTheme ? 'vs-dark' : 'light'}
               options={{
                 tabSize: 2,
                 minimap: {
@@ -199,12 +234,11 @@ export default function IDE({ children, className }: IDEProps) {
                 await editor.getAction('editor.action.formatDocument')?.run()
               }}
             />
-            <Footer />
           </div>
         </TabsContent>
         {/* Temporarily hide seeds until we get pg_dump working */}
         {false && (
-          <TabsContent value="seeds" className="h-full py-4 rounded-md bg-[#1e1e1e]">
+          <TabsContent value="seeds" className="h-full py-4 bg-[#1e1e1e]">
             <Editor
               language="pgsql"
               theme="vs-dark"
@@ -243,30 +277,6 @@ export default function IDE({ children, className }: IDEProps) {
           </TabsContent>
         )}
       </Tabs>
-    </div>
-  )
-}
-
-function Footer() {
-  return (
-    <div className="flex flex-row gap-1 pb-1 text-xs text-neutral-500 text-center justify-center">
-      <a
-        className="underline cursor-pointer"
-        href="https://github.com/supabase-community/database-build"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Learn about database.build
-      </a>{' '}
-      |{' '}
-      <a
-        className="underline cursor-pointer"
-        href="https://github.com/supabase-community/database-build/issues/new/choose"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Report an issue
-      </a>
     </div>
   )
 }
