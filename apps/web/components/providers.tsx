@@ -11,7 +11,14 @@ const queryClient = new QueryClient()
 
 async function registerServiceWorker() {
   try {
-    await navigator.serviceWorker.register('/sw.mjs')
+    const reg = await navigator.serviceWorker.getRegistration()
+
+    // If this was a hard refresh (no controller), browsers will disable service workers
+    // We should soft reload the page to ensure the service worker is active
+    if (reg?.active && !navigator.serviceWorker.controller) {
+      window.location.reload()
+    }
+    await navigator.serviceWorker.register('/sw.mjs', { scope: '/' })
   } catch (error) {
     console.error('Failed to register service worker', error)
   }
