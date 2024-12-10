@@ -549,6 +549,26 @@ export default function Chat() {
           )}
           onSubmit={handleFormSubmit}
         >
+          {' '}
+          {/*
+           * This is a hidden dummy message acting as an animation anchor
+           * before the real message is added to the chat.
+           *
+           * The animation starts in this element's position and moves over to
+           * the location of the real message after submit.
+           *
+           * It works by sharing the same `layoutId` between both message elements
+           * which framer motion requires to animate between them.
+           */}
+          {input && (
+            <m.div
+              layout="position"
+              layoutId={nextMessageId}
+              className="absolute invisible -top-12 px-5 py-2.5 text-base rounded-3xl bg-neutral-100 whitespace-pre-wrap"
+            >
+              {input}
+            </m.div>
+          )}
           <textarea
             ref={inputRef}
             id="input"

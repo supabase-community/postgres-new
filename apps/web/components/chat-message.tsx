@@ -35,6 +35,7 @@ function ChatMessage({ message, isLast }: ChatMessageProps) {
       return (
         <m.div
           // Only track layout on the last message to improve performance
+          layoutId={isLast ? message.id : undefined}
           variants={{
             hidden: {
               opacity: 0,
