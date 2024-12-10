@@ -49,7 +49,7 @@ export default function Layout({ children }: LayoutProps) {
           {!isAuthRequired || (!!databases?.length && databases.length > 0) ? (
             <Header />
           ) : (
-            <div className="fixed top-8 left-8 w-[419px] max-w-full flex justify-between z-20">
+            <div className="fixed top-8 left-8 w-[419px] max-w-full hidden lg:flex justify-between z-20">
               <span className="text-sm text-muted-foreground font-mono">database.build</span>
               <Link
                 href="https://supabase.com"
