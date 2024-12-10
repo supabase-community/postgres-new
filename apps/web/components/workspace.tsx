@@ -1,15 +1,7 @@
 'use client'
 
 import { CreateMessage, Message, useChat, UseChatHelpers } from 'ai/react'
-import {
-  createContext,
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react'
+import { createContext, Dispatch, SetStateAction, useCallback, useContext, useState } from 'react'
 import { useMessageCreateMutation } from '~/data/messages/message-create-mutation'
 import { useMessagesQuery } from '~/data/messages/messages-query'
 import { useTablesQuery } from '~/data/tables/tables-query'
@@ -18,13 +10,11 @@ import { TabValue } from '~/lib/schema'
 import { useBreakpoint } from '~/lib/use-breakpoint'
 import { ensureMessageId, ensureToolResult } from '~/lib/util'
 import { useApp } from './app-provider'
-import Chat, { getInitialMessages } from './chat'
+import Chat from './chat'
 import IDE from './ide'
-import Sidebar from './sidebar'
 import LiveShareOverlay from './live-share'
-import Image from 'next/image'
-import emptyState from '~/public/images/empty.png'
 import EmptyStateGraph from './schema/empty-state-graph'
+import Sidebar from './sidebar'
 
 // TODO: support public/private DBs that live in the cloud
 export type Visibility = 'local'
@@ -84,8 +74,6 @@ export default function Workspace({
   })
   const { data: existingMessages, isLoading: isLoadingMessages } = useMessagesQuery(databaseId)
 
-  const initialMessages = useMemo(() => (tables ? getInitialMessages(tables) : undefined), [tables])
-
   const { messages, setMessages, append, stop } = useChat({
     id: databaseId,
     api: '/api/chat',
@@ -95,8 +83,7 @@ export default function Workspace({
     body: {
       databaseId,
     },
-    initialMessages:
-      existingMessages && existingMessages.length > 0 ? existingMessages : initialMessages,
+    initialMessages: existingMessages && existingMessages.length > 0 ? existingMessages : undefined,
     async onFinish(message) {
       setModelProviderError(undefined)
 
@@ -149,8 +136,7 @@ export default function Workspace({
 
   const [tab, setTab] = useState<TabValue>('diagram')
 
-  const isConversationStarted =
-    initialMessages !== undefined && messages.length > initialMessages.length
+  const isConversationStarted = messages.length > 0
 
   return (
     <WorkspaceContext.Provider

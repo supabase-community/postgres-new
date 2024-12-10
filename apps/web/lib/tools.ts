@@ -36,7 +36,10 @@ export const tools = {
   getDatabaseSchema: {
     description:
       'Gets all table and column data within the public schema in the Postgres database.',
-    args: z.object({}),
+    args: z.object({
+      // Temporary hack to get Claude+AI SDK to work, since Claude passes "" instead of "{}" for empty objects
+      getSchema: z.boolean().describe('Always set this to true'),
+    }),
     result: result(
       z.object({
         tables: tableSchema,

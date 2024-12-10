@@ -1,9 +1,9 @@
 'use client'
 
-import { Message, generateId } from 'ai'
+import { generateId } from 'ai'
 import { useChat } from 'ai/react'
 import { AnimatePresence, m } from 'framer-motion'
-import { AlertCircle, ArrowDown, ArrowUp, Flame, Paperclip, PlugIcon, Square } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, Flame, Paperclip, Square } from 'lucide-react'
 import {
   FormEventHandler,
   useCallback,
@@ -15,7 +15,6 @@ import {
 } from 'react'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
-import { TablesData } from '~/data/tables/tables-query'
 import { saveFile } from '~/lib/files'
 import { useAutoScroll, useDropZone } from '~/lib/hooks'
 import { requestFileUpload } from '~/lib/util'
@@ -24,32 +23,8 @@ import { AiIconAnimation } from './ai-icon-animation'
 import { useApp } from './app-provider'
 import ByoLlmButton from './byo-llm-button'
 import ChatMessage from './chat-message'
-import { CopyableField } from './copyable-field'
 import SignInButton from './sign-in-button'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { useWorkspace } from './workspace'
-
-export function getInitialMessages(tables: TablesData): Message[] {
-  return [
-    // An artificial tool call containing the DB schema
-    // as if it was already called by the LLM
-    {
-      id: generateId(),
-      role: 'assistant',
-      content: '',
-      toolInvocations: [
-        {
-          state: 'result',
-          toolCallId: generateId(),
-          toolName: 'getDatabaseSchema',
-          args: {},
-          result: tables,
-        },
-      ],
-    },
-  ]
-}
 
 export default function Chat() {
   const {
